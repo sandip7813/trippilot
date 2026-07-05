@@ -1,0 +1,77 @@
+<?php
+
+use App\Models\Trip;
+use App\Models\User;
+
+test('users have a default role of user', function () {
+    $user = User::factory()->create();
+
+    expect($user->role->value)->toBe('user');
+});
+
+test('admin middleware blocks regular users from admin panel', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $this->get(route('admin.dashboard'))->assertForbidden();
+});
+
+test('admin users can access admin dashboard', function () {
+    $user = User::factory()->admin()->create();
+    $this->actingAs($user);
+
+    $this->get(route('admin.dashboard'))->assertOk();
+});
+
+test('super admin users can access admin dashboard', function () {
+    $user = User::factory()->superAdmin()->create();
+    $this->actingAs($user);
+
+    $this->get(route('admin.dashboard'))->assertOk();
+});
+
+test('super admin middleware blocks admins from super admin settings', function () {
+    $user = User::factory()->admin()->create();
+    $this->actingAs($user);
+
+    $this->get(route('admin.super.settings'))->assertForbidden();
+});
+
+test('super admin users can access super admin settings', function () {
+    $user = User::factory()->superAdmin()->create();
+    $this->actingAs($user);
+
+    $this->get(route('admin.super.settings'))->assertOk();
+});
+
+test('authenticated users can visit trip placeholder pages', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $this->get(route('trips.index'))->assertOk();
+    $this->get(route('road-trips.index'))->assertOk();
+});
+
+test('mongodb connection can persist trip documents', function () {
+    if (! extension_loaded('mongodb')) {
+        $this->markTestSkipped('MongoDB PHP extension is not installed.');
+    }
+
+    try {
+        Trip::query()->where('_id', '!=', null)->limit(1)->get();
+    } catch (\Throwable $exception) {
+        $this->markTestSkipped('MongoDB is not available: '.$exception->getMessage());
+    }
+
+    $trip = Trip::query()->create([
+        'user_id' => 1,
+        'type' => 'vacation',
+        'title' => 'Test Trip',
+        'status' => 'draft',
+    ]);
+
+    expect($trip->exists)->toBeTrue()
+        ->and($trip->title)->toBe('Test Trip');
+
+    $trip->delete();
+})->group('mongodb');
