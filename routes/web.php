@@ -11,6 +11,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::patch('trips/{trip}/favorite', [TripController::class, 'toggleFavorite'])
         ->name('trips.favorite');
+    Route::post('trips/{trip}/generate', [TripController::class, 'generateItinerary'])
+        ->middleware('throttle:5,1')
+        ->name('trips.generate');
     Route::resource('trips', TripController::class);
 
     Route::inertia('road-trips', 'RoadTrips/Index')->name('road-trips.index');

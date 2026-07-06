@@ -24,15 +24,17 @@ export type TripLocation = {
 export type TripItinerary = {
     days: Array<{
         day: number;
-        date?: string;
+        date?: string | null;
         title?: string;
         activities?: Array<{
-            time?: string;
+            time?: string | null;
             title: string;
-            notes?: string;
+            notes?: string | null;
         }>;
     }>;
     summary?: string;
+    packing_list?: string[];
+    budget_breakdown?: Record<string, unknown>;
 };
 
 export type Trip = {

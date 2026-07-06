@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\Ai\TripGenerator;
 use App\Services\Ai\Gemini\GeminiClient;
+use App\Services\Ai\Gemini\GeminiTripGenerator;
 use App\Services\Maps\Geoapify\GeoapifyClient;
 use App\Services\Weather\OpenWeatherMap\OpenWeatherMapClient;
 use Illuminate\Support\ServiceProvider;
@@ -60,7 +62,7 @@ class IntegrationServiceProvider extends ServiceProvider
 
         $implementations = [
             'gemini' => [
-                // TripGenerator::class => GeminiTripGenerator::class,
+                TripGenerator::class => GeminiTripGenerator::class,
                 // ChatAssistant::class => GeminiChatAssistant::class,
                 // EmbeddingService::class => GeminiEmbeddingService::class,
             ],

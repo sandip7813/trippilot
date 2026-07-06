@@ -115,7 +115,7 @@ function statusVariant(status: Trip['status']): 'default' | 'secondary' | 'outli
             :title="filter === 'favorites' ? 'No favorite trips' : filter === 'archived' ? 'No archived trips' : 'No trips yet'"
             :description="
                 filter === 'all'
-                    ? 'Create your first trip to start building an itinerary. AI generation arrives in Phase 2.'
+                    ? 'Create your first trip to start building an itinerary. Then generate a plan with AI.'
                     : 'Trips matching this filter will appear here.'
             "
             :icon="MapPinned"

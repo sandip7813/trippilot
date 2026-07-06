@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { Form, Head, Link, router } from '@inertiajs/vue3';
+import { Form, Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     Calendar,
+    Clock,
     Heart,
     MapPin,
     Pencil,
+    Sparkles,
     Trash2,
     Users,
     Wallet,
 } from '@lucide/vue';
+import { computed } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
+import InputError from '@/components/InputError.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,12 +29,14 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import { edit, index as tripsIndex } from '@/routes/trips';
 import type { Trip } from '@/types/trip';
 import { locationLabel, locationRouteLabel } from '@/types/trip';
 
-const { trip } = defineProps<{
+const props = defineProps<{
     trip: Trip;
+    aiConfigured: boolean;
 }>();
 
 defineOptions({
@@ -41,8 +47,30 @@ defineOptions({
     },
 });
 
+const page = usePage();
+
+const hasItinerary = computed(() => (props.trip.itinerary?.days?.length ?? 0) > 0);
+
+const canGenerate = computed(
+    () => props.aiConfigured && Boolean(locationLabel(props.trip.destination)),
+);
+
+const generateHint = computed((): string => {
+    if (!props.aiConfigured) {
+        return 'Add GEMINI_API_KEY to your environment to enable AI generation.';
+    }
+
+    if (!locationLabel(props.trip.destination)) {
+        return 'Set a destination on this trip before generating an itinerary.';
+    }
+
+    return hasItinerary.value
+        ? 'Regenerate the full day-by-day plan with Gemini.'
+        : 'Generate a day-by-day plan tailored to this trip.';
+});
+
 function toggleFavorite(): void {
-    router.patch(`/trips/${trip.id}/favorite`, {}, { preserveScroll: true });
+    router.patch(`/trips/${props.trip.id}/favorite`, {}, { preserveScroll: true });
 }
 
 function formatDate(date: string | null): string {
@@ -183,25 +211,103 @@ function formatDate(date: string | null): string {
         </Card>
 
         <Card>
-            <CardHeader>
-                <CardTitle class="text-base">Itinerary</CardTitle>
+            <CardHeader class="flex flex-row items-start justify-between gap-4">
+                <div>
+                    <CardTitle class="text-base">Itinerary</CardTitle>
+                    <p class="mt-1 text-sm text-muted-foreground">{{ generateHint }}</p>
+                </div>
+                <Form
+                    v-bind="TripController.generateItinerary.form(trip.id)"
+                    v-slot="{ processing }"
+                >
+                    <Button type="submit" :disabled="!canGenerate || processing">
+                        <Spinner v-if="processing" class="mr-2" />
+                        <Sparkles v-else class="mr-2 size-4" />
+                        {{ hasItinerary ? 'Regenerate' : 'Generate with AI' }}
+                    </Button>
+                </Form>
             </CardHeader>
-            <CardContent>
+            <CardContent class="space-y-4">
+                <InputError
+                    :message="(page.props.errors as Record<string, string>).ai"
+                />
+                <InputError
+                    :message="(page.props.errors as Record<string, string>).destination"
+                />
+
                 <p
-                    v-if="!trip.itinerary?.days?.length"
+                    v-if="!hasItinerary"
                     class="text-sm text-muted-foreground"
                 >
-                    No days planned yet. AI itinerary generation arrives in Phase 2 — for now you
-                    can capture trip details above.
+                    No days planned yet. Click generate to build a personalized itinerary with
+                    Gemini.
                 </p>
-                <div v-else class="space-y-4">
+
+                <p
+                    v-if="trip.itinerary?.summary"
+                    class="rounded-lg border border-border/60 bg-muted/20 p-4 text-sm leading-relaxed"
+                >
+                    {{ trip.itinerary.summary }}
+                </p>
+
+                <div v-if="hasItinerary" class="space-y-4">
                     <div
                         v-for="day in trip.itinerary.days"
                         :key="day.day"
                         class="rounded-lg border border-border/60 p-4"
                     >
-                        <h3 class="font-medium">Day {{ day.day }} — {{ day.title }}</h3>
+                        <div class="flex flex-wrap items-baseline justify-between gap-2">
+                            <h3 class="font-medium">
+                                Day {{ day.day }}
+                                <span v-if="day.title">— {{ day.title }}</span>
+                            </h3>
+                            <span v-if="day.date" class="text-xs text-muted-foreground">
+                                {{ formatDate(day.date) }}
+                            </span>
+                        </div>
+
+                        <ul v-if="day.activities?.length" class="mt-4 space-y-3">
+                            <li
+                                v-for="(activity, index) in day.activities"
+                                :key="`${day.day}-${index}`"
+                                class="flex gap-3 text-sm"
+                            >
+                                <Clock
+                                    v-if="activity.time"
+                                    class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                                />
+                                <div>
+                                    <p class="font-medium">
+                                        <span
+                                            v-if="activity.time"
+                                            class="mr-2 text-muted-foreground"
+                                        >
+                                            {{ activity.time }}
+                                        </span>
+                                        {{ activity.title }}
+                                    </p>
+                                    <p
+                                        v-if="activity.notes"
+                                        class="mt-1 text-muted-foreground"
+                                    >
+                                        {{ activity.notes }}
+                                    </p>
+                                </div>
+                            </li>
+                        </ul>
                     </div>
+                </div>
+
+                <div
+                    v-if="trip.itinerary?.packing_list?.length"
+                    class="rounded-lg border border-border/60 p-4"
+                >
+                    <h3 class="text-sm font-medium">Packing list</h3>
+                    <ul class="mt-2 list-inside list-disc space-y-1 text-sm text-muted-foreground">
+                        <li v-for="item in trip.itinerary.packing_list" :key="item">
+                            {{ item }}
+                        </li>
+                    </ul>
                 </div>
             </CardContent>
         </Card>

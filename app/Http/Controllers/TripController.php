@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Trips\GenerateTripItinerary;
 use App\Enums\TravelStyle;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
+use App\Exceptions\AiGenerationException;
 use App\Http\Requests\StoreTripRequest;
 use App\Http\Requests\UpdateTripRequest;
 use App\Models\Trip;
@@ -59,7 +61,12 @@ class TripController extends Controller
             'destination' => Trip::normalizeLocation($validated['destination'] ?? null),
             'status' => $request->enum('status', TripStatus::class) ?? TripStatus::Draft,
             'is_favorite' => false,
-            'itinerary' => ['days' => [], 'summary' => ''],
+            'itinerary' => [
+                'days' => [],
+                'summary' => '',
+                'packing_list' => [],
+                'budget_breakdown' => [],
+            ],
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Trip created.')]);
@@ -73,6 +80,7 @@ class TripController extends Controller
 
         return Inertia::render('Trips/Show', [
             'trip' => $trip->toFrontend(),
+            'aiConfigured' => filled(config('integrations.ai.drivers.gemini.api_key')),
         ]);
     }
 
@@ -129,6 +137,37 @@ class TripController extends Controller
         ]);
 
         return back();
+    }
+
+    public function generateItinerary(Trip $trip, GenerateTripItinerary $generateItinerary): RedirectResponse
+    {
+        $this->authorize('generateItinerary', $trip);
+
+        $destination = Trip::normalizeLocation($trip->getAttribute('destination'));
+
+        if ($destination === null || $destination['label'] === null || $destination['label'] === '') {
+            return back()->withErrors([
+                'destination' => __('Set a destination before generating an itinerary.'),
+            ]);
+        }
+
+        if (! filled(config('integrations.ai.drivers.gemini.api_key'))) {
+            return back()->withErrors([
+                'ai' => __('AI generation is not configured. Add GEMINI_API_KEY to your environment.'),
+            ]);
+        }
+
+        try {
+            $generateItinerary($trip);
+        } catch (AiGenerationException $exception) {
+            return back()->withErrors([
+                'ai' => $exception->getMessage(),
+            ]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Itinerary generated!')]);
+
+        return to_route('trips.show', $trip);
     }
 
     /**

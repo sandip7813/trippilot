@@ -43,6 +43,8 @@ class TripFactory extends Factory
             'itinerary' => [
                 'days' => [],
                 'summary' => '',
+                'packing_list' => [],
+                'budget_breakdown' => [],
             ],
         ];
     }

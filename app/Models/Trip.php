@@ -188,7 +188,7 @@ class Trip extends Model
             'status_label' => $this->status->label(),
             'is_favorite' => $this->is_favorite,
             'notes' => $this->notes,
-            'itinerary' => $this->itinerary ?? ['days' => [], 'summary' => ''],
+            'itinerary' => $this->itineraryForFrontend(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
@@ -197,5 +197,29 @@ class Trip extends Model
     protected static function newFactory(): TripFactory
     {
         return TripFactory::new();
+    }
+
+    /**
+     * @return array{
+     *     days: array<int, mixed>,
+     *     summary: string,
+     *     packing_list: array<int, string>,
+     *     budget_breakdown: array<string, mixed>
+     * }
+     */
+    private function itineraryForFrontend(): array
+    {
+        $itinerary = $this->itinerary ?? [];
+
+        return [
+            'days' => is_array($itinerary['days'] ?? null) ? $itinerary['days'] : [],
+            'summary' => (string) ($itinerary['summary'] ?? ''),
+            'packing_list' => is_array($itinerary['packing_list'] ?? null)
+                ? array_values(array_map(strval(...), $itinerary['packing_list']))
+                : [],
+            'budget_breakdown' => is_array($itinerary['budget_breakdown'] ?? null)
+                ? $itinerary['budget_breakdown']
+                : [],
+        ];
     }
 }

@@ -16,4 +16,22 @@ readonly class GeneratedItinerary
         public array $packingList = [],
         public string $summary = '',
     ) {}
+
+    /**
+     * @return array{
+     *     days: array<int, mixed>,
+     *     summary: string,
+     *     packing_list: array<int, string>,
+     *     budget_breakdown: array<string, mixed>
+     * }
+     */
+    public function toTripItinerary(): array
+    {
+        return [
+            'days' => $this->days,
+            'summary' => $this->summary,
+            'packing_list' => $this->packingList,
+            'budget_breakdown' => $this->budget,
+        ];
+    }
 }
