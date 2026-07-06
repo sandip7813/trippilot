@@ -44,6 +44,16 @@ class User extends Authenticatable
     }
 
     /**
+     * @return array{label: string|null, lat: float|null, lng: float|null, place_id: string|null}|null
+     */
+    public function homeCityLocation(): ?array
+    {
+        $preferences = $this->travel_preferences ?? [];
+
+        return Trip::normalizeLocation($preferences['home_city'] ?? null);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

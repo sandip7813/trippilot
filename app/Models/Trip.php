@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TravelStyle;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
 use Database\Factories\TripFactory;
@@ -14,8 +15,10 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property string $id
  * @property int $user_id
  * @property TripType $type
+ * @property TravelStyle|null $travel_style
  * @property string $title
- * @property string|null $destination
+ * @property array<string, mixed>|null $origin
+ * @property array<string, mixed>|null $destination
  * @property Carbon|null $start_date
  * @property Carbon|null $end_date
  * @property float|null $budget
@@ -42,7 +45,9 @@ class Trip extends Model
     protected $fillable = [
         'user_id',
         'type',
+        'travel_style',
         'title',
+        'origin',
         'destination',
         'start_date',
         'end_date',
@@ -61,6 +66,7 @@ class Trip extends Model
         ['user_id' => 1],
         ['status' => 1],
         ['is_favorite' => 1],
+        ['travel_style' => 1],
         ['created_at' => -1],
     ];
 
@@ -71,13 +77,52 @@ class Trip extends Model
     {
         return [
             'type' => TripType::class,
+            'travel_style' => TravelStyle::class,
             'status' => TripStatus::class,
             'start_date' => 'date',
             'end_date' => 'date',
             'budget' => 'float',
             'travelers' => 'integer',
             'is_favorite' => 'boolean',
+            'origin' => 'array',
+            'destination' => 'array',
             'itinerary' => 'array',
+        ];
+    }
+
+    /**
+     * @return array{label: string|null, lat: float|null, lng: float|null, place_id: string|null}|null
+     */
+    public static function normalizeLocation(mixed $value): ?array
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_string($value)) {
+            return [
+                'label' => $value,
+                'lat' => null,
+                'lng' => null,
+                'place_id' => null,
+            ];
+        }
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $label = $value['label'] ?? null;
+
+        if ($label === null || $label === '') {
+            return null;
+        }
+
+        return [
+            'label' => $label,
+            'lat' => isset($value['lat']) && $value['lat'] !== '' ? (float) $value['lat'] : null,
+            'lng' => isset($value['lng']) && $value['lng'] !== '' ? (float) $value['lng'] : null,
+            'place_id' => $value['place_id'] ?? null,
         ];
     }
 
@@ -122,13 +167,19 @@ class Trip extends Model
      */
     public function toFrontend(): array
     {
+        $origin = self::normalizeLocation($this->getAttribute('origin'));
+        $destination = self::normalizeLocation($this->getAttribute('destination'));
+
         return [
             'id' => (string) $this->id,
             'user_id' => $this->user_id,
             'type' => $this->type->value,
             'type_label' => $this->type->label(),
+            'travel_style' => $this->travel_style?->value,
+            'travel_style_label' => $this->travel_style?->label(),
             'title' => $this->title,
-            'destination' => $this->destination,
+            'origin' => $origin,
+            'destination' => $destination,
             'start_date' => $this->start_date?->toDateString(),
             'end_date' => $this->end_date?->toDateString(),
             'budget' => $this->budget,

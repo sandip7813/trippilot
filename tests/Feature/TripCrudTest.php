@@ -10,7 +10,9 @@ function validTripPayload(array $overrides = []): array
 {
     return array_merge([
         'title' => 'Tokyo Adventure',
-        'destination' => 'Tokyo, Japan',
+        'destination' => [
+            'label' => 'Tokyo, Japan',
+        ],
         'type' => 'vacation',
         'start_date' => now()->addWeek()->toDateString(),
         'end_date' => now()->addWeeks(2)->toDateString(),
@@ -60,11 +62,18 @@ test('authenticated users can list their trips', function () {
             ->where('trips.0.title', 'My Trip'));
 });
 
-test('users can create a trip', function () {
+test('users can create a trip with structured locations', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->post(route('trips.store'), validTripPayload())
+        ->post(route('trips.store'), validTripPayload([
+            'travel_style' => 'family',
+            'origin' => [
+                'label' => 'Mumbai, India',
+                'lat' => 19.076,
+                'lng' => 72.8777,
+            ],
+        ]))
         ->assertRedirect();
 
     $trip = Trip::query()
@@ -74,8 +83,52 @@ test('users can create a trip', function () {
 
     expect($trip)->not->toBeNull()
         ->and($trip->title)->toBe('Tokyo Adventure')
-        ->and($trip->destination)->toBe('Tokyo, Japan')
+        ->and($trip->destination)->toMatchArray([
+            'label' => 'Tokyo, Japan',
+            'lat' => null,
+            'lng' => null,
+            'place_id' => null,
+        ])
+        ->and($trip->origin)->toMatchArray([
+            'label' => 'Mumbai, India',
+            'lat' => 19.076,
+            'lng' => 72.8777,
+            'place_id' => null,
+        ])
+        ->and($trip->travel_style?->value)->toBe('family')
         ->and($trip->status->value)->toBe('draft');
+});
+
+test('road trips require an origin', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'type' => 'road',
+            'origin' => ['label' => ''],
+        ]))
+        ->assertSessionHasErrors(['origin.label']);
+});
+
+test('trip create page includes default origin from profile home city', function () {
+    $user = User::factory()->create([
+        'travel_preferences' => [
+            'home_city' => [
+                'label' => 'Delhi, India',
+                'lat' => null,
+                'lng' => null,
+                'place_id' => null,
+            ],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('trips.create'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Trips/Create')
+            ->where('defaultOrigin.label', 'Delhi, India')
+            ->has('travelStyles'));
 });
 
 test('trip creation validates required fields', function () {

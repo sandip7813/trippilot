@@ -17,6 +17,7 @@ import { dashboard } from '@/routes';
 import { index as roadTripsIndex } from '@/routes/road-trips';
 import { create, index as tripsIndex, show } from '@/routes/trips';
 import type { Trip } from '@/types/trip';
+import { locationLabel } from '@/types/trip';
 
 defineProps<{
     stats: {
@@ -132,7 +133,7 @@ const quickActions = [
                     <div class="min-w-0">
                         <p class="truncate font-medium">{{ trip.title }}</p>
                         <p class="truncate text-sm text-muted-foreground">
-                            {{ trip.destination ?? 'No destination' }}
+                            {{ locationLabel(trip.destination) ?? 'No destination' }}
                         </p>
                     </div>
                     <Badge variant="outline">{{ trip.status_label }}</Badge>

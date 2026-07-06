@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { edit, index as tripsIndex } from '@/routes/trips';
 import type { Trip } from '@/types/trip';
+import { locationLabel, locationRouteLabel } from '@/types/trip';
 
 const { trip } = defineProps<{
     trip: Trip;
@@ -62,7 +63,10 @@ function formatDate(date: string | null): string {
     <Head :title="trip.title" />
 
     <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
-        <PageHeader :title="trip.title" :description="trip.destination ?? 'No destination set'">
+        <PageHeader
+            :title="trip.title"
+            :description="locationRouteLabel(trip.origin, trip.destination)"
+        >
             <template #actions>
                 <Button
                     variant="outline"
@@ -109,6 +113,9 @@ function formatDate(date: string | null): string {
         <div class="flex flex-wrap gap-2">
             <Badge>{{ trip.status_label }}</Badge>
             <Badge variant="outline">{{ trip.type_label }}</Badge>
+            <Badge v-if="trip.travel_style_label" variant="secondary">
+                {{ trip.travel_style_label }}
+            </Badge>
         </div>
 
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -148,10 +155,19 @@ function formatDate(date: string | null): string {
                 <CardHeader class="pb-2">
                     <CardTitle class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                         <MapPin class="size-4" />
-                        Destination
+                        Route
                     </CardTitle>
                 </CardHeader>
-                <CardContent class="text-sm">{{ trip.destination ?? 'Not set' }}</CardContent>
+                <CardContent class="space-y-1 text-sm">
+                    <p v-if="locationLabel(trip.origin)">
+                        <span class="text-muted-foreground">From:</span>
+                        {{ locationLabel(trip.origin) }}
+                    </p>
+                    <p>
+                        <span class="text-muted-foreground">To:</span>
+                        {{ locationLabel(trip.destination) ?? 'Not set' }}
+                    </p>
+                </CardContent>
             </Card>
         </div>
 

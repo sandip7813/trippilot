@@ -13,6 +13,7 @@ const { trip } = defineProps<{
     trip: Trip;
     tripTypes: TripOption[];
     tripStatuses: TripOption[];
+    travelStyles: TripOption[];
 }>();
 
 defineOptions({
@@ -42,6 +43,7 @@ defineOptions({
                 :trip="trip"
                 :trip-types="tripTypes"
                 :trip-statuses="tripStatuses"
+                :travel-styles="travelStyles"
                 :errors="errors"
                 show-status
             />

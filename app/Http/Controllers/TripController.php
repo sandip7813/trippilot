@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TravelStyle;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
 use App\Http\Requests\StoreTripRequest;
@@ -37,19 +38,25 @@ class TripController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         return Inertia::render('Trips/Create', [
             'tripTypes' => $this->tripTypeOptions(),
             'tripStatuses' => $this->tripStatusOptions(),
+            'travelStyles' => $this->travelStyleOptions(),
+            'defaultOrigin' => $request->user()->homeCityLocation(),
         ]);
     }
 
     public function store(StoreTripRequest $request): RedirectResponse
     {
+        $validated = $request->validated();
+
         $trip = Trip::query()->create([
-            ...$request->validated(),
+            ...$validated,
             'user_id' => $request->user()->id,
+            'origin' => Trip::normalizeLocation($validated['origin'] ?? null),
+            'destination' => Trip::normalizeLocation($validated['destination'] ?? null),
             'status' => $request->enum('status', TripStatus::class) ?? TripStatus::Draft,
             'is_favorite' => false,
             'itinerary' => ['days' => [], 'summary' => ''],
@@ -77,6 +84,7 @@ class TripController extends Controller
             'trip' => $trip->toFrontend(),
             'tripTypes' => $this->tripTypeOptions(),
             'tripStatuses' => $this->tripStatusOptions(),
+            'travelStyles' => $this->travelStyleOptions(),
         ]);
     }
 
@@ -84,7 +92,17 @@ class TripController extends Controller
     {
         $this->authorize('update', $trip);
 
-        $trip->update($request->validated());
+        $validated = $request->validated();
+
+        if (array_key_exists('origin', $validated)) {
+            $validated['origin'] = Trip::normalizeLocation($validated['origin']);
+        }
+
+        if (array_key_exists('destination', $validated)) {
+            $validated['destination'] = Trip::normalizeLocation($validated['destination']);
+        }
+
+        $trip->update($validated);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Trip updated.')]);
 
@@ -136,6 +154,20 @@ class TripController extends Controller
             ->map(fn (TripStatus $status): array => [
                 'value' => $status->value,
                 'label' => $status->label(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    protected function travelStyleOptions(): array
+    {
+        return collect(TravelStyle::cases())
+            ->map(fn (TravelStyle $style): array => [
+                'value' => $style->value,
+                'label' => $style->label(),
             ])
             ->values()
             ->all();

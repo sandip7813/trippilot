@@ -20,6 +20,7 @@ test('profile information can be updated', function () {
         ->patch(route('profile.update'), [
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'home_city' => 'Bangalore, India',
         ]);
 
     $response
@@ -31,6 +32,12 @@ test('profile information can be updated', function () {
     expect($user->name)->toBe('Test User');
     expect($user->email)->toBe('test@example.com');
     expect($user->email_verified_at)->toBeNull();
+    expect($user->travel_preferences['home_city'])->toMatchArray([
+        'label' => 'Bangalore, India',
+        'lat' => null,
+        'lng' => null,
+        'place_id' => null,
+    ]);
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {

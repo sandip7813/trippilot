@@ -25,6 +25,14 @@ defineOptions({
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+
+const homeCity = computed((): string => {
+    const preferences = user.value?.travel_preferences as
+        | { home_city?: { label?: string } }
+        | undefined;
+
+    return preferences?.home_city?.label ?? '';
+});
 </script>
 
 <template>
@@ -36,7 +44,7 @@ const user = computed(() => page.props.auth.user);
         <Heading
             variant="small"
             title="Profile"
-            description="Update your name and email address"
+            description="Update your name, email, and default home city for new trips"
         />
 
         <Form
@@ -71,6 +79,22 @@ const user = computed(() => page.props.auth.user);
                     placeholder="Email address"
                 />
                 <InputError class="mt-2" :message="errors.email" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="home_city">Home city</Label>
+                <Input
+                    id="home_city"
+                    class="mt-1 block w-full"
+                    name="home_city"
+                    :default-value="homeCity"
+                    autocomplete="address-level2"
+                    placeholder="Mumbai, India"
+                />
+                <p class="text-xs text-muted-foreground">
+                    Used as the default starting point when you create a new trip.
+                </p>
+                <InputError class="mt-2" :message="errors.home_city" />
             </div>
 
             <div v-if="page.props.mustVerifyEmail && !user.email_verified_at">

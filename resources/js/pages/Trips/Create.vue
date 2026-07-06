@@ -7,11 +7,13 @@ import TripFormFields from '@/components/TripFormFields.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { create, index as tripsIndex } from '@/routes/trips';
-import type { TripOption } from '@/types/trip';
+import type { TripLocation, TripOption } from '@/types/trip';
 
 defineProps<{
     tripTypes: TripOption[];
     tripStatuses: TripOption[];
+    travelStyles: TripOption[];
+    defaultOrigin: TripLocation | null;
 }>();
 
 defineOptions({
@@ -30,7 +32,7 @@ defineOptions({
     <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-4 md:p-6">
         <PageHeader
             title="New trip"
-            description="Start with the basics — you can build out the itinerary later."
+            description="Tell us where you're going — origin, destination, and travel style."
         />
 
         <Form
@@ -38,7 +40,12 @@ defineOptions({
             v-slot="{ errors, processing }"
             class="space-y-6"
         >
-            <TripFormFields :trip-types="tripTypes" :errors="errors" />
+            <TripFormFields
+                :trip-types="tripTypes"
+                :travel-styles="travelStyles"
+                :default-origin="defaultOrigin"
+                :errors="errors"
+            />
 
             <div class="flex items-center gap-3">
                 <Button type="submit" :disabled="processing">

@@ -1,16 +1,28 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import LocationField from '@/components/LocationField.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Trip, TripOption } from '@/types/trip';
+import type { Trip, TripLocation, TripOption } from '@/types/trip';
 
-defineProps<{
+const props = defineProps<{
     trip?: Trip;
     tripTypes: TripOption[];
     tripStatuses?: TripOption[];
+    travelStyles?: TripOption[];
+    defaultOrigin?: TripLocation | null;
     errors: Record<string, string>;
     showStatus?: boolean;
 }>();
+
+const selectedType = ref(props.trip?.type ?? 'vacation');
+
+const originLocation = computed(
+    (): TripLocation | null | undefined => props.trip?.origin ?? props.defaultOrigin,
+);
+
+const isRoadTrip = computed(() => selectedType.value === 'road');
 </script>
 
 <template>
@@ -27,31 +39,19 @@ defineProps<{
             <InputError :message="errors.title" />
         </div>
 
-        <div class="grid gap-2">
-            <Label for="destination">Destination</Label>
-            <Input
-                id="destination"
-                name="destination"
-                :default-value="trip?.destination ?? ''"
-                placeholder="Rome, Italy"
-            />
-            <InputError :message="errors.destination" />
-        </div>
-
         <div class="grid gap-4 sm:grid-cols-2">
             <div class="grid gap-2">
-                <Label for="type">Trip type</Label>
+                <Label for="type">Planning mode</Label>
                 <select
                     id="type"
                     name="type"
+                    v-model="selectedType"
                     class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    :default-value="trip?.type ?? 'vacation'"
                 >
                     <option
                         v-for="option in tripTypes"
                         :key="option.value"
                         :value="option.value"
-                        :selected="(trip?.type ?? 'vacation') === option.value"
                     >
                         {{ option.label }}
                     </option>
@@ -59,19 +59,57 @@ defineProps<{
                 <InputError :message="errors.type" />
             </div>
 
-            <div class="grid gap-2">
-                <Label for="travelers">Travelers</Label>
-                <Input
-                    id="travelers"
-                    name="travelers"
-                    type="number"
-                    min="1"
-                    max="50"
-                    :default-value="trip?.travelers ?? 1"
-                    required
-                />
-                <InputError :message="errors.travelers" />
+            <div v-if="travelStyles" class="grid gap-2">
+                <Label for="travel_style">Travel style</Label>
+                <select
+                    id="travel_style"
+                    name="travel_style"
+                    class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                    <option value="">Select style (optional)</option>
+                    <option
+                        v-for="option in travelStyles"
+                        :key="option.value"
+                        :value="option.value"
+                        :selected="trip?.travel_style === option.value"
+                    >
+                        {{ option.label }}
+                    </option>
+                </select>
+                <InputError :message="errors.travel_style" />
             </div>
+        </div>
+
+        <LocationField
+            prefix="origin"
+            label="Starting from"
+            :location="originLocation"
+            :errors="errors"
+            :required="isRoadTrip"
+            hint="Where your journey begins. Defaults from your profile home city when set."
+        />
+
+        <LocationField
+            prefix="destination"
+            label="Destination"
+            :location="trip?.destination"
+            :errors="errors"
+            hint="Where you are headed — main place or final stop."
+        />
+
+        <div class="grid gap-2">
+            <Label for="travelers">Travelers</Label>
+            <Input
+                id="travelers"
+                name="travelers"
+                type="number"
+                min="1"
+                max="50"
+                :default-value="trip?.travelers ?? 1"
+                required
+                class="max-w-xs"
+            />
+            <InputError :message="errors.travelers" />
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
@@ -108,6 +146,7 @@ defineProps<{
                 step="0.01"
                 :default-value="trip?.budget ?? ''"
                 placeholder="2500"
+                class="max-w-xs"
             />
             <InputError :message="errors.budget" />
         </div>
@@ -139,7 +178,7 @@ defineProps<{
                 rows="4"
                 class="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 :default-value="trip?.notes ?? ''"
-                placeholder="Travel style, must-see spots, dietary needs..."
+                placeholder="Must-see spots, dietary needs, pace preferences..."
             />
             <InputError :message="errors.notes" />
         </div>

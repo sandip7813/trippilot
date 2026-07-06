@@ -27,7 +27,12 @@ class TripFactory extends Factory
             'user_id' => User::factory(),
             'type' => TripType::Vacation,
             'title' => fake()->sentence(3),
-            'destination' => fake()->city().', '.fake()->country(),
+            'destination' => [
+                'label' => fake()->city().', '.fake()->country(),
+                'lat' => null,
+                'lng' => null,
+                'place_id' => null,
+            ],
             'start_date' => $startDate->format('Y-m-d'),
             'end_date' => $endDate->format('Y-m-d'),
             'budget' => fake()->randomFloat(2, 500, 5000),
@@ -67,6 +72,19 @@ class TripFactory extends Factory
     {
         return $this->state(fn (): array => [
             'user_id' => $user->id,
+        ]);
+    }
+
+    public function road(): static
+    {
+        return $this->state(fn (): array => [
+            'type' => TripType::Road,
+            'origin' => [
+                'label' => fake()->city(),
+                'lat' => null,
+                'lng' => null,
+                'place_id' => null,
+            ],
         ]);
     }
 }

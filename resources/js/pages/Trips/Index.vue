@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { create, index as tripsIndex } from '@/routes/trips';
 import { edit, show } from '@/routes/trips';
 import type { Trip, TripCounts, TripFilter } from '@/types/trip';
+import { locationLabel } from '@/types/trip';
 
 const props = defineProps<{
     trips: Trip[];
@@ -144,11 +145,11 @@ function statusVariant(status: Trip['status']): 'default' | 'secondary' | 'outli
                                 </Link>
                             </CardTitle>
                             <p
-                                v-if="trip.destination"
+                                v-if="locationLabel(trip.destination)"
                                 class="mt-1 flex items-center gap-1 text-sm text-muted-foreground"
                             >
                                 <MapPin class="size-3.5 shrink-0" />
-                                {{ trip.destination }}
+                                {{ locationLabel(trip.destination) }}
                             </p>
                         </div>
                         <Button
@@ -166,6 +167,9 @@ function statusVariant(status: Trip['status']): 'default' | 'secondary' | 'outli
                     <div class="flex flex-wrap gap-2">
                         <Badge :variant="statusVariant(trip.status)">{{ trip.status_label }}</Badge>
                         <Badge variant="outline">{{ trip.type_label }}</Badge>
+                        <Badge v-if="trip.travel_style_label" variant="secondary">
+                            {{ trip.travel_style_label }}
+                        </Badge>
                     </div>
                     <div class="space-y-1.5 text-sm text-muted-foreground">
                         <p class="flex items-center gap-2">
