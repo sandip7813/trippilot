@@ -1,0 +1,180 @@
+<?php
+
+use App\Models\Trip;
+use App\Models\User;
+
+/**
+ * @return array<string, mixed>
+ */
+function validTripPayload(array $overrides = []): array
+{
+    return array_merge([
+        'title' => 'Tokyo Adventure',
+        'destination' => 'Tokyo, Japan',
+        'type' => 'vacation',
+        'start_date' => now()->addWeek()->toDateString(),
+        'end_date' => now()->addWeeks(2)->toDateString(),
+        'budget' => 3000,
+        'travelers' => 2,
+        'notes' => 'Cherry blossom season',
+    ], $overrides);
+}
+
+function skipUnlessMongoDbAvailable(): void
+{
+    if (! extension_loaded('mongodb')) {
+        test()->markTestSkipped('MongoDB PHP extension is not installed.');
+    }
+
+    try {
+        Trip::query()->where('_id', '!=', null)->limit(1)->get();
+    } catch (Throwable $exception) {
+        test()->markTestSkipped('MongoDB is not available: '.$exception->getMessage());
+    }
+}
+
+beforeEach(function () {
+    skipUnlessMongoDbAvailable();
+
+    Trip::query()->whereNotNull('_id')->delete();
+});
+
+test('guests cannot access trip pages', function () {
+    $this->get(route('trips.index'))->assertRedirect(route('login'));
+    $this->get(route('trips.create'))->assertRedirect(route('login'));
+});
+
+test('authenticated users can list their trips', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    Trip::factory()->forUser($user)->create(['title' => 'My Trip']);
+    Trip::factory()->forUser($other)->create(['title' => 'Other Trip']);
+
+    $this->actingAs($user)
+        ->get(route('trips.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Trips/Index')
+            ->has('trips', 1)
+            ->where('trips.0.title', 'My Trip'));
+});
+
+test('users can create a trip', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload())
+        ->assertRedirect();
+
+    $trip = Trip::query()
+        ->where('user_id', $user->id)
+        ->where('title', 'Tokyo Adventure')
+        ->first();
+
+    expect($trip)->not->toBeNull()
+        ->and($trip->title)->toBe('Tokyo Adventure')
+        ->and($trip->destination)->toBe('Tokyo, Japan')
+        ->and($trip->status->value)->toBe('draft');
+});
+
+test('trip creation validates required fields', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), [])
+        ->assertSessionHasErrors(['title', 'type', 'travelers']);
+});
+
+test('users can view their own trip', function () {
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create();
+
+    $this->actingAs($user)
+        ->get(route('trips.show', $trip))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Trips/Show')
+            ->where('trip.id', (string) $trip->id));
+});
+
+test('users cannot view another users trip', function () {
+    $owner = User::factory()->create();
+    $intruder = User::factory()->create();
+    $trip = Trip::factory()->forUser($owner)->create();
+
+    $this->actingAs($intruder)
+        ->get(route('trips.show', $trip))
+        ->assertForbidden();
+});
+
+test('users can update their trip', function () {
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create(['title' => 'Old Title']);
+
+    $this->actingAs($user)
+        ->put(route('trips.update', $trip), validTripPayload(['title' => 'New Title']))
+        ->assertRedirect(route('trips.show', $trip));
+
+    expect($trip->fresh()->title)->toBe('New Title');
+});
+
+test('users cannot update another users trip', function () {
+    $owner = User::factory()->create();
+    $intruder = User::factory()->create();
+    $trip = Trip::factory()->forUser($owner)->create();
+
+    $this->actingAs($intruder)
+        ->put(route('trips.update', $trip), validTripPayload())
+        ->assertForbidden();
+});
+
+test('users can delete their trip', function () {
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create();
+
+    $this->actingAs($user)
+        ->delete(route('trips.destroy', $trip))
+        ->assertRedirect(route('trips.index'));
+
+    expect(Trip::query()->find($trip->id))->toBeNull();
+});
+
+test('users can toggle trip favorite', function () {
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create(['is_favorite' => false]);
+
+    $this->actingAs($user)
+        ->patch(route('trips.favorite', $trip))
+        ->assertRedirect();
+
+    expect($trip->fresh()->is_favorite)->toBeTrue();
+});
+
+test('trips index filters favorites', function () {
+    $user = User::factory()->create();
+
+    Trip::factory()->forUser($user)->create(['title' => 'Regular']);
+    Trip::factory()->forUser($user)->favorite()->create(['title' => 'Favorite']);
+
+    $this->actingAs($user)
+        ->get(route('trips.index', ['filter' => 'favorites']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('trips', 1)
+            ->where('trips.0.title', 'Favorite'));
+});
+
+test('dashboard shows trip stats', function () {
+    $user = User::factory()->create();
+
+    Trip::factory()->forUser($user)->count(2)->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Dashboard')
+            ->where('stats.trips', 2)
+            ->has('recentTrips', 2));
+});

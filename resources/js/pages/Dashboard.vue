@@ -10,11 +10,22 @@ import {
 } from '@lucide/vue';
 import PageHeader from '@/components/PageHeader.vue';
 import StatCard from '@/components/StatCard.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboard } from '@/routes';
 import { index as roadTripsIndex } from '@/routes/road-trips';
-import { index as tripsIndex } from '@/routes/trips';
+import { create, index as tripsIndex, show } from '@/routes/trips';
+import type { Trip } from '@/types/trip';
+
+defineProps<{
+    stats: {
+        trips: number;
+        road_trips: number;
+        upcoming: string | null;
+    };
+    recentTrips: Trip[];
+}>();
 
 defineOptions({
     layout: {
@@ -33,10 +44,9 @@ const userName = page.props.auth.user?.name?.split(' ')[0] ?? 'Traveler';
 const quickActions = [
     {
         title: 'Plan a vacation',
-        description: 'Create an AI-assisted itinerary for your next getaway.',
-        href: tripsIndex(),
+        description: 'Create a new trip and start building your itinerary.',
+        href: create(),
         icon: Map,
-        badge: 'Phase 1',
     },
     {
         title: 'Map a road trip',
@@ -52,7 +62,6 @@ const quickActions = [
     <Head title="Dashboard" />
 
     <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
-        <!-- Welcome banner -->
         <div
             class="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-sky-500/5 p-6 md:p-8"
         >
@@ -71,7 +80,7 @@ const quickActions = [
                     </p>
                 </div>
                 <Button as-child class="shrink-0 self-start sm:self-center">
-                    <Link :href="tripsIndex()">
+                    <Link :href="create()">
                         <Sparkles class="mr-2 size-4" />
                         New trip
                     </Link>
@@ -79,37 +88,60 @@ const quickActions = [
             </div>
         </div>
 
-        <!-- Stats -->
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <StatCard
                 label="Trips"
-                value="0"
-                hint="Create your first itinerary in Phase 1"
+                :value="stats.trips"
+                hint="Active vacation itineraries"
                 :icon="MapPinned"
                 accent="primary"
             />
             <StatCard
                 label="Road trips"
-                value="0"
-                hint="Route planning arrives in Phase 5"
+                :value="stats.road_trips"
+                hint="Road trip planning in Phase 5"
                 :icon="Route"
                 accent="sky"
             />
             <StatCard
                 label="Upcoming"
-                value="—"
-                hint="No scheduled departures yet"
+                :value="stats.upcoming ?? '—'"
+                hint="Next scheduled departure"
                 :icon="CalendarDays"
                 accent="amber"
             />
         </div>
 
-        <!-- Quick actions -->
+        <Card v-if="recentTrips.length > 0" class="border-sidebar-border/70 dark:border-sidebar-border">
+            <CardHeader class="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle class="text-base">Recent trips</CardTitle>
+                    <CardDescription>Pick up where you left off</CardDescription>
+                </div>
+                <Button variant="ghost" size="sm" as-child>
+                    <Link :href="tripsIndex()">View all</Link>
+                </Button>
+            </CardHeader>
+            <CardContent class="space-y-3">
+                <Link
+                    v-for="trip in recentTrips"
+                    :key="trip.id"
+                    :href="show(trip.id)"
+                    class="flex items-center justify-between rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/40"
+                >
+                    <div class="min-w-0">
+                        <p class="truncate font-medium">{{ trip.title }}</p>
+                        <p class="truncate text-sm text-muted-foreground">
+                            {{ trip.destination ?? 'No destination' }}
+                        </p>
+                    </div>
+                    <Badge variant="outline">{{ trip.status_label }}</Badge>
+                </Link>
+            </CardContent>
+        </Card>
+
         <div>
-            <PageHeader
-                title="Quick actions"
-                description="Jump into the features we're building next."
-            />
+            <PageHeader title="Quick actions" description="Jump into planning." />
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <Card
                     v-for="action in quickActions"
@@ -124,6 +156,7 @@ const quickActions = [
                                 <component :is="action.icon" class="size-5" />
                             </div>
                             <span
+                                v-if="action.badge"
                                 class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
                             >
                                 {{ action.badge }}
@@ -145,58 +178,5 @@ const quickActions = [
                 </Card>
             </div>
         </div>
-
-        <!-- Getting started -->
-        <Card class="border-sidebar-border/70 dark:border-sidebar-border">
-            <CardHeader>
-                <CardTitle class="text-base">Getting started</CardTitle>
-                <CardDescription>
-                    TripPilot is under active development. Here's what's coming next.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ol class="space-y-3 text-sm">
-                    <li class="flex items-start gap-3">
-                        <span
-                            class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
-                        >
-                            1
-                        </span>
-                        <div>
-                            <p class="font-medium">Trip CRUD</p>
-                            <p class="text-muted-foreground">
-                                Create, edit, and manage vacation itineraries stored in MongoDB.
-                            </p>
-                        </div>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span
-                            class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
-                        >
-                            2
-                        </span>
-                        <div>
-                            <p class="font-medium">AI generation</p>
-                            <p class="text-muted-foreground">
-                                Generate full day-by-day plans with Google Gemini.
-                            </p>
-                        </div>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span
-                            class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
-                        >
-                            3
-                        </span>
-                        <div>
-                            <p class="font-medium">Maps & road trips</p>
-                            <p class="text-muted-foreground">
-                                Interactive maps, routing, and weather along your route.
-                            </p>
-                        </div>
-                    </li>
-                </ol>
-            </CardContent>
-        </Card>
     </div>
 </template>
