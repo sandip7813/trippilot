@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { MapPinned, Plus } from '@lucide/vue';
+import EmptyState from '@/components/EmptyState.vue';
+import PageHeader from '@/components/PageHeader.vue';
+import { Button } from '@/components/ui/button';
 import { index as tripsIndex } from '@/routes/trips';
 
 defineOptions({
@@ -17,13 +21,24 @@ defineOptions({
 <template>
     <Head title="Trips" />
 
-    <div class="flex h-full flex-1 flex-col gap-4 p-4">
-        <div class="rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border">
-            <h1 class="text-2xl font-semibold">Trips</h1>
-            <p class="mt-2 text-sm text-muted-foreground">
-                Plan and manage your vacation itineraries. Full trip CRUD
-                arrives in Phase 1.
-            </p>
-        </div>
+    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
+        <PageHeader
+            title="Trips"
+            description="Plan and manage your vacation itineraries."
+            :icon="MapPinned"
+        >
+            <template #actions>
+                <Button disabled>
+                    <Plus class="mr-2 size-4" />
+                    New trip
+                </Button>
+            </template>
+        </PageHeader>
+
+        <EmptyState
+            title="No trips yet"
+            description="Your vacation itineraries will appear here. Full trip creation and editing arrives in Phase 1 — you'll be able to build day-by-day plans with AI assistance."
+            :icon="MapPinned"
+        />
     </div>
 </template>

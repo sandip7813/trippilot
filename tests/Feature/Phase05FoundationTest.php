@@ -75,3 +75,14 @@ test('mongodb connection can persist trip documents', function () {
 
     $trip->delete();
 })->group('mongodb');
+
+test('inertia shares brand logo from config', function () {
+    config(['trippilot.logo' => 'pin']);
+
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $this->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('brand.logo', 'pin'));
+});

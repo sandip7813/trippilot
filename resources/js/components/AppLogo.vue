@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import TripPilotLogoMark from '@/components/logos/TripPilotLogoMark.vue';
 </script>
 
 <template>
-    <div
-        class="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground"
-    >
-        <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
-    </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold"
-            >Laravel Starter Kit</span
-        >
+    <div class="flex items-center gap-2.5">
+        <div class="flex size-8 shrink-0 items-center justify-center">
+            <TripPilotLogoMark class="size-8" />
+        </div>
+        <div class="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+            <span class="truncate font-semibold tracking-tight">TripPilot</span>
+            <span class="truncate text-xs text-muted-foreground">Plan smarter</span>
+        </div>
     </div>
 </template>

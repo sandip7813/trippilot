@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { Plus, Route } from '@lucide/vue';
+import EmptyState from '@/components/EmptyState.vue';
+import PageHeader from '@/components/PageHeader.vue';
+import { Button } from '@/components/ui/button';
 import { index as roadTripsIndex } from '@/routes/road-trips';
 
 defineOptions({
@@ -17,13 +21,24 @@ defineOptions({
 <template>
     <Head title="Road Trips" />
 
-    <div class="flex h-full flex-1 flex-col gap-4 p-4">
-        <div class="rounded-xl border border-sidebar-border/70 p-6 dark:border-sidebar-border">
-            <h1 class="text-2xl font-semibold">Road Trips</h1>
-            <p class="mt-2 text-sm text-muted-foreground">
-                Plan routes with maps, stops, and estimates. Road trip features
-                arrive in Phase 5.
-            </p>
-        </div>
+    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
+        <PageHeader
+            title="Road Trips"
+            description="Plan scenic drives with maps, stops, and route estimates."
+            :icon="Route"
+        >
+            <template #actions>
+                <Button disabled>
+                    <Plus class="mr-2 size-4" />
+                    New road trip
+                </Button>
+            </template>
+        </PageHeader>
+
+        <EmptyState
+            title="No road trips yet"
+            description="Plot routes, add stops, and see drive times on interactive maps. Road trip planning arrives in Phase 5 with Geoapify integration."
+            :icon="Route"
+        />
     </div>
 </template>

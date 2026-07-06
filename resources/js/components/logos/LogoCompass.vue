@@ -1,0 +1,84 @@
+<script setup lang="ts">
+import { computed, useId } from 'vue';
+import type { HTMLAttributes } from 'vue';
+
+defineOptions({ inheritAttrs: false });
+
+type Props = {
+    className?: HTMLAttributes['class'];
+    variant?: 'default' | 'light';
+};
+
+const props = withDefaults(defineProps<Props>(), {
+    variant: 'default',
+});
+
+const uid = useId();
+const grad = computed(() => `compass-grad-${uid}`);
+const gradLight = computed(() => `compass-grad-light-${uid}`);
+</script>
+
+<template>
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 48 48"
+        fill="none"
+        :class="className"
+        v-bind="$attrs"
+    >
+        <defs>
+            <linearGradient :id="grad" x1="8" y1="40" x2="40" y2="8">
+                <stop offset="0%" stop-color="#0d9488" />
+                <stop offset="100%" stop-color="#38bdf8" />
+            </linearGradient>
+            <linearGradient :id="gradLight" x1="8" y1="40" x2="40" y2="8">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop offset="100%" stop-color="#bae6fd" />
+            </linearGradient>
+        </defs>
+        <circle
+            cx="24"
+            cy="24"
+            r="16"
+            :stroke="variant === 'light' ? `url(#${gradLight})` : `url(#${grad})`"
+            stroke-width="2"
+            opacity="0.35"
+        />
+        <circle
+            cx="24"
+            cy="24"
+            r="10"
+            :stroke="variant === 'light' ? '#ffffff' : '#0d9488'"
+            stroke-width="1.5"
+            opacity="0.5"
+        />
+        <!-- N needle -->
+        <path
+            d="M24 8 L27 22 L24 19 L21 22 Z"
+            :fill="variant === 'light' ? '#ffffff' : '#38bdf8'"
+        />
+        <!-- S needle -->
+        <path
+            d="M24 40 L21 26 L24 29 L27 26 Z"
+            :fill="variant === 'light' ? '#ffffff' : '#0d9488'"
+            opacity="0.45"
+        />
+        <!-- E/W ticks -->
+        <path
+            d="M38 24 L32 22 L32 26 Z"
+            :fill="variant === 'light' ? '#bae6fd' : '#14b8a6'"
+            opacity="0.7"
+        />
+        <path
+            d="M10 24 L16 22 L16 26 Z"
+            :fill="variant === 'light' ? '#bae6fd' : '#14b8a6'"
+            opacity="0.7"
+        />
+        <circle
+            cx="24"
+            cy="24"
+            r="2.5"
+            :fill="variant === 'light' ? '#ffffff' : '#0f766e'"
+        />
+    </svg>
+</template>
