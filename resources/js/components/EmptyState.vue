@@ -10,16 +10,17 @@ defineProps<{
 </script>
 
 <template>
-    <Card class="border-dashed border-sidebar-border/70 dark:border-sidebar-border">
+    <Card class="card-vibrant overflow-hidden border-dashed">
+        <div class="brand-gradient h-1 opacity-80" />
         <CardContent class="flex flex-col items-center justify-center px-6 py-16 text-center">
             <div
                 v-if="icon"
-                class="mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary"
+                class="brand-gradient mb-5 flex size-16 items-center justify-center rounded-2xl text-white shadow-lg shadow-teal-500/25"
             >
-                <component :is="icon" class="size-7" />
+                <component :is="icon" class="size-8" />
             </div>
-            <h2 class="text-lg font-semibold">{{ title }}</h2>
-            <p class="mt-2 max-w-md text-sm text-muted-foreground">
+            <h2 class="text-xl font-bold tracking-tight">{{ title }}</h2>
+            <p class="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
                 {{ description }}
             </p>
             <div v-if="$slots.actions" class="mt-6 flex flex-wrap items-center justify-center gap-3">

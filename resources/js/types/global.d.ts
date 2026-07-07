@@ -22,6 +22,9 @@ declare module '@inertiajs/core' {
             brand: {
                 logo: string;
             };
+            integrations: {
+                locationSearchEnabled: boolean;
+            };
             [key: string]: unknown;
         };
     }

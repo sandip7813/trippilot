@@ -2,23 +2,24 @@
 import { Form, Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
-    Calendar,
-    Clock,
     Heart,
-    MapPin,
+    Maximize2,
+    Minimize2,
     Pencil,
-    Sparkles,
     Trash2,
-    Users,
-    Wallet,
 } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
-import InputError from '@/components/InputError.vue';
+import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
+import LocationCoordinatesAlert from '@/components/LocationCoordinatesAlert.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import TripHubAtAGlance from '@/components/trip-hub/TripHubAtAGlance.vue';
+import TripHubItinerarySection from '@/components/trip-hub/TripHubItinerarySection.vue';
+import TripHubPracticalSection from '@/components/trip-hub/TripHubPracticalSection.vue';
+import TripHubUsefulLinks from '@/components/trip-hub/TripHubUsefulLinks.vue';
+import TripWeatherCard from '@/components/TripWeatherCard.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -29,14 +30,17 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Spinner } from '@/components/ui/spinner';
 import { edit, index as tripsIndex } from '@/routes/trips';
+import { normalizeBudgetBreakdown } from '@/lib/budget';
 import type { Trip } from '@/types/trip';
-import { locationLabel, locationRouteLabel } from '@/types/trip';
+import type { TripWeather } from '@/types/weather';
+import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
+import { cn } from '@/lib/utils';
 
 const props = defineProps<{
     trip: Trip;
     aiConfigured: boolean;
+    weather: TripWeather | null;
 }>();
 
 defineOptions({
@@ -47,276 +51,277 @@ defineOptions({
     },
 });
 
-const page = usePage();
-
-const hasItinerary = computed(() => (props.trip.itinerary?.days?.length ?? 0) > 0);
-
-const canGenerate = computed(
-    () => props.aiConfigured && Boolean(locationLabel(props.trip.destination)),
+const needsDestinationCoordinates = computed(
+    () => Boolean(props.trip.destination?.label) && ! locationHasCoordinates(props.trip.destination),
 );
 
-const generateHint = computed((): string => {
-    if (!props.aiConfigured) {
-        return 'Add GEMINI_API_KEY to your environment to enable AI generation.';
+const page = usePage();
+
+const appCurrency = computed(
+    () => (page.props.currency as { code?: string } | undefined)?.code ?? 'INR',
+);
+
+const hasBudgetBreakdown = computed(() => {
+    if ((props.trip.itinerary?.days?.length ?? 0) === 0) {
+        return false;
     }
 
-    if (!locationLabel(props.trip.destination)) {
-        return 'Set a destination on this trip before generating an itinerary.';
-    }
+    const budget = normalizeBudgetBreakdown(
+        props.trip.itinerary?.budget_breakdown as Record<string, unknown> | undefined,
+        appCurrency.value,
+    );
 
-    return hasItinerary.value
-        ? 'Regenerate the full day-by-day plan with Gemini.'
-        : 'Generate a day-by-day plan tailored to this trip.';
+    return budget.hasLineItems || budget.estimatedTotal !== null;
 });
+
+const hasExtras = computed(
+    () => Boolean(props.trip.notes)
+        || (props.trip.itinerary?.packing_list?.length ?? 0) > 0
+        || hasBudgetBreakdown.value,
+);
 
 function toggleFavorite(): void {
     router.patch(`/trips/${props.trip.id}/favorite`, {}, { preserveScroll: true });
 }
 
-function formatDate(date: string | null): string {
-    if (!date) {
-        return '—';
-    }
-
-    return new Date(date).toLocaleDateString(undefined, {
-        weekday: 'short',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-    });
-}
+const bannerExpanded = ref(false);
 </script>
 
 <template>
     <Head :title="trip.title" />
 
-    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div class="flex flex-1 flex-col gap-8 p-4 md:p-6">
+        <div
+            v-if="trip.cover_image_url"
+            class="relative -mx-4 -mt-4 overflow-hidden rounded-b-2xl shadow-lg md:-mx-6 md:-mt-6"
+            :class="bannerExpanded ? 'bg-muted/30' : ''"
+        >
+            <div
+                :class="cn(
+                    'w-full overflow-hidden',
+                    bannerExpanded
+                        ? 'aspect-[21/9] min-h-[13rem] sm:min-h-[16rem] lg:min-h-[20rem]'
+                        : 'h-40 md:h-52',
+                )"
+            >
+                <img
+                    :src="trip.cover_image_url"
+                    :alt="`${trip.title} destination banner`"
+                    width="1920"
+                    height="900"
+                    fetchpriority="high"
+                    decoding="async"
+                    :class="cn(
+                        'size-full',
+                        bannerExpanded ? 'object-contain object-center' : 'object-cover',
+                    )"
+                />
+            </div>
+            <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                class="absolute top-4 right-4 z-10 size-8 border-border/60 bg-background/85 shadow-sm backdrop-blur-sm"
+                :title="bannerExpanded ? 'Collapse banner' : 'Expand banner'"
+                @click="bannerExpanded = !bannerExpanded"
+            >
+                <Minimize2 v-if="bannerExpanded" class="size-4" />
+                <Maximize2 v-else class="size-4" />
+            </Button>
+            <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+            <div class="absolute inset-x-0 bottom-0 p-4 md:p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                        <h1 class="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+                            {{ trip.title }}
+                        </h1>
+                        <p class="mt-1 text-sm text-muted-foreground">
+                            {{ locationRouteLabel(trip.origin, trip.destination) }}
+                        </p>
+                    </div>
+                    <Button
+                        variant="outline"
+                        as-child
+                        class="shrink-0 border-border/60 bg-background/85 shadow-sm backdrop-blur-sm"
+                    >
+                        <Link :href="tripsIndex()">
+                            <ArrowLeft class="mr-2 size-4" />
+                            Back to trips
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+        </div>
+
         <PageHeader
+            v-if="!trip.cover_image_url"
             :title="trip.title"
             :description="locationRouteLabel(trip.origin, trip.destination)"
         >
             <template #actions>
-                <Button
-                    variant="outline"
-                    size="icon"
-                    :class="trip.is_favorite ? 'text-rose-500' : ''"
-                    @click="toggleFavorite"
-                >
-                    <Heart class="size-4" :class="trip.is_favorite ? 'fill-current' : ''" />
-                </Button>
-                <Button variant="outline" as-child>
-                    <Link :href="edit(trip.id)">
-                        <Pencil class="mr-2 size-4" />
-                        Edit
-                    </Link>
-                </Button>
-                <Dialog>
-                    <DialogTrigger as-child>
-                        <Button variant="destructive">
-                            <Trash2 class="mr-2 size-4" />
-                            Delete
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Delete this trip?</DialogTitle>
-                            <DialogDescription>
-                                This will permanently remove "{{ trip.title }}" and its itinerary.
-                                This action cannot be undone.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                            <DialogClose as-child>
-                                <Button variant="outline">Cancel</Button>
-                            </DialogClose>
-                            <Form v-bind="TripController.destroy.form(trip.id)">
-                                <Button type="submit" variant="destructive">Delete trip</Button>
-                            </Form>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <div class="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" as-child>
+                        <Link :href="tripsIndex()">
+                            <ArrowLeft class="mr-2 size-4" />
+                            Back to trips
+                        </Link>
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        :title="trip.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
+                        :class="trip.is_favorite ? 'text-rose-500' : ''"
+                        @click="toggleFavorite"
+                    >
+                        <Heart class="size-4" :class="trip.is_favorite ? 'fill-current' : ''" />
+                    </Button>
+                    <Button variant="outline" as-child>
+                        <Link :href="edit(trip.id)">
+                            <Pencil class="mr-2 size-4" />
+                            Edit
+                        </Link>
+                    </Button>
+                    <Dialog>
+                        <DialogTrigger as-child>
+                            <Button variant="destructive">
+                                <Trash2 class="mr-2 size-4" />
+                                Delete
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Delete this trip?</DialogTitle>
+                                <DialogDescription>
+                                    This will permanently remove "{{ trip.title }}" and its itinerary.
+                                    This action cannot be undone.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <DialogClose as-child>
+                                    <Button variant="outline">Cancel</Button>
+                                </DialogClose>
+                                <Form
+                                    v-bind="TripController.destroy.form(trip.id)"
+                                    v-slot="{ processing }"
+                                >
+                                    <FormSavingOverlay
+                                        :show="processing"
+                                        message="Deleting trip..."
+                                    />
+                                    <Button type="submit" variant="destructive" :disabled="processing">
+                                        Delete trip
+                                    </Button>
+                                </Form>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </template>
         </PageHeader>
 
+        <div
+            v-else
+            class="flex flex-wrap items-center justify-end gap-2"
+        >
+            <Button
+                variant="outline"
+                size="icon"
+                :title="trip.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
+                :class="trip.is_favorite ? 'text-rose-500' : ''"
+                @click="toggleFavorite"
+            >
+                <Heart class="size-4" :class="trip.is_favorite ? 'fill-current' : ''" />
+            </Button>
+            <Button variant="outline" as-child>
+                <Link :href="edit(trip.id)">
+                    <Pencil class="mr-2 size-4" />
+                    Edit
+                </Link>
+            </Button>
+            <Dialog>
+                <DialogTrigger as-child>
+                    <Button variant="destructive">
+                        <Trash2 class="mr-2 size-4" />
+                        Delete
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete this trip?</DialogTitle>
+                        <DialogDescription>
+                            This will permanently remove "{{ trip.title }}" and its itinerary.
+                            This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose as-child>
+                            <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Form
+                            v-bind="TripController.destroy.form(trip.id)"
+                            v-slot="{ processing }"
+                        >
+                            <FormSavingOverlay
+                                :show="processing"
+                                message="Deleting trip..."
+                            />
+                            <Button type="submit" variant="destructive" :disabled="processing">
+                                Delete trip
+                            </Button>
+                        </Form>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+
         <div class="flex flex-wrap gap-2">
-            <Badge>{{ trip.status_label }}</Badge>
-            <Badge variant="outline">{{ trip.type_label }}</Badge>
-            <Badge v-if="trip.travel_style_label" variant="secondary">
+            <Badge class="bg-teal-500/15 text-teal-800 hover:bg-teal-500/20 dark:text-teal-200">{{ trip.status_label }}</Badge>
+            <Badge variant="outline" class="border-violet-500/30 bg-violet-500/5">{{ trip.type_label }}</Badge>
+            <Badge
+                v-if="trip.travel_style_label"
+                variant="secondary"
+                class="bg-amber-500/15 text-amber-800 dark:text-amber-200"
+            >
                 {{ trip.travel_style_label }}
+            </Badge>
+            <Badge
+                v-if="trip.trip_scope_label"
+                variant="outline"
+                class="border-sky-500/30 bg-sky-500/5"
+            >
+                {{ trip.trip_scope_label }}
             </Badge>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-                <CardHeader class="pb-2">
-                    <CardTitle class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <Calendar class="size-4" />
-                        Dates
-                    </CardTitle>
-                </CardHeader>
-                <CardContent class="text-sm">
-                    <p>{{ formatDate(trip.start_date) }}</p>
-                    <p class="text-muted-foreground">to {{ formatDate(trip.end_date) }}</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader class="pb-2">
-                    <CardTitle class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <Users class="size-4" />
-                        Travelers
-                    </CardTitle>
-                </CardHeader>
-                <CardContent class="text-2xl font-semibold">{{ trip.travelers }}</CardContent>
-            </Card>
-            <Card>
-                <CardHeader class="pb-2">
-                    <CardTitle class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <Wallet class="size-4" />
-                        Budget
-                    </CardTitle>
-                </CardHeader>
-                <CardContent class="text-2xl font-semibold">
-                    {{ trip.budget != null ? `$${trip.budget.toLocaleString()}` : '—' }}
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader class="pb-2">
-                    <CardTitle class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <MapPin class="size-4" />
-                        Route
-                    </CardTitle>
-                </CardHeader>
-                <CardContent class="space-y-1 text-sm">
-                    <p v-if="locationLabel(trip.origin)">
-                        <span class="text-muted-foreground">From:</span>
-                        {{ locationLabel(trip.origin) }}
-                    </p>
-                    <p>
-                        <span class="text-muted-foreground">To:</span>
-                        {{ locationLabel(trip.destination) ?? 'Not set' }}
-                    </p>
-                </CardContent>
-            </Card>
+        <LocationCoordinatesAlert
+            v-if="needsDestinationCoordinates"
+            :edit-url="edit(trip.id)"
+        />
+
+        <div class="grid gap-6 xl:grid-cols-5">
+            <div class="space-y-4 xl:col-span-2">
+                <h2 class="section-heading">At a glance</h2>
+                <TripHubAtAGlance :trip="trip" />
+            </div>
+
+            <div class="xl:col-span-3">
+                <TripWeatherCard :weather="weather" />
+            </div>
         </div>
 
-        <Card v-if="trip.notes">
-            <CardHeader>
-                <CardTitle class="text-base">Notes</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p class="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                    {{ trip.notes }}
-                </p>
-            </CardContent>
-        </Card>
+        <TripHubItinerarySection
+            :trip="trip"
+            :ai-configured="aiConfigured"
+        />
 
-        <Card>
-            <CardHeader class="flex flex-row items-start justify-between gap-4">
-                <div>
-                    <CardTitle class="text-base">Itinerary</CardTitle>
-                    <p class="mt-1 text-sm text-muted-foreground">{{ generateHint }}</p>
-                </div>
-                <Form
-                    v-bind="TripController.generateItinerary.form(trip.id)"
-                    v-slot="{ processing }"
-                >
-                    <Button type="submit" :disabled="!canGenerate || processing">
-                        <Spinner v-if="processing" class="mr-2" />
-                        <Sparkles v-else class="mr-2 size-4" />
-                        {{ hasItinerary ? 'Regenerate' : 'Generate with AI' }}
-                    </Button>
-                </Form>
-            </CardHeader>
-            <CardContent class="space-y-4">
-                <InputError
-                    :message="(page.props.errors as Record<string, string>).ai"
-                />
-                <InputError
-                    :message="(page.props.errors as Record<string, string>).destination"
-                />
+        <section
+            v-if="hasExtras"
+            class="space-y-4"
+        >
+            <h2 class="section-heading">Notes &amp; budget</h2>
+            <TripHubPracticalSection :trip="trip" />
+        </section>
 
-                <p
-                    v-if="!hasItinerary"
-                    class="text-sm text-muted-foreground"
-                >
-                    No days planned yet. Click generate to build a personalized itinerary with
-                    Gemini.
-                </p>
-
-                <p
-                    v-if="trip.itinerary?.summary"
-                    class="rounded-lg border border-border/60 bg-muted/20 p-4 text-sm leading-relaxed"
-                >
-                    {{ trip.itinerary.summary }}
-                </p>
-
-                <div v-if="hasItinerary" class="space-y-4">
-                    <div
-                        v-for="day in trip.itinerary.days"
-                        :key="day.day"
-                        class="rounded-lg border border-border/60 p-4"
-                    >
-                        <div class="flex flex-wrap items-baseline justify-between gap-2">
-                            <h3 class="font-medium">
-                                Day {{ day.day }}
-                                <span v-if="day.title">— {{ day.title }}</span>
-                            </h3>
-                            <span v-if="day.date" class="text-xs text-muted-foreground">
-                                {{ formatDate(day.date) }}
-                            </span>
-                        </div>
-
-                        <ul v-if="day.activities?.length" class="mt-4 space-y-3">
-                            <li
-                                v-for="(activity, index) in day.activities"
-                                :key="`${day.day}-${index}`"
-                                class="flex gap-3 text-sm"
-                            >
-                                <Clock
-                                    v-if="activity.time"
-                                    class="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                                />
-                                <div>
-                                    <p class="font-medium">
-                                        <span
-                                            v-if="activity.time"
-                                            class="mr-2 text-muted-foreground"
-                                        >
-                                            {{ activity.time }}
-                                        </span>
-                                        {{ activity.title }}
-                                    </p>
-                                    <p
-                                        v-if="activity.notes"
-                                        class="mt-1 text-muted-foreground"
-                                    >
-                                        {{ activity.notes }}
-                                    </p>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div
-                    v-if="trip.itinerary?.packing_list?.length"
-                    class="rounded-lg border border-border/60 p-4"
-                >
-                    <h3 class="text-sm font-medium">Packing list</h3>
-                    <ul class="mt-2 list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                        <li v-for="item in trip.itinerary.packing_list" :key="item">
-                            {{ item }}
-                        </li>
-                    </ul>
-                </div>
-            </CardContent>
-        </Card>
-
-        <Button variant="ghost" as-child class="self-start">
-            <Link :href="tripsIndex()">
-                <ArrowLeft class="mr-2 size-4" />
-                Back to trips
-            </Link>
-        </Button>
+        <TripHubUsefulLinks :trip="trip" />
     </div>
 </template>

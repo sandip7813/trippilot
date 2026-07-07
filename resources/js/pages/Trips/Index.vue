@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Form, Head, Link, router } from '@inertiajs/vue3';
 import {
     Calendar,
     Heart,
@@ -7,15 +7,30 @@ import {
     MapPinned,
     Pencil,
     Plus,
+    Trash2,
     Users,
 } from '@lucide/vue';
+import { ref } from 'vue';
+import TripController from '@/actions/App/Http/Controllers/TripController';
 import EmptyState from '@/components/EmptyState.vue';
+import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { create, index as tripsIndex } from '@/routes/trips';
 import { edit, show } from '@/routes/trips';
+import { formatDisplayDateRange } from '@/lib/dates';
+import { tripCardAccent } from '@/lib/card-accents';
 import type { Trip, TripCounts, TripFilter } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
@@ -42,6 +57,9 @@ const filters: { key: TripFilter; label: string }[] = [
     { key: 'archived', label: 'Archived' },
 ];
 
+const deleteDialogOpen = ref(false);
+const tripToDelete = ref<Trip | null>(null);
+
 function setFilter(filter: TripFilter): void {
     router.get(tripsIndex({ query: { filter } }), {}, { preserveState: true, preserveScroll: true });
 }
@@ -50,19 +68,14 @@ function toggleFavorite(trip: Trip): void {
     router.patch(`/trips/${trip.id}/favorite`, {}, { preserveScroll: true });
 }
 
-function formatDateRange(trip: Trip): string {
-    if (!trip.start_date && !trip.end_date) {
-        return 'Dates not set';
-    }
+function openDeleteDialog(trip: Trip): void {
+    tripToDelete.value = trip;
+    deleteDialogOpen.value = true;
+}
 
-    const start = trip.start_date
-        ? new Date(trip.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-        : '?';
-    const end = trip.end_date
-        ? new Date(trip.end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-        : '?';
-
-    return `${start} – ${end}`;
+function closeDeleteDialog(): void {
+    deleteDialogOpen.value = false;
+    tripToDelete.value = null;
 }
 
 function statusVariant(status: Trip['status']): 'default' | 'secondary' | 'outline' {
@@ -75,6 +88,10 @@ function statusVariant(status: Trip['status']): 'default' | 'secondary' | 'outli
     }
 
     return 'secondary';
+}
+
+function coverThumbUrl(trip: Trip): string | null {
+    return trip.cover_image_thumb_url ?? trip.cover_image_url ?? null;
 }
 </script>
 
@@ -103,6 +120,7 @@ function statusVariant(status: Trip['status']): 'default' | 'secondary' | 'outli
                 :key="item.key"
                 :variant="props.filter === item.key ? 'default' : 'outline'"
                 size="sm"
+                :class="props.filter === item.key ? 'shadow-md shadow-teal-500/20' : 'border-border/70 bg-card/60'"
                 @click="setFilter(item.key)"
             >
                 {{ item.label }}
@@ -132,67 +150,144 @@ function statusVariant(status: Trip['status']): 'default' | 'secondary' | 'outli
 
         <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <Card
-                v-for="trip in trips"
+                v-for="(trip, index) in trips"
                 :key="trip.id"
-                class="group border-sidebar-border/70 transition-shadow hover:shadow-md dark:border-sidebar-border"
+                class="card-vibrant group !flex-row items-stretch gap-0 overflow-hidden !py-0"
             >
-                <CardHeader class="pb-3">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0 flex-1">
-                            <CardTitle class="truncate text-base">
-                                <Link :href="show(trip.id)" class="hover:text-primary">
-                                    {{ trip.title }}
-                                </Link>
-                            </CardTitle>
-                            <p
-                                v-if="locationLabel(trip.destination)"
-                                class="mt-1 flex items-center gap-1 text-sm text-muted-foreground"
+                <Link
+                    v-if="coverThumbUrl(trip)"
+                    :href="show(trip.id)"
+                    class="relative w-[7.5rem] shrink-0 self-stretch overflow-hidden sm:w-32"
+                >
+                    <img
+                        :src="coverThumbUrl(trip) ?? undefined"
+                        :alt="`${trip.title} cover`"
+                        width="384"
+                        height="512"
+                        loading="lazy"
+                        decoding="async"
+                        class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                </Link>
+                <div
+                    v-else
+                    class="w-1 shrink-0 bg-gradient-to-b"
+                    :class="tripCardAccent(index)"
+                />
+
+                <div class="flex min-w-0 flex-1 flex-col justify-between p-4">
+                    <div>
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                                <h3 class="truncate text-base font-semibold leading-tight">
+                                    <Link
+                                        :href="show(trip.id)"
+                                        class="transition-colors hover:text-primary"
+                                    >
+                                        {{ trip.title }}
+                                    </Link>
+                                </h3>
+                                <p
+                                    v-if="locationLabel(trip.destination)"
+                                    class="mt-1 flex items-center gap-1 text-sm text-muted-foreground"
+                                >
+                                    <MapPin class="size-3.5 shrink-0 text-teal-600 dark:text-teal-400" />
+                                    <span class="truncate">{{ locationLabel(trip.destination) }}</span>
+                                </p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="size-8 shrink-0"
+                                :title="trip.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
+                                :class="trip.is_favorite ? 'text-rose-500 hover:bg-rose-500/10 hover:text-rose-600' : 'text-muted-foreground'"
+                                @click="toggleFavorite(trip)"
                             >
-                                <MapPin class="size-3.5 shrink-0" />
-                                {{ locationLabel(trip.destination) }}
+                                <Heart class="size-4" :class="trip.is_favorite ? 'fill-current' : ''" />
+                            </Button>
+                        </div>
+
+                        <div class="mt-2.5 flex flex-wrap gap-1.5">
+                            <Badge :variant="statusVariant(trip.status)" class="text-xs">{{ trip.status_label }}</Badge>
+                            <Badge variant="outline" class="text-xs">{{ trip.type_label }}</Badge>
+                            <Badge
+                                v-if="trip.travel_style_label"
+                                variant="secondary"
+                                class="bg-violet-500/10 text-xs text-violet-700 dark:text-violet-300"
+                            >
+                                {{ trip.travel_style_label }}
+                            </Badge>
+                        </div>
+
+                        <div class="mt-2.5 space-y-1 text-sm text-muted-foreground">
+                            <p class="flex items-center gap-2">
+                                <Calendar class="size-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
+                                <span class="truncate">{{ formatDisplayDateRange(trip.start_date, trip.end_date) }}</span>
+                            </p>
+                            <p class="flex items-center gap-2">
+                                <Users class="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                                {{ trip.travelers }} traveler{{ trip.travelers === 1 ? '' : 's' }}
                             </p>
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            class="shrink-0"
-                            :class="trip.is_favorite ? 'text-rose-500 hover:text-rose-600' : 'text-muted-foreground'"
-                            @click="toggleFavorite(trip)"
-                        >
-                            <Heart class="size-4" :class="trip.is_favorite ? 'fill-current' : ''" />
+                    </div>
+
+                    <div class="mt-3 flex gap-2">
+                        <Button size="sm" as-child class="min-w-0 flex-1">
+                            <Link :href="show(trip.id)">View trip</Link>
                         </Button>
-                    </div>
-                </CardHeader>
-                <CardContent class="space-y-3 pt-0">
-                    <div class="flex flex-wrap gap-2">
-                        <Badge :variant="statusVariant(trip.status)">{{ trip.status_label }}</Badge>
-                        <Badge variant="outline">{{ trip.type_label }}</Badge>
-                        <Badge v-if="trip.travel_style_label" variant="secondary">
-                            {{ trip.travel_style_label }}
-                        </Badge>
-                    </div>
-                    <div class="space-y-1.5 text-sm text-muted-foreground">
-                        <p class="flex items-center gap-2">
-                            <Calendar class="size-3.5" />
-                            {{ formatDateRange(trip) }}
-                        </p>
-                        <p class="flex items-center gap-2">
-                            <Users class="size-3.5" />
-                            {{ trip.travelers }} traveler{{ trip.travelers === 1 ? '' : 's' }}
-                        </p>
-                    </div>
-                    <div class="flex gap-2 pt-1">
-                        <Button variant="outline" size="sm" as-child class="flex-1">
-                            <Link :href="show(trip.id)">View</Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" as-child>
+                        <Button variant="outline" size="sm" as-child class="shrink-0">
                             <Link :href="edit(trip.id)">
                                 <Pencil class="size-4" />
                             </Link>
                         </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            class="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            :title="`Delete ${trip.title}`"
+                            @click="openDeleteDialog(trip)"
+                        >
+                            <Trash2 class="size-4" />
+                        </Button>
                     </div>
-                </CardContent>
+                </div>
             </Card>
         </div>
+
+        <Dialog
+            v-model:open="deleteDialogOpen"
+            @update:open="(open) => { if (!open) tripToDelete = null; }"
+        >
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Delete this trip?</DialogTitle>
+                    <DialogDescription>
+                        <template v-if="tripToDelete">
+                            This will permanently remove "{{ tripToDelete.title }}" and its itinerary.
+                            This action cannot be undone.
+                        </template>
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose as-child>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Form
+                        v-if="tripToDelete"
+                        v-bind="TripController.destroy.form(tripToDelete.id)"
+                        v-slot="{ processing }"
+                        @success="closeDeleteDialog"
+                    >
+                        <FormSavingOverlay
+                            :show="processing"
+                            message="Deleting trip..."
+                        />
+                        <Button type="submit" variant="destructive" :disabled="processing">
+                            Delete trip
+                        </Button>
+                    </Form>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

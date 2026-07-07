@@ -8,8 +8,10 @@ import {
     Route,
     Sparkles,
 } from '@lucide/vue';
+import { computed } from 'vue';
 import PageHeader from '@/components/PageHeader.vue';
 import StatCard from '@/components/StatCard.vue';
+import { formatDisplayDate } from '@/lib/dates';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +21,7 @@ import { create, index as tripsIndex, show } from '@/routes/trips';
 import type { Trip } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
-defineProps<{
+const props = defineProps<{
     stats: {
         trips: number;
         road_trips: number;
@@ -27,6 +29,10 @@ defineProps<{
     };
     recentTrips: Trip[];
 }>();
+
+const upcomingLabel = computed(() =>
+    props.stats.upcoming ? formatDisplayDate(props.stats.upcoming) : '—',
+);
 
 defineOptions({
     layout: {
@@ -64,16 +70,23 @@ const quickActions = [
 
     <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
         <div
-            class="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-sky-500/5 p-6 md:p-8"
+            class="card-vibrant relative overflow-hidden rounded-2xl p-6 md:p-8"
         >
+            <div class="brand-gradient absolute inset-x-0 top-0 h-1.5 opacity-90" />
             <div
-                class="pointer-events-none absolute -right-8 -top-8 size-40 rounded-full bg-primary/10 blur-2xl"
+                class="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full bg-violet-500/15 blur-3xl"
+            />
+            <div
+                class="pointer-events-none absolute -bottom-8 left-1/3 size-36 rounded-full bg-teal-500/15 blur-3xl"
             />
             <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <p class="text-sm font-medium text-primary">Welcome back</p>
+                    <p class="text-sm font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+                        Welcome back
+                    </p>
                     <h1 class="mt-1 text-2xl font-bold tracking-tight md:text-3xl">
-                        Hey, {{ userName }} 👋
+                        Hey, {{ userName }}
+                        <span class="ml-1">✈️</span>
                     </h1>
                     <p class="mt-2 max-w-lg text-sm text-muted-foreground">
                         Your travel command center is ready. Start a new trip or pick up where
@@ -106,14 +119,15 @@ const quickActions = [
             />
             <StatCard
                 label="Upcoming"
-                :value="stats.upcoming ?? '—'"
+                :value="upcomingLabel"
                 hint="Next scheduled departure"
                 :icon="CalendarDays"
                 accent="amber"
             />
         </div>
 
-        <Card v-if="recentTrips.length > 0" class="border-sidebar-border/70 dark:border-sidebar-border">
+        <Card v-if="recentTrips.length > 0" class="card-vibrant overflow-hidden">
+            <div class="h-1 bg-gradient-to-r from-teal-500 to-violet-500" />
             <CardHeader class="flex flex-row items-center justify-between">
                 <div>
                     <CardTitle class="text-base">Recent trips</CardTitle>
@@ -128,7 +142,7 @@ const quickActions = [
                     v-for="trip in recentTrips"
                     :key="trip.id"
                     :href="show(trip.id)"
-                    class="flex items-center justify-between rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/40"
+                    class="flex items-center justify-between rounded-xl border border-border/50 bg-muted/30 p-3 transition-all hover:border-teal-500/30 hover:bg-teal-500/5"
                 >
                     <div class="min-w-0">
                         <p class="truncate font-medium">{{ trip.title }}</p>
@@ -147,12 +161,13 @@ const quickActions = [
                 <Card
                     v-for="action in quickActions"
                     :key="action.title"
-                    class="group border-sidebar-border/70 transition-shadow hover:shadow-md dark:border-sidebar-border"
+                    class="card-vibrant group overflow-hidden"
                 >
+                    <div class="brand-gradient h-1 opacity-80" />
                     <CardHeader class="pb-3">
                         <div class="flex items-start justify-between">
                             <div
-                                class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                                class="brand-gradient flex size-11 items-center justify-center rounded-xl text-white shadow-md shadow-teal-500/20"
                             >
                                 <component :is="action.icon" class="size-5" />
                             </div>

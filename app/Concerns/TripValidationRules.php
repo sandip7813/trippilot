@@ -20,6 +20,24 @@ trait TripValidationRules
             "{$prefix}.lat" => ['nullable', 'numeric', 'between:-90,90'],
             "{$prefix}.lng" => ['nullable', 'numeric', 'between:-180,180'],
             "{$prefix}.place_id" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.country_code" => ['nullable', 'string', 'size:2', 'alpha'],
+        ];
+    }
+
+    /**
+     * Origin and destination must come from location search (coordinates required).
+     *
+     * @return array<string, array<int, ValidationRule|string>>
+     */
+    protected function requiredMappedLocationRules(string $prefix): array
+    {
+        return [
+            $prefix => ['required', 'array'],
+            "{$prefix}.label" => ['required', 'string', 'max:255'],
+            "{$prefix}.lat" => ['required', 'numeric', 'between:-90,90'],
+            "{$prefix}.lng" => ['required', 'numeric', 'between:-180,180'],
+            "{$prefix}.place_id" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.country_code" => ['nullable', 'string', 'size:2', 'alpha'],
         ];
     }
 
@@ -34,13 +52,17 @@ trait TripValidationRules
             'title' => [$required, 'string', 'max:255'],
             'type' => [$required, Rule::enum(TripType::class)],
             'travel_style' => ['nullable', Rule::enum(TravelStyle::class)],
-            'start_date' => ['nullable', 'date'],
+            'start_date' => [
+                'nullable',
+                'date',
+                ...($updating ? [] : ['after_or_equal:today']),
+            ],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'budget' => ['nullable', 'numeric', 'min:0'],
             'travelers' => [$required, 'integer', 'min:1', 'max:50'],
             'notes' => ['nullable', 'string', 'max:5000'],
-            ...$this->locationRules('origin', $this->input('type') === TripType::Road->value),
-            ...$this->locationRules('destination'),
+            ...$this->requiredMappedLocationRules('origin'),
+            ...$this->requiredMappedLocationRules('destination'),
         ];
     }
 }

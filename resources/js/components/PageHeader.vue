@@ -10,16 +10,18 @@ defineProps<{
 
 <template>
     <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-        <div class="flex items-start gap-3">
+        <div class="flex items-start gap-4">
             <div
                 v-if="icon"
-                class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                class="brand-gradient flex size-12 shrink-0 items-center justify-center rounded-xl text-white shadow-lg shadow-teal-500/25"
             >
-                <component :is="icon" class="size-5" />
+                <component :is="icon" class="size-6" />
             </div>
             <div>
-                <h1 class="text-2xl font-semibold tracking-tight">{{ title }}</h1>
-                <p v-if="description" class="mt-1 max-w-2xl text-sm text-muted-foreground">
+                <h1 class="text-2xl font-bold tracking-tight md:text-3xl">
+                    <span class="brand-gradient-text">{{ title }}</span>
+                </h1>
+                <p v-if="description" class="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                     {{ description }}
                 </p>
             </div>

@@ -24,7 +24,7 @@ defineOptions({
 const integrationItems = [
     { name: 'Geoapify', description: 'Maps, geocoding, and routing', status: 'Configured' },
     { name: 'Google Gemini', description: 'AI itinerary and chat generation', status: 'Configured' },
-    { name: 'OpenWeatherMap', description: 'Weather forecasts along routes', status: 'Configured' },
+    { name: 'Open-Meteo', description: 'Weather forecast and seasonal climate data (no API key)', status: 'Configured' },
 ];
 </script>
 

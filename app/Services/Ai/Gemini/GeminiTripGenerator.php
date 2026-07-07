@@ -5,6 +5,8 @@ namespace App\Services\Ai\Gemini;
 use App\Contracts\Ai\TripGenerator;
 use App\Data\Ai\GeneratedItinerary;
 use App\Exceptions\AiGenerationException;
+use App\Support\BudgetBreakdownNormalizer;
+use App\Support\GeminiResponseErrors;
 use Illuminate\Support\Arr;
 use JsonException;
 
@@ -40,7 +42,9 @@ class GeminiTripGenerator implements TripGenerator
         );
 
         if ($response->failed()) {
-            throw new AiGenerationException('Unable to generate itinerary. Please try again.');
+            throw new AiGenerationException(
+                GeminiResponseErrors::message($response, 'Unable to generate itinerary. Please try again.'),
+            );
         }
 
         $text = data_get($response->json(), 'candidates.0.content.parts.0.text');
@@ -56,7 +60,19 @@ class GeminiTripGenerator implements TripGenerator
             throw new AiGenerationException('AI returned an invalid itinerary format.');
         }
 
-        return $this->mapToGeneratedItinerary($data);
+        $itinerary = $this->mapToGeneratedItinerary($data);
+
+        if ($itinerary->packingList === []) {
+            $itinerary = new GeneratedItinerary(
+                title: $itinerary->title,
+                days: $itinerary->days,
+                budget: $itinerary->budget,
+                packingList: $this->fallbackPackingList($context),
+                summary: $itinerary->summary,
+            );
+        }
+
+        return $itinerary;
     }
 
     /**
@@ -86,8 +102,39 @@ class GeminiTripGenerator implements TripGenerator
         $lines[] = '- Respect the travel style, budget, and traveler count.';
         $lines[] = '- For road trips, factor in driving segments between origin and destination.';
         $lines[] = '- Assign ISO dates (YYYY-MM-DD) to each day when start_date is provided.';
+        $lines[] = '- Include budget.currency as INR with numeric INR amounts (no currency symbols in JSON).';
+        $lines[] = '- budget.breakdown must include accommodation, food, transport, activities, and miscellaneous.';
+        $lines[] = '- budget.estimated_total must be close to the sum of breakdown categories and respect the trip budget when provided.';
+        $lines[] = '- Include packing_list with at least 10 practical items tailored to the destination climate, season, trip length, and planned activities.';
+        $lines[] = '- packing_list must cover clothing layers, footwear, toiletries, documents, health items, and activity-specific gear.';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return list<string>
+     */
+    private function fallbackPackingList(array $context): array
+    {
+        $destination = Arr::get($context, 'destination.label', 'your destination');
+        $dayCount = (int) Arr::get($context, 'day_count', 5);
+        $travelers = (int) Arr::get($context, 'travelers', 1);
+
+        return [
+            "Weather-appropriate clothing for {$destination} (include layers)",
+            'Comfortable walking shoes',
+            'Light jacket or warm layers for cooler evenings',
+            'Rain jacket or compact umbrella',
+            'Government ID and trip booking confirmations',
+            'Phone, charger, and power bank',
+            'Personal medications and basic first-aid kit',
+            'Sunscreen, sunglasses, and lip balm',
+            'Reusable water bottle',
+            'Toiletries and personal care items',
+            "Daypack for {$dayCount}-day excursions",
+            $travelers > 1 ? 'Shared power adapter or extension cord' : 'Travel adapter if needed',
+        ];
     }
 
     /**
@@ -135,7 +182,11 @@ class GeminiTripGenerator implements TripGenerator
         }
 
         if ($budget = Arr::get($context, 'budget')) {
-            $lines[] = 'Budget: $'.number_format((float) $budget, 0);
+            $currency = strtoupper((string) config('trippilot.currency', 'INR'));
+            $lines[] = 'Budget: '.match ($currency) {
+                'INR' => '₹'.number_format((float) $budget, 0),
+                default => $currency.' '.number_format((float) $budget, 0),
+            };
         }
 
         if ($notes = Arr::get($context, 'notes')) {
@@ -182,16 +233,34 @@ class GeminiTripGenerator implements TripGenerator
                 'budget' => [
                     'type' => 'object',
                     'properties' => [
+                        'currency' => ['type' => 'string'],
                         'estimated_total' => ['type' => 'number'],
-                        'breakdown' => ['type' => 'object'],
+                        'breakdown' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'accommodation' => ['type' => 'number'],
+                                'food' => ['type' => 'number'],
+                                'transport' => ['type' => 'number'],
+                                'activities' => ['type' => 'number'],
+                                'miscellaneous' => ['type' => 'number'],
+                            ],
+                            'required' => [
+                                'accommodation',
+                                'food',
+                                'transport',
+                                'activities',
+                                'miscellaneous',
+                            ],
+                        ],
                     ],
+                    'required' => ['currency', 'estimated_total', 'breakdown'],
                 ],
                 'packing_list' => [
                     'type' => 'array',
                     'items' => ['type' => 'string'],
                 ],
             ],
-            'required' => ['title', 'summary', 'days'],
+            'required' => ['title', 'summary', 'days', 'budget'],
         ];
     }
 
@@ -226,7 +295,9 @@ class GeminiTripGenerator implements TripGenerator
             ->all();
 
         /** @var array<string, mixed> $budget */
-        $budget = is_array($data['budget'] ?? null) ? $data['budget'] : [];
+        $budget = is_array($data['budget'] ?? null)
+            ? BudgetBreakdownNormalizer::normalize($data['budget'])
+            : BudgetBreakdownNormalizer::normalize([]);
 
         /** @var array<int, string> $packingList */
         $packingList = is_array($data['packing_list'] ?? null)

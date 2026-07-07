@@ -1,16 +1,23 @@
 <script setup lang="ts">
-import { Form, Head, usePage } from '@inertiajs/vue3';
-import { Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Form, Head, Link, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
+import LocationField from '@/components/LocationField.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
+import type { TripLocation } from '@/types/trip';
+
+const { mustVerifyEmail, status, homeCity } = defineProps<{
+    mustVerifyEmail: boolean;
+    status?: string;
+    homeCity?: TripLocation | null;
+}>();
 
 defineOptions({
     layout: {
@@ -26,13 +33,7 @@ defineOptions({
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 
-const homeCity = computed((): string => {
-    const preferences = user.value?.travel_preferences as
-        | { home_city?: { label?: string } }
-        | undefined;
-
-    return preferences?.home_city?.label ?? '';
-});
+const homeCityLocation = ref<TripLocation | null>(homeCity ?? null);
 </script>
 
 <template>
@@ -81,23 +82,16 @@ const homeCity = computed((): string => {
                 <InputError class="mt-2" :message="errors.email" />
             </div>
 
-            <div class="grid gap-2">
-                <Label for="home_city">Home city</Label>
-                <Input
-                    id="home_city"
-                    class="mt-1 block w-full"
-                    name="home_city"
-                    :default-value="homeCity"
-                    autocomplete="address-level2"
-                    placeholder="Mumbai, India"
-                />
-                <p class="text-xs text-muted-foreground">
-                    Used as the default starting point when you create a new trip.
-                </p>
-                <InputError class="mt-2" :message="errors.home_city" />
-            </div>
+            <LocationField
+                v-model="homeCityLocation"
+                prefix="home_city"
+                label="Home city"
+                variant="compact"
+                :errors="errors"
+                hint="Used as the default starting point when you create a new trip."
+            />
 
-            <div v-if="page.props.mustVerifyEmail && !user.email_verified_at">
+            <div v-if="mustVerifyEmail && !user.email_verified_at">
                 <p class="-mt-4 text-sm text-muted-foreground">
                     Your email address is unverified.
                     <Link
@@ -110,7 +104,7 @@ const homeCity = computed((): string => {
                 </p>
 
                 <div
-                    v-if="page.props.status === 'verification-link-sent'"
+                    v-if="status === 'verification-link-sent'"
                     class="mt-2 text-sm font-medium text-green-600"
                 >
                     A new verification link has been sent to your email address.
@@ -118,9 +112,9 @@ const homeCity = computed((): string => {
             </div>
 
             <div class="flex items-center gap-4">
-                <Button :disabled="processing" data-test="update-profile-button"
-                    >Save</Button
-                >
+                <Button :disabled="processing" data-test="update-profile-button">
+                    Save
+                </Button>
             </div>
         </Form>
     </div>

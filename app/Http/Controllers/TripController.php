@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Trips\GenerateTripItinerary;
+use App\Actions\Trips\SyncTripCoverImage;
 use App\Enums\TravelStyle;
+use App\Enums\TripScope;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
 use App\Exceptions\AiGenerationException;
 use App\Http\Requests\StoreTripRequest;
 use App\Http\Requests\UpdateTripRequest;
 use App\Models\Trip;
+use App\Services\Weather\TripWeatherService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -50,15 +53,16 @@ class TripController extends Controller
         ]);
     }
 
-    public function store(StoreTripRequest $request): RedirectResponse
+    public function store(StoreTripRequest $request, SyncTripCoverImage $syncTripCoverImage): RedirectResponse
     {
         $validated = $request->validated();
 
+        $locations = $this->prepareTripLocations($validated);
+
         $trip = Trip::query()->create([
             ...$validated,
+            ...$locations,
             'user_id' => $request->user()->id,
-            'origin' => Trip::normalizeLocation($validated['origin'] ?? null),
-            'destination' => Trip::normalizeLocation($validated['destination'] ?? null),
             'status' => $request->enum('status', TripStatus::class) ?? TripStatus::Draft,
             'is_favorite' => false,
             'itinerary' => [
@@ -69,18 +73,26 @@ class TripController extends Controller
             ],
         ]);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Trip created.')]);
+        $coverGenerated = $syncTripCoverImage($trip);
+
+        Inertia::flash('toast', [
+            'type' => $coverGenerated ? 'success' : 'warning',
+            'message' => $coverGenerated
+                ? __('Trip created.')
+                : __('Trip created, but the destination cover could not be generated.'),
+        ]);
 
         return to_route('trips.show', $trip);
     }
 
-    public function show(Trip $trip): Response
+    public function show(Trip $trip, TripWeatherService $tripWeather): Response
     {
         $this->authorize('view', $trip);
 
         return Inertia::render('Trips/Show', [
             'trip' => $trip->toFrontend(),
             'aiConfigured' => filled(config('integrations.ai.drivers.gemini.api_key')),
+            'weather' => $tripWeather->forTrip($trip),
         ]);
     }
 
@@ -96,23 +108,50 @@ class TripController extends Controller
         ]);
     }
 
-    public function update(UpdateTripRequest $request, Trip $trip): RedirectResponse
+    public function update(UpdateTripRequest $request, Trip $trip, SyncTripCoverImage $syncTripCoverImage): RedirectResponse
     {
         $this->authorize('update', $trip);
 
         $validated = $request->validated();
+        $previousDestinationLabel = Trip::normalizeLocation($trip->getAttribute('destination'))['label'] ?? null;
 
-        if (array_key_exists('origin', $validated)) {
-            $validated['origin'] = Trip::normalizeLocation($validated['origin']);
+        if (array_key_exists('origin', $validated) || array_key_exists('destination', $validated)) {
+            $locations = $this->prepareTripLocations([
+                'origin' => $validated['origin'] ?? Trip::normalizeLocation($trip->getAttribute('origin')),
+                'destination' => $validated['destination'] ?? Trip::normalizeLocation($trip->getAttribute('destination')),
+            ]);
+
+            $validated = [
+                ...$validated,
+                ...$locations,
+            ];
         }
 
-        if (array_key_exists('destination', $validated)) {
-            $validated['destination'] = Trip::normalizeLocation($validated['destination']);
+        $itineraryCleared = false;
+
+        if ($trip->hasGeneratedItinerary() && $trip->materialAttributesDiffer($validated)) {
+            $validated['itinerary'] = Trip::emptyItinerary();
+            $validated['status'] = TripStatus::Draft;
+            $itineraryCleared = true;
         }
 
         $trip->update($validated);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Trip updated.')]);
+        $newDestinationLabel = Trip::normalizeLocation($trip->getAttribute('destination'))['label'] ?? null;
+        $destinationChanged = ($previousDestinationLabel ?? '') !== ($newDestinationLabel ?? '');
+
+        if ($destinationChanged) {
+            $syncTripCoverImage($trip->fresh());
+        }
+
+        if ($itineraryCleared) {
+            Inertia::flash('toast', [
+                'type' => 'warning',
+                'message' => __('Trip updated. Your previous AI itinerary was removed — generate a new one when ready.'),
+            ]);
+        } else {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Trip updated.')]);
+        }
 
         return to_route('trips.show', $trip);
     }
@@ -210,6 +249,26 @@ class TripController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array{origin?: array<string, mixed>|null, destination?: array<string, mixed>|null}  $validated
+     * @return array{
+     *     origin: array<string, mixed>|null,
+     *     destination: array<string, mixed>|null,
+     *     trip_scope: TripScope|null,
+     * }
+     */
+    protected function prepareTripLocations(array $validated): array
+    {
+        $origin = Trip::normalizeLocation($validated['origin'] ?? null);
+        $destination = Trip::normalizeLocation($validated['destination'] ?? null);
+
+        return [
+            'origin' => $origin,
+            'destination' => $destination,
+            'trip_scope' => Trip::resolveTripScope($origin, $destination),
+        ];
     }
 
     /**

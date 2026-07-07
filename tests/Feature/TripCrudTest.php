@@ -10,8 +10,19 @@ function validTripPayload(array $overrides = []): array
 {
     return array_merge([
         'title' => 'Tokyo Adventure',
+        'origin' => [
+            'label' => 'Mumbai, India',
+            'lat' => 19.076,
+            'lng' => 72.8777,
+            'place_id' => 'test-origin',
+            'country_code' => 'in',
+        ],
         'destination' => [
             'label' => 'Tokyo, Japan',
+            'lat' => 35.6762,
+            'lng' => 139.6503,
+            'place_id' => 'test-destination',
+            'country_code' => 'jp',
         ],
         'type' => 'vacation',
         'start_date' => now()->addWeek()->toDateString(),
@@ -68,11 +79,6 @@ test('users can create a trip with structured locations', function () {
     $this->actingAs($user)
         ->post(route('trips.store'), validTripPayload([
             'travel_style' => 'family',
-            'origin' => [
-                'label' => 'Mumbai, India',
-                'lat' => 19.076,
-                'lng' => 72.8777,
-            ],
         ]))
         ->assertRedirect();
 
@@ -85,29 +91,93 @@ test('users can create a trip with structured locations', function () {
         ->and($trip->title)->toBe('Tokyo Adventure')
         ->and($trip->destination)->toMatchArray([
             'label' => 'Tokyo, Japan',
-            'lat' => null,
-            'lng' => null,
-            'place_id' => null,
+            'lat' => 35.6762,
+            'lng' => 139.6503,
+            'place_id' => 'test-destination',
+            'country_code' => 'jp',
         ])
         ->and($trip->origin)->toMatchArray([
             'label' => 'Mumbai, India',
             'lat' => 19.076,
             'lng' => 72.8777,
-            'place_id' => null,
+            'place_id' => 'test-origin',
+            'country_code' => 'in',
         ])
         ->and($trip->travel_style?->value)->toBe('family')
         ->and($trip->status->value)->toBe('draft');
 });
 
-test('road trips require an origin', function () {
+test('trip scope is derived from origin and destination countries', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'origin' => [
+                'label' => 'Mumbai, India',
+                'lat' => 19.076,
+                'lng' => 72.8777,
+                'country_code' => 'in',
+            ],
+            'destination' => [
+                'label' => 'Goa, India',
+                'lat' => 15.2993,
+                'lng' => 74.1240,
+                'country_code' => 'in',
+            ],
+        ]))
+        ->assertRedirect();
+
+    $trip = Trip::query()->where('user_id', $user->id)->latest()->first();
+
+    expect($trip?->trip_scope?->value)->toBe('domestic');
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'title' => 'Paris Escape',
+            'origin' => [
+                'label' => 'Mumbai, India',
+                'lat' => 19.076,
+                'lng' => 72.8777,
+                'country_code' => 'in',
+            ],
+            'destination' => [
+                'label' => 'Paris, France',
+                'lat' => 48.8566,
+                'lng' => 2.3522,
+                'country_code' => 'fr',
+            ],
+        ]))
+        ->assertRedirect();
+
+    $internationalTrip = Trip::query()
+        ->where('user_id', $user->id)
+        ->where('title', 'Paris Escape')
+        ->first();
+
+    expect($internationalTrip?->trip_scope?->value)->toBe('international');
+});
+
+test('road trips require a mapped origin', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->post(route('trips.store'), validTripPayload([
             'type' => 'road',
-            'origin' => ['label' => ''],
+            'origin' => ['label' => 'Typed manually'],
         ]))
-        ->assertSessionHasErrors(['origin.label']);
+        ->assertSessionHasErrors(['origin.lat', 'origin.lng']);
+});
+
+test('trip creation rejects manually typed destinations without coordinates', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'destination' => [
+                'label' => 'Typed manually',
+            ],
+        ]))
+        ->assertSessionHasErrors(['destination.lat', 'destination.lng']);
 });
 
 test('trip create page includes default origin from profile home city', function () {
@@ -136,7 +206,7 @@ test('trip creation validates required fields', function () {
 
     $this->actingAs($user)
         ->post(route('trips.store'), [])
-        ->assertSessionHasErrors(['title', 'type', 'travelers']);
+        ->assertSessionHasErrors(['title', 'type', 'travelers', 'origin', 'destination']);
 });
 
 test('users can view their own trip', function () {
@@ -216,6 +286,97 @@ test('trips index filters favorites', function () {
         ->assertInertia(fn ($page) => $page
             ->has('trips', 1)
             ->where('trips.0.title', 'Favorite'));
+});
+
+test('trip creation rejects start dates in the past', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'start_date' => now()->subDay()->toDateString(),
+            'end_date' => now()->addWeek()->toDateString(),
+        ]))
+        ->assertSessionHasErrors(['start_date']);
+});
+
+test('trip creation rejects end date before start date', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'start_date' => now()->addWeeks(2)->toDateString(),
+            'end_date' => now()->addWeek()->toDateString(),
+        ]))
+        ->assertSessionHasErrors(['end_date']);
+});
+
+test('updating material trip details clears a generated itinerary', function () {
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->withItinerary()->create([
+        'destination' => [
+            'label' => 'Tokyo, Japan',
+            'lat' => null,
+            'lng' => null,
+            'place_id' => null,
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('trips.update', $trip), validTripPayload([
+            'destination' => [
+                'label' => 'Kyoto, Japan',
+                'lat' => 35.0116,
+                'lng' => 135.7681,
+                'place_id' => 'test-kyoto',
+                'country_code' => 'jp',
+            ],
+        ]))
+        ->assertRedirect(route('trips.show', $trip));
+
+    $trip->refresh();
+
+    expect($trip->status->value)->toBe('draft')
+        ->and($trip->itinerary['days'])->toBe([])
+        ->and($trip->itinerary['summary'])->toBe('');
+});
+
+test('updating non-material trip details keeps the itinerary', function () {
+    $user = User::factory()->create();
+
+    $basePayload = validTripPayload([
+        'title' => 'Old Title',
+        'destination' => [
+            'label' => 'Tokyo, Japan',
+        ],
+    ]);
+
+    $trip = Trip::factory()->forUser($user)->withItinerary()->create([
+        'title' => $basePayload['title'],
+        'type' => $basePayload['type'],
+        'travelers' => $basePayload['travelers'],
+        'start_date' => $basePayload['start_date'],
+        'end_date' => $basePayload['end_date'],
+        'destination' => [
+            'label' => 'Tokyo, Japan',
+            'lat' => null,
+            'lng' => null,
+            'place_id' => null,
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('trips.update', $trip), validTripPayload([
+            'title' => 'New Title',
+            'notes' => 'Updated notes only',
+        ]))
+        ->assertRedirect(route('trips.show', $trip));
+
+    $trip->refresh();
+
+    expect($trip->title)->toBe('New Title')
+        ->and($trip->status->value)->toBe('planned')
+        ->and($trip->itinerary['days'])->toHaveCount(1)
+        ->and($trip->itinerary['summary'])->toBe('Sample generated plan.');
 });
 
 test('dashboard shows trip stats', function () {

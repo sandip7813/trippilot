@@ -32,10 +32,14 @@ function sampleGeneratedItinerary(): GeneratedItinerary
             ],
         ],
         budget: [
+            'currency' => 'INR',
             'estimated_total' => 3000,
             'breakdown' => [
-                'lodging' => 1200,
+                'accommodation' => 1200,
                 'food' => 600,
+                'transport' => 500,
+                'activities' => 500,
+                'miscellaneous' => 200,
             ],
         ],
         packingList: ['Passport', 'Comfortable walking shoes'],
