@@ -207,6 +207,95 @@ class Trip extends Model
      *     budget_breakdown: array<string, mixed>
      * }
      */
+    public static function emptyItinerary(): array
+    {
+        return [
+            'days' => [],
+            'summary' => '',
+            'packing_list' => [],
+            'budget_breakdown' => [],
+        ];
+    }
+
+    public function hasGeneratedItinerary(): bool
+    {
+        $days = $this->itinerary['days'] ?? [];
+
+        return is_array($days) && $days !== [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    public function materialAttributesDiffer(array $validated): bool
+    {
+        $materialKeys = [
+            'type',
+            'travel_style',
+            'origin',
+            'destination',
+            'start_date',
+            'end_date',
+            'travelers',
+        ];
+
+        foreach ($materialKeys as $key) {
+            if (! array_key_exists($key, $validated)) {
+                continue;
+            }
+
+            if ($this->materialValueDiffers($key, $validated[$key])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function materialValueDiffers(string $key, mixed $incoming): bool
+    {
+        return match ($key) {
+            'type' => $this->type->value !== (string) $incoming,
+            'travel_style' => ($this->travel_style?->value ?? null) !== ($incoming !== null && $incoming !== '' ? (string) $incoming : null),
+            'travelers' => (int) $this->travelers !== (int) $incoming,
+            'start_date' => $this->dateValue($this->start_date) !== $this->normalizeDateInput($incoming),
+            'end_date' => $this->dateValue($this->end_date) !== $this->normalizeDateInput($incoming),
+            'origin' => $this->normalizedLocation($this->getAttribute('origin')) !== self::normalizeLocation($incoming),
+            'destination' => $this->normalizedLocation($this->getAttribute('destination')) !== self::normalizeLocation($incoming),
+            default => false,
+        };
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function normalizedLocation(mixed $value): ?array
+    {
+        return self::normalizeLocation($value);
+    }
+
+    private function dateValue(?Carbon $date): ?string
+    {
+        return $date?->toDateString();
+    }
+
+    private function normalizeDateInput(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return Carbon::parse((string) $value)->toDateString();
+    }
+
+    /**
+     * @return array{
+     *     days: array<int, mixed>,
+     *     summary: string,
+     *     packing_list: array<int, string>,
+     *     budget_breakdown: array<string, mixed>
+     * }
+     */
     private function itineraryForFrontend(): array
     {
         $itinerary = $this->itinerary ?? [];

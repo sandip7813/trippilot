@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft } from '@lucide/vue';
+import { ArrowLeft, TriangleAlert } from '@lucide/vue';
+import { computed } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
 import PageHeader from '@/components/PageHeader.vue';
 import TripFormFields from '@/components/TripFormFields.vue';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { index as tripsIndex, show } from '@/routes/trips';
@@ -15,6 +17,8 @@ const { trip } = defineProps<{
     tripStatuses: TripOption[];
     travelStyles: TripOption[];
 }>();
+
+const hasItinerary = computed(() => (trip.itinerary?.days?.length ?? 0) > 0);
 
 defineOptions({
     layout: {
@@ -33,6 +37,15 @@ defineOptions({
             title="Edit trip"
             :description="`Update details for ${trip.title}`"
         />
+
+        <Alert v-if="hasItinerary">
+            <TriangleAlert class="size-4" />
+            <AlertTitle>AI itinerary will be removed</AlertTitle>
+            <AlertDescription>
+                Changing route, dates, travelers, or planning details clears your current
+                itinerary. You can generate a fresh plan after saving.
+            </AlertDescription>
+        </Alert>
 
         <Form
             v-bind="TripController.update.form(trip.id)"

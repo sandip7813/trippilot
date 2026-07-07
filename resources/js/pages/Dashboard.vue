@@ -8,8 +8,10 @@ import {
     Route,
     Sparkles,
 } from '@lucide/vue';
+import { computed } from 'vue';
 import PageHeader from '@/components/PageHeader.vue';
 import StatCard from '@/components/StatCard.vue';
+import { formatDisplayDate } from '@/lib/dates';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +21,7 @@ import { create, index as tripsIndex, show } from '@/routes/trips';
 import type { Trip } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
-defineProps<{
+const props = defineProps<{
     stats: {
         trips: number;
         road_trips: number;
@@ -27,6 +29,10 @@ defineProps<{
     };
     recentTrips: Trip[];
 }>();
+
+const upcomingLabel = computed(() =>
+    props.stats.upcoming ? formatDisplayDate(props.stats.upcoming) : '—',
+);
 
 defineOptions({
     layout: {
@@ -106,7 +112,7 @@ const quickActions = [
             />
             <StatCard
                 label="Upcoming"
-                :value="stats.upcoming ?? '—'"
+                :value="upcomingLabel"
                 hint="Next scheduled departure"
                 :icon="CalendarDays"
                 accent="amber"

@@ -40,7 +40,7 @@ class DashboardController extends Controller
             'stats' => [
                 'trips' => $tripCount,
                 'road_trips' => $roadTripCount,
-                'upcoming' => $upcomingTrip?->start_date?->format('M j, Y'),
+                'upcoming' => $upcomingTrip?->start_date?->toDateString(),
             ],
             'recentTrips' => $recentTrips,
         ]);

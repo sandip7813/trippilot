@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { edit, index as tripsIndex } from '@/routes/trips';
+import { formatDisplayDate } from '@/lib/dates';
 import type { Trip } from '@/types/trip';
 import { locationLabel, locationRouteLabel } from '@/types/trip';
 
@@ -65,25 +66,12 @@ const generateHint = computed((): string => {
     }
 
     return hasItinerary.value
-        ? 'Regenerate the full day-by-day plan with Gemini.'
+        ? 'Regenerate the full day-by-day plan.'
         : 'Generate a day-by-day plan tailored to this trip.';
 });
 
 function toggleFavorite(): void {
     router.patch(`/trips/${props.trip.id}/favorite`, {}, { preserveScroll: true });
-}
-
-function formatDate(date: string | null): string {
-    if (!date) {
-        return '—';
-    }
-
-    return new Date(date).toLocaleDateString(undefined, {
-        weekday: 'short',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-    });
 }
 </script>
 
@@ -155,8 +143,8 @@ function formatDate(date: string | null): string {
                     </CardTitle>
                 </CardHeader>
                 <CardContent class="text-sm">
-                    <p>{{ formatDate(trip.start_date) }}</p>
-                    <p class="text-muted-foreground">to {{ formatDate(trip.end_date) }}</p>
+                    <p>{{ formatDisplayDate(trip.start_date, { weekday: true }) }}</p>
+                    <p class="text-muted-foreground">to {{ formatDisplayDate(trip.end_date, { weekday: true }) }}</p>
                 </CardContent>
             </Card>
             <Card>
@@ -262,7 +250,7 @@ function formatDate(date: string | null): string {
                                 <span v-if="day.title">— {{ day.title }}</span>
                             </h3>
                             <span v-if="day.date" class="text-xs text-muted-foreground">
-                                {{ formatDate(day.date) }}
+                                {{ formatDisplayDate(day.date, { weekday: true }) }}
                             </span>
                         </div>
 

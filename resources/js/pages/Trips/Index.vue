@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { create, index as tripsIndex } from '@/routes/trips';
 import { edit, show } from '@/routes/trips';
+import { formatDisplayDateRange } from '@/lib/dates';
 import type { Trip, TripCounts, TripFilter } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
@@ -48,21 +49,6 @@ function setFilter(filter: TripFilter): void {
 
 function toggleFavorite(trip: Trip): void {
     router.patch(`/trips/${trip.id}/favorite`, {}, { preserveScroll: true });
-}
-
-function formatDateRange(trip: Trip): string {
-    if (!trip.start_date && !trip.end_date) {
-        return 'Dates not set';
-    }
-
-    const start = trip.start_date
-        ? new Date(trip.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-        : '?';
-    const end = trip.end_date
-        ? new Date(trip.end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-        : '?';
-
-    return `${start} – ${end}`;
 }
 
 function statusVariant(status: Trip['status']): 'default' | 'secondary' | 'outline' {
@@ -174,7 +160,7 @@ function statusVariant(status: Trip['status']): 'default' | 'secondary' | 'outli
                     <div class="space-y-1.5 text-sm text-muted-foreground">
                         <p class="flex items-center gap-2">
                             <Calendar class="size-3.5" />
-                            {{ formatDateRange(trip) }}
+                            {{ formatDisplayDateRange(trip.start_date, trip.end_date) }}
                         </p>
                         <p class="flex items-center gap-2">
                             <Users class="size-3.5" />

@@ -110,9 +110,24 @@ class TripController extends Controller
             $validated['destination'] = Trip::normalizeLocation($validated['destination']);
         }
 
+        $itineraryCleared = false;
+
+        if ($trip->hasGeneratedItinerary() && $trip->materialAttributesDiffer($validated)) {
+            $validated['itinerary'] = Trip::emptyItinerary();
+            $validated['status'] = TripStatus::Draft;
+            $itineraryCleared = true;
+        }
+
         $trip->update($validated);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Trip updated.')]);
+        if ($itineraryCleared) {
+            Inertia::flash('toast', [
+                'type' => 'warning',
+                'message' => __('Trip updated. Your previous AI itinerary was removed — generate a new one when ready.'),
+            ]);
+        } else {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Trip updated.')]);
+        }
 
         return to_route('trips.show', $trip);
     }

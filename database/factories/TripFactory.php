@@ -77,6 +77,27 @@ class TripFactory extends Factory
         ]);
     }
 
+    public function withItinerary(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => TripStatus::Planned,
+            'itinerary' => [
+                'days' => [
+                    [
+                        'day' => 1,
+                        'title' => 'Day one',
+                        'activities' => [
+                            ['time' => '09:00', 'title' => 'Explore', 'notes' => null],
+                        ],
+                    ],
+                ],
+                'summary' => 'Sample generated plan.',
+                'packing_list' => ['Passport'],
+                'budget_breakdown' => [],
+            ],
+        ]);
+    }
+
     public function road(): static
     {
         return $this->state(fn (): array => [

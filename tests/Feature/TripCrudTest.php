@@ -218,6 +218,93 @@ test('trips index filters favorites', function () {
             ->where('trips.0.title', 'Favorite'));
 });
 
+test('trip creation rejects start dates in the past', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'start_date' => now()->subDay()->toDateString(),
+            'end_date' => now()->addWeek()->toDateString(),
+        ]))
+        ->assertSessionHasErrors(['start_date']);
+});
+
+test('trip creation rejects end date before start date', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'start_date' => now()->addWeeks(2)->toDateString(),
+            'end_date' => now()->addWeek()->toDateString(),
+        ]))
+        ->assertSessionHasErrors(['end_date']);
+});
+
+test('updating material trip details clears a generated itinerary', function () {
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->withItinerary()->create([
+        'destination' => [
+            'label' => 'Tokyo, Japan',
+            'lat' => null,
+            'lng' => null,
+            'place_id' => null,
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('trips.update', $trip), validTripPayload([
+            'destination' => [
+                'label' => 'Kyoto, Japan',
+            ],
+        ]))
+        ->assertRedirect(route('trips.show', $trip));
+
+    $trip->refresh();
+
+    expect($trip->status->value)->toBe('draft')
+        ->and($trip->itinerary['days'])->toBe([])
+        ->and($trip->itinerary['summary'])->toBe('');
+});
+
+test('updating non-material trip details keeps the itinerary', function () {
+    $user = User::factory()->create();
+
+    $basePayload = validTripPayload([
+        'title' => 'Old Title',
+        'destination' => [
+            'label' => 'Tokyo, Japan',
+        ],
+    ]);
+
+    $trip = Trip::factory()->forUser($user)->withItinerary()->create([
+        'title' => $basePayload['title'],
+        'type' => $basePayload['type'],
+        'travelers' => $basePayload['travelers'],
+        'start_date' => $basePayload['start_date'],
+        'end_date' => $basePayload['end_date'],
+        'destination' => [
+            'label' => 'Tokyo, Japan',
+            'lat' => null,
+            'lng' => null,
+            'place_id' => null,
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('trips.update', $trip), validTripPayload([
+            'title' => 'New Title',
+            'notes' => 'Updated notes only',
+        ]))
+        ->assertRedirect(route('trips.show', $trip));
+
+    $trip->refresh();
+
+    expect($trip->title)->toBe('New Title')
+        ->and($trip->status->value)->toBe('planned')
+        ->and($trip->itinerary['days'])->toHaveCount(1)
+        ->and($trip->itinerary['summary'])->toBe('Sample generated plan.');
+});
+
 test('dashboard shows trip stats', function () {
     $user = User::factory()->create();
 
