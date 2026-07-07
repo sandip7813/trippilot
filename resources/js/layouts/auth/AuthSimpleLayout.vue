@@ -19,7 +19,7 @@ defineProps<{
                 alt=""
                 class="absolute inset-0 size-full object-cover"
             />
-            <div class="absolute inset-0 bg-gradient-to-b from-teal-950/80 via-teal-900/70 to-teal-950/90" />
+            <div class="absolute inset-0 bg-gradient-to-b from-teal-950/75 via-violet-900/65 to-orange-900/70" />
 
             <div class="relative flex flex-1 flex-col justify-between p-10 text-white">
                 <Link :href="home()">
@@ -53,7 +53,7 @@ defineProps<{
         </div>
 
         <!-- Form panel -->
-        <div class="flex flex-col items-center justify-center bg-background p-6 md:p-10">
+        <div class="app-page-bg flex flex-col items-center justify-center p-6 md:p-10">
             <div class="w-full max-w-sm">
                 <div class="mb-8 flex flex-col items-center gap-4 lg:hidden">
                     <Link :href="home()">
@@ -62,7 +62,9 @@ defineProps<{
                 </div>
 
                 <div class="mb-8 space-y-2 text-center lg:text-left">
-                    <h1 class="text-2xl font-semibold tracking-tight">{{ title }}</h1>
+                    <h1 class="text-2xl font-bold tracking-tight">
+                        <span class="brand-gradient-text">{{ title }}</span>
+                    </h1>
                     <p v-if="description" class="text-sm text-muted-foreground">
                         {{ description }}
                     </p>

@@ -10,8 +10,19 @@ function validTripPayload(array $overrides = []): array
 {
     return array_merge([
         'title' => 'Tokyo Adventure',
+        'origin' => [
+            'label' => 'Mumbai, India',
+            'lat' => 19.076,
+            'lng' => 72.8777,
+            'place_id' => 'test-origin',
+            'country_code' => 'in',
+        ],
         'destination' => [
             'label' => 'Tokyo, Japan',
+            'lat' => 35.6762,
+            'lng' => 139.6503,
+            'place_id' => 'test-destination',
+            'country_code' => 'jp',
         ],
         'type' => 'vacation',
         'start_date' => now()->addWeek()->toDateString(),
@@ -68,11 +79,6 @@ test('users can create a trip with structured locations', function () {
     $this->actingAs($user)
         ->post(route('trips.store'), validTripPayload([
             'travel_style' => 'family',
-            'origin' => [
-                'label' => 'Mumbai, India',
-                'lat' => 19.076,
-                'lng' => 72.8777,
-            ],
         ]))
         ->assertRedirect();
 
@@ -85,17 +91,17 @@ test('users can create a trip with structured locations', function () {
         ->and($trip->title)->toBe('Tokyo Adventure')
         ->and($trip->destination)->toMatchArray([
             'label' => 'Tokyo, Japan',
-            'lat' => null,
-            'lng' => null,
-            'place_id' => null,
-            'country_code' => null,
+            'lat' => 35.6762,
+            'lng' => 139.6503,
+            'place_id' => 'test-destination',
+            'country_code' => 'jp',
         ])
         ->and($trip->origin)->toMatchArray([
             'label' => 'Mumbai, India',
             'lat' => 19.076,
             'lng' => 72.8777,
-            'place_id' => null,
-            'country_code' => null,
+            'place_id' => 'test-origin',
+            'country_code' => 'in',
         ])
         ->and($trip->travel_style?->value)->toBe('family')
         ->and($trip->status->value)->toBe('draft');
@@ -108,10 +114,14 @@ test('trip scope is derived from origin and destination countries', function () 
         ->post(route('trips.store'), validTripPayload([
             'origin' => [
                 'label' => 'Mumbai, India',
+                'lat' => 19.076,
+                'lng' => 72.8777,
                 'country_code' => 'in',
             ],
             'destination' => [
                 'label' => 'Goa, India',
+                'lat' => 15.2993,
+                'lng' => 74.1240,
                 'country_code' => 'in',
             ],
         ]))
@@ -124,8 +134,16 @@ test('trip scope is derived from origin and destination countries', function () 
     $this->actingAs($user)
         ->post(route('trips.store'), validTripPayload([
             'title' => 'Paris Escape',
+            'origin' => [
+                'label' => 'Mumbai, India',
+                'lat' => 19.076,
+                'lng' => 72.8777,
+                'country_code' => 'in',
+            ],
             'destination' => [
                 'label' => 'Paris, France',
+                'lat' => 48.8566,
+                'lng' => 2.3522,
                 'country_code' => 'fr',
             ],
         ]))
@@ -139,15 +157,27 @@ test('trip scope is derived from origin and destination countries', function () 
     expect($internationalTrip?->trip_scope?->value)->toBe('international');
 });
 
-test('road trips require an origin', function () {
+test('road trips require a mapped origin', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->post(route('trips.store'), validTripPayload([
             'type' => 'road',
-            'origin' => ['label' => ''],
+            'origin' => ['label' => 'Typed manually'],
         ]))
-        ->assertSessionHasErrors(['origin.label']);
+        ->assertSessionHasErrors(['origin.lat', 'origin.lng']);
+});
+
+test('trip creation rejects manually typed destinations without coordinates', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'destination' => [
+                'label' => 'Typed manually',
+            ],
+        ]))
+        ->assertSessionHasErrors(['destination.lat', 'destination.lng']);
 });
 
 test('trip create page includes default origin from profile home city', function () {
@@ -176,7 +206,7 @@ test('trip creation validates required fields', function () {
 
     $this->actingAs($user)
         ->post(route('trips.store'), [])
-        ->assertSessionHasErrors(['title', 'type', 'travelers']);
+        ->assertSessionHasErrors(['title', 'type', 'travelers', 'origin', 'destination']);
 });
 
 test('users can view their own trip', function () {
@@ -295,6 +325,10 @@ test('updating material trip details clears a generated itinerary', function () 
         ->put(route('trips.update', $trip), validTripPayload([
             'destination' => [
                 'label' => 'Kyoto, Japan',
+                'lat' => 35.0116,
+                'lng' => 135.7681,
+                'place_id' => 'test-kyoto',
+                'country_code' => 'jp',
             ],
         ]))
         ->assertRedirect(route('trips.show', $trip));

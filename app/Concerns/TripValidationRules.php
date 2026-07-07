@@ -25,6 +25,23 @@ trait TripValidationRules
     }
 
     /**
+     * Origin and destination must come from location search (coordinates required).
+     *
+     * @return array<string, array<int, ValidationRule|string>>
+     */
+    protected function requiredMappedLocationRules(string $prefix): array
+    {
+        return [
+            $prefix => ['required', 'array'],
+            "{$prefix}.label" => ['required', 'string', 'max:255'],
+            "{$prefix}.lat" => ['required', 'numeric', 'between:-90,90'],
+            "{$prefix}.lng" => ['required', 'numeric', 'between:-180,180'],
+            "{$prefix}.place_id" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.country_code" => ['nullable', 'string', 'size:2', 'alpha'],
+        ];
+    }
+
+    /**
      * @return array<string, array<int, ValidationRule|string>>
      */
     protected function tripRules(bool $updating = false): array
@@ -44,8 +61,8 @@ trait TripValidationRules
             'budget' => ['nullable', 'numeric', 'min:0'],
             'travelers' => [$required, 'integer', 'min:1', 'max:50'],
             'notes' => ['nullable', 'string', 'max:5000'],
-            ...$this->locationRules('origin', $this->input('type') === TripType::Road->value),
-            ...$this->locationRules('destination'),
+            ...$this->requiredMappedLocationRules('origin'),
+            ...$this->requiredMappedLocationRules('destination'),
         ];
     }
 }

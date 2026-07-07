@@ -84,6 +84,22 @@ export function parseDisplayDate(value: string): string | null {
     return iso;
 }
 
+export function formatWeekdayShort(iso: string | null | undefined): string {
+    if (!iso) {
+        return '';
+    }
+
+    const parsed = parseIsoDate(iso);
+
+    if (!parsed) {
+        return '';
+    }
+
+    return new Date(parsed.year, parsed.month - 1, parsed.day).toLocaleDateString('en-GB', {
+        weekday: 'short',
+    });
+}
+
 export function isoToday(): string {
     const now = new Date();
 

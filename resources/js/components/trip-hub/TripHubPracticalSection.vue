@@ -34,9 +34,10 @@ const hasBudgetBreakdown = computed(() => {
 
 <template>
     <div class="grid gap-4 lg:grid-cols-2">
-        <Card v-if="trip.notes">
+        <Card v-if="trip.notes" class="card-vibrant overflow-hidden">
+            <div class="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
             <CardHeader class="pb-2">
-                <CardTitle class="text-base">Your notes</CardTitle>
+                <CardTitle class="text-base font-semibold">Your notes</CardTitle>
             </CardHeader>
             <CardContent>
                 <p class="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
@@ -45,9 +46,10 @@ const hasBudgetBreakdown = computed(() => {
             </CardContent>
         </Card>
 
-        <Card v-if="packingList.length">
+        <Card v-if="packingList.length" class="card-vibrant overflow-hidden">
+            <div class="h-1 bg-gradient-to-r from-teal-500 to-emerald-500" />
             <CardHeader class="pb-2">
-                <CardTitle class="text-base">Packing list</CardTitle>
+                <CardTitle class="text-base font-semibold">Packing list</CardTitle>
             </CardHeader>
             <CardContent>
                 <ul class="list-inside list-disc space-y-1 text-sm text-muted-foreground">

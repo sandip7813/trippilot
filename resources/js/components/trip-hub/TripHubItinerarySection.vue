@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, usePage } from '@inertiajs/vue3';
-import { ChevronLeft, ChevronRight, Clock, Sparkles } from '@lucide/vue';
+import { ChevronLeft, ChevronRight, Clock, Sparkles, CalendarDays } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
 import InputError from '@/components/InputError.vue';
@@ -8,8 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { formatDisplayDate } from '@/lib/dates';
+import { formatDisplayDate, formatWeekdayShort } from '@/lib/dates';
 import type { Trip } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
@@ -45,16 +50,42 @@ const generateHint = computed((): string => {
     }
 
     return hasItinerary.value
-        ? 'Regenerate the full day-by-day plan.'
-        : 'Generate a day-by-day plan tailored to this trip.';
+        ? 'Regenerate the full day-by-day plan and refresh the destination banner image.'
+        : 'Generate a day-by-day plan and destination banner tailored to this trip.';
 });
 
-function dayTabLabel(day: (typeof days.value)[number]): string {
+function dayTabDateLabel(day: (typeof days.value)[number]): string {
     if (day.date) {
         return formatDisplayDate(day.date);
     }
 
     return `Day ${day.day}`;
+}
+
+function dayTabSubtitle(day: (typeof days.value)[number]): string {
+    const weekday = day.date ? formatWeekdayShort(day.date) : null;
+
+    if (weekday) {
+        return `${weekday} - Day ${day.day}`;
+    }
+
+    return `Day ${day.day}`;
+}
+
+function dayTooltipParts(day: (typeof days.value)[number]): {
+    date: string;
+    dayCount: string;
+    title: string;
+} {
+    const date = day.date
+        ? formatDisplayDate(day.date, { weekday: true })
+        : dayTabDateLabel(day);
+
+    return {
+        date,
+        dayCount: `Day ${day.day}`,
+        title: day.title ?? `Day ${day.day}`,
+    };
 }
 
 function selectDay(index: number): void {
@@ -75,12 +106,13 @@ function nextDay(): void {
 </script>
 
 <template>
-    <Card>
+    <Card class="card-vibrant overflow-hidden">
+        <div class="brand-gradient h-1.5 opacity-90" />
         <CardHeader class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-2">
-                    <CardTitle class="text-base">Itinerary</CardTitle>
-                    <Badge variant="secondary">AI suggested</Badge>
+                    <CardTitle class="text-lg font-bold">Itinerary</CardTitle>
+                    <Badge class="bg-violet-500/15 text-violet-700 dark:text-violet-300">AI suggested</Badge>
                     <Badge
                         v-if="hasItinerary"
                         variant="outline"
@@ -128,40 +160,57 @@ function nextDay(): void {
 
             <template v-if="hasItinerary && selectedDay">
                 <div class="-mx-1 flex gap-2 overflow-x-auto pb-1">
-                    <button
+                    <Tooltip
                         v-for="(day, index) in days"
                         :key="day.day"
-                        type="button"
-                        :class="cn(
-                            'shrink-0 rounded-full border px-3 py-1.5 text-left text-xs transition-colors',
-                            index === selectedDayIndex
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : 'border-border bg-muted/30 hover:bg-accent',
-                        )"
-                        @click="selectDay(index)"
                     >
-                        <span class="block font-medium">{{ dayTabLabel(day) }}</span>
-                        <span
-                            :class="cn(
-                                'block truncate max-w-28',
-                                index === selectedDayIndex ? 'text-primary-foreground/80' : 'text-muted-foreground',
-                            )"
-                        >
-                            {{ day.title ?? `Day ${day.day}` }}
-                        </span>
-                    </button>
+                        <TooltipTrigger as-child>
+                            <button
+                                type="button"
+                                :class="cn(
+                                    'flex min-w-[6.75rem] shrink-0 flex-col items-center gap-1 rounded-lg border px-3 py-2.5 text-center transition-colors',
+                                    index === selectedDayIndex
+                                        ? 'border-primary bg-primary text-primary-foreground'
+                                        : 'border-border bg-muted/30 hover:bg-accent',
+                                )"
+                                @click="selectDay(index)"
+                            >
+                                <span class="flex items-center gap-1.5 text-sm font-semibold leading-none">
+                                    <CalendarDays class="size-4 shrink-0" />
+                                    {{ dayTabDateLabel(day) }}
+                                </span>
+                                <span
+                                    :class="cn(
+                                        'text-xs leading-tight',
+                                        index === selectedDayIndex
+                                            ? 'text-primary-foreground/90'
+                                            : 'text-muted-foreground',
+                                    )"
+                                >
+                                    {{ dayTabSubtitle(day) }}
+                                </span>
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" class="max-w-xs">
+                            <div class="space-y-1 text-center text-sm">
+                                <p>{{ dayTooltipParts(day).date }}</p>
+                                <p class="font-medium">{{ dayTooltipParts(day).dayCount }}</p>
+                                <p>{{ dayTooltipParts(day).title }}</p>
+                            </div>
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
 
                 <div class="rounded-lg border border-border/60">
-                    <div class="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-                        <div>
-                            <h3 class="font-medium">
+                    <div class="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-4">
+                        <div class="space-y-1">
+                            <h3 class="text-base font-semibold leading-tight">
                                 Day {{ selectedDay.day }}
                                 <span v-if="selectedDay.title">— {{ selectedDay.title }}</span>
                             </h3>
                             <p
                                 v-if="selectedDay.date"
-                                class="text-xs text-muted-foreground"
+                                class="text-sm font-medium text-teal-700 dark:text-teal-300"
                             >
                                 {{ formatDisplayDate(selectedDay.date, { weekday: true }) }}
                             </p>

@@ -38,11 +38,14 @@ function weatherIcon(day: TripWeatherDay) {
 </script>
 
 <template>
-    <Card class="h-full">
+    <Card class="card-vibrant h-full overflow-hidden">
+        <div class="h-1.5 bg-gradient-to-r from-sky-400 via-cyan-500 to-indigo-500" />
         <CardHeader class="flex flex-row flex-wrap items-start justify-between gap-3 pb-2">
             <div>
-                <CardTitle class="flex items-center gap-2 text-base">
-                    <CloudSun class="size-4 text-muted-foreground" />
+                <CardTitle class="flex items-center gap-2 text-lg font-bold">
+                    <span class="flex size-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400">
+                        <CloudSun class="size-4" />
+                    </span>
                     Weather
                 </CardTitle>
                 <p

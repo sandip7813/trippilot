@@ -6,6 +6,7 @@ use App\Contracts\Ai\TripGenerator;
 use App\Data\Ai\GeneratedItinerary;
 use App\Exceptions\AiGenerationException;
 use App\Support\BudgetBreakdownNormalizer;
+use App\Support\GeminiResponseErrors;
 use Illuminate\Support\Arr;
 use JsonException;
 
@@ -41,7 +42,9 @@ class GeminiTripGenerator implements TripGenerator
         );
 
         if ($response->failed()) {
-            throw new AiGenerationException('Unable to generate itinerary. Please try again.');
+            throw new AiGenerationException(
+                GeminiResponseErrors::message($response, 'Unable to generate itinerary. Please try again.'),
+            );
         }
 
         $text = data_get($response->json(), 'candidates.0.content.parts.0.text');
@@ -57,7 +60,19 @@ class GeminiTripGenerator implements TripGenerator
             throw new AiGenerationException('AI returned an invalid itinerary format.');
         }
 
-        return $this->mapToGeneratedItinerary($data);
+        $itinerary = $this->mapToGeneratedItinerary($data);
+
+        if ($itinerary->packingList === []) {
+            $itinerary = new GeneratedItinerary(
+                title: $itinerary->title,
+                days: $itinerary->days,
+                budget: $itinerary->budget,
+                packingList: $this->fallbackPackingList($context),
+                summary: $itinerary->summary,
+            );
+        }
+
+        return $itinerary;
     }
 
     /**
@@ -90,8 +105,36 @@ class GeminiTripGenerator implements TripGenerator
         $lines[] = '- Include budget.currency as INR with numeric INR amounts (no currency symbols in JSON).';
         $lines[] = '- budget.breakdown must include accommodation, food, transport, activities, and miscellaneous.';
         $lines[] = '- budget.estimated_total must be close to the sum of breakdown categories and respect the trip budget when provided.';
+        $lines[] = '- Include packing_list with at least 10 practical items tailored to the destination climate, season, trip length, and planned activities.';
+        $lines[] = '- packing_list must cover clothing layers, footwear, toiletries, documents, health items, and activity-specific gear.';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return list<string>
+     */
+    private function fallbackPackingList(array $context): array
+    {
+        $destination = Arr::get($context, 'destination.label', 'your destination');
+        $dayCount = (int) Arr::get($context, 'day_count', 5);
+        $travelers = (int) Arr::get($context, 'travelers', 1);
+
+        return [
+            "Weather-appropriate clothing for {$destination} (include layers)",
+            'Comfortable walking shoes',
+            'Light jacket or warm layers for cooler evenings',
+            'Rain jacket or compact umbrella',
+            'Government ID and trip booking confirmations',
+            'Phone, charger, and power bank',
+            'Personal medications and basic first-aid kit',
+            'Sunscreen, sunglasses, and lip balm',
+            'Reusable water bottle',
+            'Toiletries and personal care items',
+            "Daypack for {$dayCount}-day excursions",
+            $travelers > 1 ? 'Shared power adapter or extension cord' : 'Travel adapter if needed',
+        ];
     }
 
     /**

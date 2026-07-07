@@ -28,9 +28,10 @@ const needsBudgetRegeneration = computed(
 </script>
 
 <template>
-    <Card>
+    <Card class="card-vibrant overflow-hidden">
+        <div class="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
         <CardHeader class="pb-2">
-            <CardTitle class="text-base">Budget breakdown</CardTitle>
+            <CardTitle class="text-base font-semibold">Budget breakdown</CardTitle>
             <p class="text-xs text-muted-foreground">
                 AI estimate from your itinerary — separate from your planned budget above.
             </p>

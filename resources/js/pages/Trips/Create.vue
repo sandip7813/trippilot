@@ -2,9 +2,11 @@
 import { Form, Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
+import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import TripFormFields from '@/components/TripFormFields.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { create, index as tripsIndex } from '@/routes/trips';
 import type { TripLocation, TripOption } from '@/types/trip';
@@ -40,12 +42,22 @@ defineOptions({
             v-slot="{ errors, processing }"
             class="space-y-6"
         >
-            <TripFormFields
-                :trip-types="tripTypes"
-                :travel-styles="travelStyles"
-                :default-origin="defaultOrigin"
-                :errors="errors"
+            <FormSavingOverlay
+                :show="processing"
+                message="Creating trip..."
             />
+
+            <Card class="card-vibrant overflow-hidden">
+                <div class="brand-gradient h-1.5" />
+                <CardContent class="space-y-6 pt-6">
+                    <TripFormFields
+                        :trip-types="tripTypes"
+                        :travel-styles="travelStyles"
+                        :default-origin="defaultOrigin"
+                        :errors="errors"
+                    />
+                </CardContent>
+            </Card>
 
             <div class="flex items-center gap-3">
                 <Button type="submit" :disabled="processing">

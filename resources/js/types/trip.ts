@@ -60,6 +60,8 @@ export type Trip = {
     status_label: string;
     is_favorite: boolean;
     notes: string | null;
+    cover_image_url?: string | null;
+    cover_image_thumb_url?: string | null;
     itinerary: TripItinerary;
     created_at: string | null;
     updated_at: string | null;

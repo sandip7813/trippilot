@@ -92,3 +92,63 @@ test('gemini trip generator throws when api key is missing', function () {
 
     $generator->generate('', []);
 })->throws(AiGenerationException::class, 'Gemini API key is not configured.');
+
+test('gemini trip generator uses fallback packing list when ai omits it', function () {
+    config([
+        'integrations.ai.drivers.gemini.api_key' => 'test-key',
+        'integrations.ai.drivers.gemini.base_url' => 'https://generativelanguage.googleapis.com/v1beta/',
+        'integrations.ai.drivers.gemini.model' => 'gemini-2.5-flash',
+    ]);
+
+    Http::fake([
+        'generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [
+                [
+                    'content' => [
+                        'parts' => [
+                            [
+                                'text' => json_encode([
+                                    'title' => 'Shimla Escape',
+                                    'summary' => 'Hill station getaway.',
+                                    'days' => [
+                                        [
+                                            'day' => 1,
+                                            'date' => '2026-08-01',
+                                            'title' => 'Mall Road',
+                                            'activities' => [
+                                                ['time' => '10:00', 'title' => 'Stroll Mall Road'],
+                                            ],
+                                        ],
+                                    ],
+                                    'budget' => [
+                                        'currency' => 'INR',
+                                        'estimated_total' => 15000,
+                                        'breakdown' => [
+                                            'accommodation' => 6000,
+                                            'food' => 3000,
+                                            'transport' => 2500,
+                                            'activities' => 2500,
+                                            'miscellaneous' => 1000,
+                                        ],
+                                    ],
+                                    'packing_list' => [],
+                                ]),
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]),
+    ]);
+
+    $generator = new GeminiTripGenerator(app(GeminiClient::class));
+
+    $result = $generator->generate('', [
+        'destination' => ['label' => 'Shimla, Himachal Pradesh, India'],
+        'day_count' => 4,
+        'travelers' => 2,
+    ]);
+
+    expect($result->packingList)->not->toBeEmpty()
+        ->and($result->packingList[0])->toContain('Shimla');
+});

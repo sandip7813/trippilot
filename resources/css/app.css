@@ -59,6 +59,12 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    --color-brand-teal: var(--brand-teal);
+    --color-brand-cyan: var(--brand-cyan);
+    --color-brand-violet: var(--brand-violet);
+    --color-brand-coral: var(--brand-coral);
+    --color-brand-amber: var(--brand-amber);
 }
 
 /*
@@ -87,79 +93,169 @@
             'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
             'Noto Color Emoji';
     }
+
+    .app-page-bg {
+        background-color: var(--background);
+        background-image:
+            radial-gradient(ellipse 90% 60% at 0% -20%, hsl(186 85% 45% / 0.14), transparent 55%),
+            radial-gradient(ellipse 70% 50% at 100% 0%, hsl(270 75% 62% / 0.1), transparent 50%),
+            radial-gradient(ellipse 60% 40% at 50% 110%, hsl(24 95% 55% / 0.08), transparent 55%);
+    }
+
+    .brand-gradient {
+        background-image: linear-gradient(
+            135deg,
+            hsl(172 76% 38%) 0%,
+            hsl(199 89% 48%) 45%,
+            hsl(262 83% 58%) 100%
+        );
+    }
+
+    .brand-gradient-text {
+        background-image: linear-gradient(
+            135deg,
+            hsl(172 76% 32%) 0%,
+            hsl(199 89% 42%) 50%,
+            hsl(262 75% 52%) 100%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .card-vibrant {
+        border-color: hsl(0 0% 100% / 0.65);
+        background-color: hsl(0 0% 100% / 0.82);
+        box-shadow:
+            0 1px 2px hsl(222 47% 11% / 0.04),
+            0 8px 24px hsl(186 72% 42% / 0.08);
+        backdrop-filter: blur(8px);
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
+    }
+
+    .card-vibrant:hover {
+        transform: translateY(-2px);
+        box-shadow:
+            0 2px 4px hsl(222 47% 11% / 0.05),
+            0 12px 32px hsl(186 72% 42% / 0.14);
+    }
+
+    .section-heading {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.125rem;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+    }
+
+    .section-heading::before {
+        content: '';
+        display: block;
+        width: 0.25rem;
+        height: 1.25rem;
+        border-radius: 9999px;
+        background-image: linear-gradient(
+            180deg,
+            hsl(172 76% 38%),
+            hsl(262 83% 58%)
+        );
+    }
 }
 
 :root {
-    --background: hsl(210 40% 98%);
+    --brand-teal: hsl(172 76% 38%);
+    --brand-cyan: hsl(199 89% 48%);
+    --brand-violet: hsl(262 83% 58%);
+    --brand-coral: hsl(18 95% 55%);
+    --brand-amber: hsl(38 92% 50%);
+
+    --background: hsl(210 55% 97%);
     --foreground: hsl(222 47% 11%);
-    --card: hsl(0 0% 100%);
+    --card: hsl(0 0% 100% / 0.88);
     --card-foreground: hsl(222 47% 11%);
     --popover: hsl(0 0% 100%);
     --popover-foreground: hsl(222 47% 11%);
-    --primary: hsl(173 58% 39%);
+    --primary: hsl(172 76% 38%);
     --primary-foreground: hsl(0 0% 100%);
-    --secondary: hsl(199 89% 94%);
-    --secondary-foreground: hsl(199 89% 25%);
-    --muted: hsl(210 40% 96%);
-    --muted-foreground: hsl(215 16% 47%);
-    --accent: hsl(199 89% 94%);
-    --accent-foreground: hsl(199 89% 25%);
+    --secondary: hsl(199 89% 92%);
+    --secondary-foreground: hsl(199 89% 22%);
+    --muted: hsl(210 45% 94%);
+    --muted-foreground: hsl(215 18% 42%);
+    --accent: hsl(280 65% 94%);
+    --accent-foreground: hsl(280 55% 32%);
     --destructive: hsl(0 84.2% 60.2%);
     --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(214 32% 91%);
-    --input: hsl(214 32% 91%);
-    --ring: hsl(173 58% 39%);
-    --chart-1: hsl(173 58% 39%);
+    --border: hsl(214 35% 88%);
+    --input: hsl(214 35% 90%);
+    --ring: hsl(172 76% 38%);
+    --chart-1: hsl(172 76% 38%);
     --chart-2: hsl(199 89% 48%);
-    --chart-3: hsl(32 95% 55%);
+    --chart-3: hsl(24 95% 55%);
     --chart-4: hsl(262 83% 58%);
     --chart-5: hsl(346 77% 50%);
-    --radius: 0.625rem;
-    --sidebar-background: hsl(0 0% 100%);
+    --radius: 0.75rem;
+    --sidebar-background: hsl(0 0% 100% / 0.92);
     --sidebar-foreground: hsl(222 47% 11%);
-    --sidebar-primary: hsl(173 58% 39%);
+    --sidebar-primary: hsl(172 76% 38%);
     --sidebar-primary-foreground: hsl(0 0% 100%);
-    --sidebar-accent: hsl(173 45% 94%);
-    --sidebar-accent-foreground: hsl(173 58% 25%);
-    --sidebar-border: hsl(214 32% 91%);
-    --sidebar-ring: hsl(173 58% 39%);
-    --sidebar: hsl(0 0% 100%);
+    --sidebar-accent: hsl(186 70% 93%);
+    --sidebar-accent-foreground: hsl(172 76% 28%);
+    --sidebar-border: hsl(214 35% 88%);
+    --sidebar-ring: hsl(172 76% 38%);
+    --sidebar: hsl(0 0% 100% / 0.92);
 }
 
 .dark {
     --background: hsl(222 47% 7%);
     --foreground: hsl(210 40% 98%);
-    --card: hsl(222 47% 10%);
+    --card: hsl(222 47% 11% / 0.92);
     --card-foreground: hsl(210 40% 98%);
     --popover: hsl(222 47% 10%);
     --popover-foreground: hsl(210 40% 98%);
-    --primary: hsl(173 58% 45%);
+    --primary: hsl(172 70% 45%);
     --primary-foreground: hsl(222 47% 7%);
     --secondary: hsl(217 33% 17%);
     --secondary-foreground: hsl(210 40% 98%);
     --muted: hsl(217 33% 17%);
     --muted-foreground: hsl(215 20% 65%);
-    --accent: hsl(217 33% 17%);
-    --accent-foreground: hsl(210 40% 98%);
+    --accent: hsl(280 40% 20%);
+    --accent-foreground: hsl(280 60% 85%);
     --destructive: hsl(0 84% 60%);
     --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(217 33% 17%);
-    --input: hsl(217 33% 17%);
-    --ring: hsl(173 58% 45%);
-    --chart-1: hsl(173 58% 45%);
+    --border: hsl(217 33% 20%);
+    --input: hsl(217 33% 20%);
+    --ring: hsl(172 70% 45%);
+    --chart-1: hsl(172 70% 45%);
     --chart-2: hsl(199 89% 55%);
     --chart-3: hsl(32 95% 55%);
     --chart-4: hsl(262 83% 65%);
     --chart-5: hsl(346 77% 60%);
     --sidebar-background: hsl(222 47% 9%);
     --sidebar-foreground: hsl(210 40% 98%);
-    --sidebar-primary: hsl(173 58% 45%);
+    --sidebar-primary: hsl(172 70% 45%);
     --sidebar-primary-foreground: hsl(222 47% 7%);
-    --sidebar-accent: hsl(217 33% 15%);
-    --sidebar-accent-foreground: hsl(210 40% 98%);
+    --sidebar-accent: hsl(186 40% 16%);
+    --sidebar-accent-foreground: hsl(172 70% 75%);
     --sidebar-border: hsl(217 33% 17%);
-    --sidebar-ring: hsl(173 58% 45%);
+    --sidebar-ring: hsl(172 70% 45%);
     --sidebar: hsl(222 47% 9%);
+}
+
+.dark .card-vibrant {
+    border-color: hsl(217 33% 22%);
+    background-color: hsl(222 47% 11% / 0.88);
+    box-shadow:
+        0 1px 2px hsl(0 0% 0% / 0.2),
+        0 8px 24px hsl(172 70% 45% / 0.08);
+}
+
+.dark .card-vibrant:hover {
+    box-shadow:
+        0 2px 4px hsl(0 0% 0% / 0.25),
+        0 12px 32px hsl(172 70% 45% / 0.12);
 }
 
 @layer base {
@@ -167,6 +263,6 @@
         @apply border-border outline-ring/50;
     }
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground antialiased;
     }
 }

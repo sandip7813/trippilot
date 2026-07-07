@@ -3,10 +3,14 @@
 namespace App\Providers;
 
 use App\Contracts\Ai\TripGenerator;
+use App\Contracts\TripCovers\TripCoverGenerator;
 use App\Services\Ai\Gemini\GeminiClient;
+use App\Services\Ai\Gemini\GeminiTripCoverGenerator;
 use App\Services\Ai\Gemini\GeminiTripGenerator;
 use App\Services\Maps\Geoapify\GeoapifyAutocomplete;
 use App\Services\Maps\Geoapify\GeoapifyClient;
+use App\Services\TripCovers\PollinationsTripCoverGenerator;
+use App\Services\TripCovers\UnsplashTripCoverGenerator;
 use App\Services\Weather\OpenMeteo\OpenMeteoClient;
 use App\Services\Weather\OpenWeatherMap\OpenWeatherMapClient;
 use App\Services\Weather\TripWeatherService;
@@ -29,6 +33,7 @@ class IntegrationServiceProvider extends ServiceProvider
         $this->registerMapsServices();
         $this->registerWeatherServices();
         $this->registerAiServices();
+        $this->registerTripCoverServices();
     }
 
     private function registerMapsServices(): void
@@ -78,6 +83,21 @@ class IntegrationServiceProvider extends ServiceProvider
         ];
 
         $this->bindContracts($implementations[$driver] ?? []);
+    }
+
+    private function registerTripCoverServices(): void
+    {
+        $driver = config('integrations.trip_covers.driver', 'unsplash');
+
+        $implementations = [
+            'unsplash' => UnsplashTripCoverGenerator::class,
+            'pollinations' => PollinationsTripCoverGenerator::class,
+            'gemini' => GeminiTripCoverGenerator::class,
+        ];
+
+        if (isset($implementations[$driver])) {
+            $this->app->bind(TripCoverGenerator::class, $implementations[$driver]);
+        }
     }
 
     /**

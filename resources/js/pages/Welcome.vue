@@ -12,6 +12,7 @@ import {
 } from '@lucide/vue';
 import TripPilotBrand from '@/components/TripPilotBrand.vue';
 import { Button } from '@/components/ui/button';
+import { featureIconAccent } from '@/lib/card-accents';
 import { dashboard, login } from '@/routes';
 import { register } from '@/routes';
 
@@ -207,14 +208,14 @@ const stats = [
         </section>
 
         <!-- ═══ DESTINATIONS showcase ═══ -->
-        <section class="bg-background py-24">
+        <section class="app-page-bg py-24">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="mx-auto mb-14 max-w-2xl text-center">
                     <p class="text-sm font-semibold tracking-widest text-primary uppercase">
                         Inspiration
                     </p>
                     <h2 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                        Where will you go next?
+                        <span class="brand-gradient-text">Where will you go next?</span>
                     </h2>
                     <p class="mt-4 text-muted-foreground">
                         Whether it's ancient cities, open highways, or hidden beaches — plan every
@@ -253,7 +254,7 @@ const stats = [
         </section>
 
         <!-- ═══ HOW IT WORKS ═══ -->
-        <section class="border-y border-border/60 bg-muted/40 py-24">
+        <section class="border-y border-border/60 bg-gradient-to-br from-teal-500/5 via-violet-500/5 to-orange-500/5 py-24">
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="grid items-center gap-16 lg:grid-cols-2">
                     <!-- Image side -->
@@ -324,12 +325,13 @@ const stats = [
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div
-                        v-for="feature in features"
+                        v-for="(feature, index) in features"
                         :key="feature.title"
-                        class="group flex items-start gap-4 rounded-2xl border border-border/60 bg-card p-6 transition-all hover:border-primary/30 hover:shadow-lg"
+                        class="card-vibrant group flex items-start gap-4 p-6"
                     >
                         <div
-                            class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500/15 to-sky-500/15 text-primary transition-colors group-hover:from-teal-500/25 group-hover:to-sky-500/25"
+                            class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-lg"
+                            :class="[featureIconAccent(index), index % 2 === 0 ? 'shadow-teal-500/25' : 'shadow-violet-500/25']"
                         >
                             <component :is="feature.icon" class="size-5" />
                         </div>

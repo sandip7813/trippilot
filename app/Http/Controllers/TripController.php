@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Trips\GenerateTripItinerary;
+use App\Actions\Trips\SyncTripCoverImage;
 use App\Enums\TravelStyle;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
@@ -52,7 +53,7 @@ class TripController extends Controller
         ]);
     }
 
-    public function store(StoreTripRequest $request): RedirectResponse
+    public function store(StoreTripRequest $request, SyncTripCoverImage $syncTripCoverImage): RedirectResponse
     {
         $validated = $request->validated();
 
@@ -72,7 +73,14 @@ class TripController extends Controller
             ],
         ]);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Trip created.')]);
+        $coverGenerated = $syncTripCoverImage($trip);
+
+        Inertia::flash('toast', [
+            'type' => $coverGenerated ? 'success' : 'warning',
+            'message' => $coverGenerated
+                ? __('Trip created.')
+                : __('Trip created, but the destination cover could not be generated.'),
+        ]);
 
         return to_route('trips.show', $trip);
     }
@@ -100,11 +108,12 @@ class TripController extends Controller
         ]);
     }
 
-    public function update(UpdateTripRequest $request, Trip $trip): RedirectResponse
+    public function update(UpdateTripRequest $request, Trip $trip, SyncTripCoverImage $syncTripCoverImage): RedirectResponse
     {
         $this->authorize('update', $trip);
 
         $validated = $request->validated();
+        $previousDestinationLabel = Trip::normalizeLocation($trip->getAttribute('destination'))['label'] ?? null;
 
         if (array_key_exists('origin', $validated) || array_key_exists('destination', $validated)) {
             $locations = $this->prepareTripLocations([
@@ -127,6 +136,13 @@ class TripController extends Controller
         }
 
         $trip->update($validated);
+
+        $newDestinationLabel = Trip::normalizeLocation($trip->getAttribute('destination'))['label'] ?? null;
+        $destinationChanged = ($previousDestinationLabel ?? '') !== ($newDestinationLabel ?? '');
+
+        if ($destinationChanged) {
+            $syncTripCoverImage($trip->fresh());
+        }
 
         if ($itineraryCleared) {
             Inertia::flash('toast', [

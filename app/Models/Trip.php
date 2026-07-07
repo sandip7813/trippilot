@@ -6,6 +6,7 @@ use App\Enums\TravelStyle;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
+use Carbon\CarbonInterface;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,6 +29,8 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property TripStatus $status
  * @property bool $is_favorite
  * @property string|null $notes
+ * @property string|null $cover_image_path
+ * @property string|null $cover_image_thumb_path
  * @property array<string, mixed> $itinerary
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -59,6 +62,8 @@ class Trip extends Model
         'status',
         'is_favorite',
         'notes',
+        'cover_image_path',
+        'cover_image_thumb_path',
         'itinerary',
     ];
 
@@ -246,6 +251,8 @@ class Trip extends Model
             'status_label' => $this->status->label(),
             'is_favorite' => $this->is_favorite,
             'notes' => $this->notes,
+            'cover_image_url' => $this->coverImageUrl(),
+            'cover_image_thumb_url' => $this->coverImageThumbUrl(),
             'itinerary' => $this->itineraryForFrontend(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
@@ -332,7 +339,7 @@ class Trip extends Model
         return self::normalizeLocation($value);
     }
 
-    private function dateValue(?Carbon $date): ?string
+    private function dateValue(?CarbonInterface $date): ?string
     {
         return $date?->toDateString();
     }
@@ -368,5 +375,28 @@ class Trip extends Model
                 ? $itinerary['budget_breakdown']
                 : [],
         ];
+    }
+
+    public function coverImageUrl(): ?string
+    {
+        return $this->publicStorageUrl($this->cover_image_path);
+    }
+
+    public function coverImageThumbUrl(): ?string
+    {
+        $thumbUrl = $this->publicStorageUrl($this->cover_image_thumb_path);
+
+        return $thumbUrl ?? $this->coverImageUrl();
+    }
+
+    private function publicStorageUrl(mixed $path): ?string
+    {
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        $version = $this->updated_at?->getTimestamp() ?? time();
+
+        return asset('storage/'.$path).'?v='.$version;
     }
 }

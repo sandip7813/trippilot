@@ -14,6 +14,7 @@ const props = defineProps<{
     label: string;
     errors: Record<string, string>;
     required?: boolean;
+    requireSelection?: boolean;
     hint?: string;
     variant?: 'default' | 'compact';
 }>();
@@ -33,6 +34,15 @@ const open = ref(false);
 const loading = ref(false);
 const suggestions = ref<TripLocation[]>([]);
 const rootRef = ref<HTMLElement | null>(null);
+const selectionError = ref<string | null>(null);
+
+const mustPickFromSearch = computed(
+    () => (props.requireSelection ?? false) && locationSearchEnabled.value,
+);
+
+function hasValidSelection(location: TripLocation | null | undefined): boolean {
+    return location?.lat != null && location?.lng != null && Boolean(location.label?.trim());
+}
 
 onClickOutside(rootRef, () => {
     open.value = false;
@@ -85,6 +95,10 @@ const debouncedSearch = useDebounceFn(async (value: string) => {
 }, 300);
 
 function syncFreeText(value: string): void {
+    if (mustPickFromSearch.value) {
+        return;
+    }
+
     const trimmed = value.trim();
 
     model.value = trimmed
@@ -102,8 +116,20 @@ function onInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
 
     query.value = value;
+    selectionError.value = null;
 
     if (locationSearchEnabled.value) {
+        if (mustPickFromSearch.value) {
+            if (! hasValidSelection(model.value) || value !== model.value?.label) {
+                model.value = null;
+            }
+
+            open.value = true;
+            void debouncedSearch(value);
+
+            return;
+        }
+
         if (model.value?.label && value !== model.value.label) {
             syncFreeText(value);
         }
@@ -128,6 +154,7 @@ function selectSuggestion(suggestion: TripLocation): void {
     query.value = suggestion.label ?? '';
     open.value = false;
     suggestions.value = [];
+    selectionError.value = null;
 }
 
 function onFocus(): void {
@@ -138,6 +165,20 @@ function onFocus(): void {
 
 function onBlur(): void {
     window.setTimeout(() => {
+        if (open.value) {
+            return;
+        }
+
+        if (mustPickFromSearch.value) {
+            if (! hasValidSelection(model.value)) {
+                query.value = '';
+                model.value = null;
+                selectionError.value = 'Pick a place from the search suggestions.';
+            }
+
+            return;
+        }
+
         if (! open.value && query.value.trim() !== (model.value?.label ?? '')) {
             syncFreeText(query.value);
         }
@@ -231,16 +272,21 @@ function onBlur(): void {
                 v-if="locationSearchEnabled && variant !== 'compact'"
                 class="text-xs text-muted-foreground"
             >
-                Start typing to search places. Pick a suggestion for accurate maps and trip scope.
+                <template v-if="mustPickFromSearch">
+                    Start typing, then pick a suggestion — manual text is not accepted.
+                </template>
+                <template v-else>
+                    Start typing to search places. Pick a suggestion for accurate maps and trip scope.
+                </template>
             </p>
             <p
-                v-else-if="model?.lat != null && model?.lng != null"
+                v-else-if="hasValidSelection(model)"
                 class="text-xs text-muted-foreground"
             >
                 Coordinates saved from your selection.
             </p>
 
-            <InputError :message="errors[`${prefix}.label`] ?? errors[`${prefix}[label]`]" />
+            <InputError :message="selectionError ?? errors[`${prefix}.label`] ?? errors[`${prefix}[label]`] ?? errors[`${prefix}.lat`] ?? errors[`${prefix}[lat]`]" />
         </div>
     </div>
 </template>

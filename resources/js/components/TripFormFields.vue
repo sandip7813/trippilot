@@ -25,10 +25,9 @@ const originLocation = ref<TripLocation | null>(
     props.trip?.origin ?? props.defaultOrigin ?? null,
 );
 const destinationLocation = ref<TripLocation | null>(props.trip?.destination ?? null);
+const notes = ref(props.trip?.notes ?? '');
 
 const today = isoToday();
-
-const isRoadTrip = computed(() => selectedType.value === 'road');
 
 const minStartDate = computed((): string => {
     if (props.trip?.start_date && props.trip.start_date < today) {
@@ -107,7 +106,8 @@ watch(startDateIso, (nextStart) => {
             prefix="origin"
             label="Starting from"
             :errors="errors"
-            :required="isRoadTrip"
+            required
+            require-selection
             hint="Where your journey begins. Defaults from your profile home city when set."
         />
 
@@ -116,6 +116,8 @@ watch(startDateIso, (nextStart) => {
             prefix="destination"
             label="Destination"
             :errors="errors"
+            required
+            require-selection
             hint="Where you are headed — main place or final stop."
         />
 
@@ -206,9 +208,9 @@ watch(startDateIso, (nextStart) => {
             <textarea
                 id="notes"
                 name="notes"
+                v-model="notes"
                 rows="4"
                 class="flex min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                :default-value="trip?.notes ?? ''"
                 placeholder="Must-see spots, dietary needs, pace preferences..."
             />
             <InputError :message="errors.notes" />
