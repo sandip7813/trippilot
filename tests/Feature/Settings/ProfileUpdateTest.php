@@ -20,7 +20,13 @@ test('profile information can be updated', function () {
         ->patch(route('profile.update'), [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'home_city' => 'Bangalore, India',
+            'home_city' => [
+                'label' => 'Bangalore, India',
+                'lat' => 12.9716,
+                'lng' => 77.5946,
+                'place_id' => 'place-blr',
+                'country_code' => 'in',
+            ],
         ]);
 
     $response
@@ -34,9 +40,10 @@ test('profile information can be updated', function () {
     expect($user->email_verified_at)->toBeNull();
     expect($user->travel_preferences['home_city'])->toMatchArray([
         'label' => 'Bangalore, India',
-        'lat' => null,
-        'lng' => null,
-        'place_id' => null,
+        'lat' => 12.9716,
+        'lng' => 77.5946,
+        'place_id' => 'place-blr',
+        'country_code' => 'in',
     ]);
 });
 

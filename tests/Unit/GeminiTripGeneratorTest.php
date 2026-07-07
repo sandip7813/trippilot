@@ -41,7 +41,15 @@ test('gemini trip generator parses structured json response', function () {
                                         ],
                                     ],
                                     'budget' => [
+                                        'currency' => 'INR',
                                         'estimated_total' => 2500,
+                                        'breakdown' => [
+                                            'accommodation' => 1200,
+                                            'food' => 500,
+                                            'transport' => 300,
+                                            'activities' => 400,
+                                            'miscellaneous' => 100,
+                                        ],
                                     ],
                                     'packing_list' => ['Umbrella'],
                                 ]),
@@ -69,7 +77,12 @@ test('gemini trip generator parses structured json response', function () {
     $stored = $result->toTripItinerary();
 
     expect($stored['summary'])->toBe('A classic Paris itinerary.')
-        ->and($stored['packing_list'])->toContain('Umbrella');
+        ->and($stored['packing_list'])->toContain('Umbrella')
+        ->and($stored['budget_breakdown']['currency'])->toBe('INR')
+        ->and($stored['budget_breakdown']['breakdown'])->toMatchArray([
+            'accommodation' => 1200.0,
+            'food' => 500.0,
+        ]);
 });
 
 test('gemini trip generator throws when api key is missing', function () {

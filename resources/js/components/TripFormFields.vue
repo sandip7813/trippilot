@@ -165,7 +165,7 @@ watch(startDateIso, (nextStart) => {
         </div>
 
         <div class="grid gap-2">
-            <Label for="budget">Budget (optional)</Label>
+            <Label for="budget">Budget in INR (optional)</Label>
             <Input
                 id="budget"
                 name="budget"
@@ -173,9 +173,12 @@ watch(startDateIso, (nextStart) => {
                 min="0"
                 step="0.01"
                 :default-value="trip?.budget ?? ''"
-                placeholder="2500"
+                placeholder="25000"
                 class="max-w-xs"
             />
+            <p class="text-xs text-muted-foreground">
+                Enter your total trip budget in rupees (₹).
+            </p>
             <InputError :message="errors.budget" />
         </div>
 

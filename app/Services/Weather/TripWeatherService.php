@@ -66,11 +66,12 @@ class TripWeatherService
 
         $today = today()->startOfDay();
         $daysUntilStart = (int) $today->diffInDays($startDate, false);
+        $extendsBeyondForecast = $endDate->gt($today->copy()->addDays(self::FORECAST_HORIZON_DAYS - 1));
         $useForecast = $daysUntilStart <= self::FORECAST_HORIZON_DAYS;
 
         $cacheKey = sprintf(
-            'trip_weather:%s:%s:%s:%s:%.4f:%.4f',
-            $useForecast ? 'forecast' : 'typical',
+            'trip_weather:v2:%s:%s:%s:%s:%.4f:%.4f',
+            $useForecast ? ($extendsBeyondForecast ? 'mixed' : 'forecast') : 'typical',
             $startDate->toDateString(),
             $endDate->toDateString(),
             $today->toDateString(),
@@ -118,13 +119,9 @@ class TripWeatherService
         int $daysUntilStart,
     ): ?array {
         $forecastStart = $daysUntilStart < 0 ? $today : $startDate;
-        $forecastEnd = $endDate->copy();
-
+        $tripEndDate = $endDate->copy();
         $maxForecastEnd = $today->copy()->addDays(self::FORECAST_HORIZON_DAYS - 1);
-
-        if ($forecastEnd->gt($maxForecastEnd)) {
-            $forecastEnd = $maxForecastEnd;
-        }
+        $forecastEnd = $tripEndDate->gt($maxForecastEnd) ? $maxForecastEnd : $tripEndDate;
 
         if ($forecastEnd->lt($forecastStart)) {
             return $this->buildTypicalPayload($destination, $startDate, $endDate);
@@ -150,9 +147,9 @@ class TripWeatherService
             ];
         }
 
-        $days = $this->mapDailyRows($response->json('daily'));
+        $forecastDays = $this->mapDailyRows($response->json('daily'));
 
-        if ($days === []) {
+        if ($forecastDays === []) {
             return [
                 'available' => false,
                 'reason' => 'fetch_failed',
@@ -161,18 +158,107 @@ class TripWeatherService
             ];
         }
 
-        $summary = $this->summarizeDays($days);
+        $remainderStart = $maxForecastEnd->copy()->addDay();
 
+        if ($tripEndDate->gt($maxForecastEnd) && $remainderStart->lte($tripEndDate)) {
+            $remainderPeriodStart = $remainderStart->lt($startDate) ? $startDate : $remainderStart;
+
+            return $this->buildMixedPayload(
+                $destination,
+                $forecastDays,
+                $forecastStart,
+                $forecastEnd,
+                $tripEndDate,
+                $remainderPeriodStart,
+                $this->buildTypicalStats($destination, $remainderPeriodStart, $tripEndDate),
+            );
+        }
+
+        return $this->buildForecastOnlyPayload(
+            $destination,
+            $forecastDays,
+            $forecastStart,
+            $forecastEnd,
+            $tripEndDate,
+            $maxForecastEnd,
+        );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $forecastDays
+     * @param  array<string, mixed>|null  $typicalRemainder
+     * @return array<string, mixed>
+     */
+    private function buildMixedPayload(
+        array $destination,
+        array $forecastDays,
+        CarbonInterface $forecastStart,
+        CarbonInterface $forecastEnd,
+        CarbonInterface $tripEndDate,
+        CarbonInterface $remainderPeriodStart,
+        ?array $typicalRemainder,
+    ): array {
+        $remainderLabel = $this->formatPeriodLabel($remainderPeriodStart, $tripEndDate);
+        $forecastLabel = $this->formatPeriodLabel($forecastStart, $forecastEnd);
+
+        $summary = $typicalRemainder !== null
+            ? sprintf(
+                'Live forecast for %s (%d days). Seasonal outlook for %s.',
+                $forecastLabel,
+                count($forecastDays),
+                $remainderLabel,
+            )
+            : sprintf(
+                'Live forecast for %s (%d days). Seasonal outlook for %s could not be loaded — try again shortly.',
+                $forecastLabel,
+                count($forecastDays),
+                $remainderLabel,
+            );
+
+        return [
+            'available' => true,
+            'mode' => 'mixed',
+            'mode_label' => 'Forecast + seasonal outlook',
+            'location_label' => $destination['label'],
+            'summary' => $summary,
+            'forecast_days' => $forecastDays,
+            'forecast_range_label' => $forecastLabel,
+            'typical_remainder' => $typicalRemainder,
+            'remainder_period_label' => $remainderLabel,
+            'trip_end_date' => $tripEndDate->toDateString(),
+            'disclaimer' => sprintf(
+                'Daily forecasts are only available ~16 days ahead. Dates after %s show typical conditions for that time of year — not day-by-day predictions.',
+                $forecastEnd->format('j M Y'),
+            ),
+            'source' => 'open_meteo',
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $forecastDays
+     * @return array<string, mixed>
+     */
+    private function buildForecastOnlyPayload(
+        array $destination,
+        array $forecastDays,
+        CarbonInterface $forecastStart,
+        CarbonInterface $forecastEnd,
+        CarbonInterface $tripEndDate,
+        CarbonInterface $maxForecastEnd,
+    ): array {
         return [
             'available' => true,
             'mode' => 'forecast',
             'mode_label' => 'Forecast',
             'location_label' => $destination['label'],
-            'summary' => $summary,
-            'days' => $days,
-            'disclaimer' => $endDate->gt($maxForecastEnd)
-                ? 'Daily forecast covers up to 16 days ahead. Typical seasonal conditions apply for later dates.'
-                : 'Live forecast from Open-Meteo for your trip dates.',
+            'summary' => $this->summarizeDays($forecastDays),
+            'forecast_days' => $forecastDays,
+            'days' => $forecastDays,
+            'forecast_range_label' => $this->formatPeriodLabel($forecastStart, $forecastEnd),
+            'trip_end_date' => $tripEndDate->toDateString(),
+            'disclaimer' => $tripEndDate->gt($maxForecastEnd)
+                ? 'Daily forecast covers up to 16 days ahead. Check again closer to your trip for later dates.'
+                : 'Live forecast from Open-Meteo for your full trip window.',
             'source' => 'open_meteo',
         ];
     }
@@ -181,7 +267,7 @@ class TripWeatherService
      * @param  array{label: string|null, lat: float|null, lng: float|null, place_id: string|null, country_code: string|null}  $destination
      * @return array<string, mixed>|null
      */
-    private function buildTypicalPayload(
+    private function buildTypicalStats(
         array $destination,
         CarbonInterface $startDate,
         CarbonInterface $endDate,
@@ -192,6 +278,8 @@ class TripWeatherService
         $rainyDays = 0;
         $totalDays = 0;
 
+        $periods = [];
+
         for ($yearsAgo = 1; $yearsAgo <= self::TYPICAL_YEARS; $yearsAgo++) {
             $year = now()->year - $yearsAgo;
             $periodStart = $this->dateForYear($year, $startDate);
@@ -201,13 +289,24 @@ class TripWeatherService
                 continue;
             }
 
-            $response = $this->client->archive(
-                $destination['lat'],
-                $destination['lng'],
-                $periodStart->toDateString(),
-                $periodEnd->toDateString(),
-            );
+            $periods[] = [
+                'key' => (string) $year,
+                'start_date' => $periodStart->toDateString(),
+                'end_date' => $periodEnd->toDateString(),
+            ];
+        }
 
+        if ($periods === []) {
+            return null;
+        }
+
+        $responses = $this->client->archiveMany(
+            $destination['lat'],
+            $destination['lng'],
+            $periods,
+        );
+
+        foreach ($responses as $response) {
             if (! $response->successful()) {
                 continue;
             }
@@ -227,14 +326,7 @@ class TripWeatherService
         }
 
         if ($totalDays === 0) {
-            Log::warning('Open-Meteo typical weather could not be calculated.');
-
-            return [
-                'available' => false,
-                'reason' => 'fetch_failed',
-                'message' => 'Typical seasonal weather could not be loaded right now.',
-                'location_label' => $destination['label'],
-            ];
+            return null;
         }
 
         $avgMin = (int) round(array_sum($minTemps) / count($minTemps));
@@ -242,16 +334,8 @@ class TripWeatherService
         $avgDailyPrecip = round(array_sum($precipitationTotals) / count($precipitationTotals), 1);
         $rainyDayPercent = (int) round(($rainyDays / $totalDays) * 100);
 
-        $periodLabel = $startDate->equalTo($endDate)
-            ? $startDate->format('j M')
-            : $startDate->format('j M').' – '.$endDate->format('j M');
-
         return [
-            'available' => true,
-            'mode' => 'typical',
-            'mode_label' => 'Typical for this season',
-            'location_label' => $destination['label'],
-            'period_label' => $periodLabel,
+            'period_label' => $this->formatPeriodLabel($startDate, $endDate),
             'summary' => sprintf(
                 'Usually %d–%d°C with ~%s mm rain/day (%d%% days with rain).',
                 $avgMin,
@@ -264,10 +348,60 @@ class TripWeatherService
             'avg_daily_precipitation_mm' => $avgDailyPrecip,
             'rainy_day_percent' => $rainyDayPercent,
             'sample_years' => self::TYPICAL_YEARS,
+        ];
+    }
+
+    private function formatPeriodLabel(CarbonInterface $startDate, CarbonInterface $endDate): string
+    {
+        if ($startDate->equalTo($endDate)) {
+            return $startDate->format('j M');
+        }
+
+        if ($startDate->month === $endDate->month) {
+            return $startDate->format('j').'–'.$endDate->format('j M');
+        }
+
+        return $startDate->format('j M').' – '.$endDate->format('j M');
+    }
+
+    /**
+     * @param  array{label: string|null, lat: float|null, lng: float|null, place_id: string|null, country_code: string|null}  $destination
+     * @return array<string, mixed>|null
+     */
+    private function buildTypicalPayload(
+        array $destination,
+        CarbonInterface $startDate,
+        CarbonInterface $endDate,
+    ): ?array {
+        $stats = $this->buildTypicalStats($destination, $startDate, $endDate);
+
+        if ($stats === null) {
+            Log::warning('Open-Meteo typical weather could not be calculated.');
+
+            return [
+                'available' => false,
+                'reason' => 'fetch_failed',
+                'message' => 'Typical seasonal weather could not be loaded right now.',
+                'location_label' => $destination['label'],
+            ];
+        }
+
+        return [
+            'available' => true,
+            'mode' => 'typical',
+            'mode_label' => 'Typical for this season',
+            'location_label' => $destination['label'],
+            'period_label' => $stats['period_label'],
+            'summary' => $stats['summary'],
+            'temperature_min' => $stats['temperature_min'],
+            'temperature_max' => $stats['temperature_max'],
+            'avg_daily_precipitation_mm' => $stats['avg_daily_precipitation_mm'],
+            'rainy_day_percent' => $stats['rainy_day_percent'],
+            'sample_years' => $stats['sample_years'],
             'disclaimer' => sprintf(
                 'Based on %d-year historical averages for %s — not a day-by-day forecast. Check again about two weeks before you travel for a live forecast.',
                 self::TYPICAL_YEARS,
-                $periodLabel,
+                $stats['period_label'],
             ),
             'source' => 'open_meteo',
         ];

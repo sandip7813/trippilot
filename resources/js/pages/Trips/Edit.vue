@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, TriangleAlert } from '@lucide/vue';
+import TripFormFields from '@/components/TripFormFields.vue';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ArrowLeft, MapPin, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
 import PageHeader from '@/components/PageHeader.vue';
-import TripFormFields from '@/components/TripFormFields.vue';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { index as tripsIndex, show } from '@/routes/trips';
 import type { Trip, TripOption } from '@/types/trip';
+import { locationHasCoordinates } from '@/types/trip';
 
 const { trip } = defineProps<{
     trip: Trip;
@@ -19,6 +20,10 @@ const { trip } = defineProps<{
 }>();
 
 const hasItinerary = computed(() => (trip.itinerary?.days?.length ?? 0) > 0);
+
+const needsDestinationCoordinates = computed(
+    () => Boolean(trip.destination?.label) && ! locationHasCoordinates(trip.destination),
+);
 
 defineOptions({
     layout: {
@@ -44,6 +49,14 @@ defineOptions({
             <AlertDescription>
                 Changing route, dates, travelers, or planning details clears your current
                 itinerary. You can generate a fresh plan after saving.
+            </AlertDescription>
+        </Alert>
+
+        <Alert v-if="needsDestinationCoordinates">
+            <MapPin class="size-4" />
+            <AlertTitle>Re-select destination from search</AlertTitle>
+            <AlertDescription>
+                Pick your destination from the dropdown below to enable weather, maps, and trip scope.
             </AlertDescription>
         </Alert>
 

@@ -82,6 +82,14 @@ export function locationLabel(location: TripLocation | null | undefined): string
     return location?.label ?? null;
 }
 
+export function locationHasCoordinates(location: TripLocation | null | undefined): boolean {
+    return location?.lat != null && location?.lng != null;
+}
+
+export function openStreetMapUrl(lat: number, lng: number): string {
+    return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=12/${lat}/${lng}`;
+}
+
 export function locationRouteLabel(
     origin: TripLocation | null | undefined,
     destination: TripLocation | null | undefined,

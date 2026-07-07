@@ -23,6 +23,7 @@ class ProfileController extends Controller
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'homeCity' => $request->user()->homeCityLocation(),
         ]);
     }
 
@@ -46,9 +47,7 @@ class ProfileController extends Controller
         $preferences = $user->travel_preferences ?? [];
 
         if (array_key_exists('home_city', $validated)) {
-            $preferences['home_city'] = Trip::normalizeLocation(
-                filled($validated['home_city']) ? ['label' => $validated['home_city']] : null,
-            );
+            $preferences['home_city'] = Trip::normalizeLocation($validated['home_city']);
         }
 
         $user->travel_preferences = $preferences;

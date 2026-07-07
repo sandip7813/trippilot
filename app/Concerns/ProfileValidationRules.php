@@ -8,6 +8,8 @@ use Illuminate\Validation\Rule;
 
 trait ProfileValidationRules
 {
+    use TripValidationRules;
+
     /**
      * Get the validation rules used to validate user profiles.
      *
@@ -18,7 +20,7 @@ trait ProfileValidationRules
         return [
             'name' => $this->nameRules(),
             'email' => $this->emailRules($userId),
-            'home_city' => ['nullable', 'string', 'max:255'],
+            ...$this->locationRules('home_city'),
         ];
     }
 

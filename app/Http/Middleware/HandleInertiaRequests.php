@@ -48,6 +48,10 @@ class HandleInertiaRequests extends Middleware
             'integrations' => [
                 'locationSearchEnabled' => filled(config('integrations.maps.drivers.geoapify.api_key')),
             ],
+            'currency' => [
+                'code' => config('trippilot.currency', 'INR'),
+                'locale' => config('trippilot.currency_locale', 'en-IN'),
+            ],
         ];
     }
 }

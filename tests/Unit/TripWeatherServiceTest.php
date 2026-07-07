@@ -56,9 +56,99 @@ test('trip weather uses forecast mode when the trip starts within sixteen days',
     expect($weather)->not->toBeNull()
         ->and($weather['available'])->toBeTrue()
         ->and($weather['mode'])->toBe('forecast')
-        ->and($weather['days'])->toHaveCount(2)
-        ->and($weather['days'][0]['temperature_max'])->toBe(32)
-        ->and($weather['days'][0]['weather_label'])->toBe('Partly cloudy');
+        ->and($weather['forecast_days'] ?? $weather['days'])->toHaveCount(2)
+        ->and(($weather['forecast_days'] ?? $weather['days'])[0]['temperature_max'])->toBe(32)
+        ->and(($weather['forecast_days'] ?? $weather['days'])[0]['weather_label'])->toBe('Partly cloudy');
+});
+
+test('trip weather uses mixed mode when the trip extends beyond the forecast horizon', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-07'));
+
+    Http::fake([
+        'api.open-meteo.com/*' => Http::response([
+            'daily' => [
+                'time' => ['2026-07-19', '2026-07-20', '2026-07-21', '2026-07-22'],
+                'temperature_2m_max' => [31.0, 32.0, 30.0, 29.0],
+                'temperature_2m_min' => [25.0, 26.0, 24.0, 23.0],
+                'precipitation_sum' => [1.0, 2.0, 0.0, 4.0],
+                'weathercode' => [2, 2, 0, 61],
+            ],
+        ]),
+        'archive-api.open-meteo.com/*' => Http::response([
+            'daily' => [
+                'time' => ['2016-07-23', '2016-07-24'],
+                'temperature_2m_max' => [28.0, 27.0],
+                'temperature_2m_min' => [22.0, 21.0],
+                'precipitation_sum' => [5.0, 1.0],
+                'weathercode' => [61, 2],
+            ],
+        ]),
+    ]);
+
+    $trip = new Trip;
+    $trip->forceFill([
+        'destination' => [
+            'label' => 'Goa, India',
+            'lat' => 15.2993,
+            'lng' => 74.1240,
+            'place_id' => 'goa',
+            'country_code' => 'in',
+        ],
+        'start_date' => Carbon::parse('2026-07-19'),
+        'end_date' => Carbon::parse('2026-07-31'),
+    ]);
+
+    $weather = app(TripWeatherService::class)->forTrip($trip);
+
+    expect($weather)->not->toBeNull()
+        ->and($weather['available'])->toBeTrue()
+        ->and($weather['mode'])->toBe('mixed')
+        ->and($weather['forecast_days'])->toHaveCount(4)
+        ->and($weather['typical_remainder'])->not->toBeNull()
+        ->and($weather['typical_remainder']['period_label'])->toBe('23–31 Jul')
+        ->and($weather['remainder_period_label'])->toBe('23–31 Jul');
+});
+
+test('trip weather stays in mixed mode when seasonal archive data is unavailable', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-07'));
+
+    Http::fake(function ($request) {
+        if (str_contains($request->url(), 'archive-api.open-meteo.com')) {
+            return Http::response([], 503);
+        }
+
+        return Http::response([
+            'daily' => [
+                'time' => ['2026-07-19', '2026-07-20', '2026-07-21', '2026-07-22'],
+                'temperature_2m_max' => [31.0, 32.0, 30.0, 29.0],
+                'temperature_2m_min' => [25.0, 26.0, 24.0, 23.0],
+                'precipitation_sum' => [1.0, 2.0, 0.0, 4.0],
+                'weathercode' => [2, 2, 0, 61],
+            ],
+        ]);
+    });
+
+    $trip = new Trip;
+    $trip->forceFill([
+        'destination' => [
+            'label' => 'Goa, India',
+            'lat' => 15.2993,
+            'lng' => 74.1240,
+            'place_id' => 'goa',
+            'country_code' => 'in',
+        ],
+        'start_date' => Carbon::parse('2026-07-19'),
+        'end_date' => Carbon::parse('2026-07-31'),
+    ]);
+
+    $weather = app(TripWeatherService::class)->forTrip($trip);
+
+    expect($weather)->not->toBeNull()
+        ->and($weather['available'])->toBeTrue()
+        ->and($weather['mode'])->toBe('mixed')
+        ->and($weather['forecast_days'])->toHaveCount(4)
+        ->and($weather['typical_remainder'])->toBeNull()
+        ->and($weather['remainder_period_label'])->toBe('23–31 Jul');
 });
 
 test('trip weather uses typical mode when the trip starts more than sixteen days away', function () {

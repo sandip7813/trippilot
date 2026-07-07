@@ -10,14 +10,17 @@ import { search as locationSearch } from '@/routes/locations';
 import type { TripLocation } from '@/types/trip';
 
 const props = defineProps<{
-    prefix: 'origin' | 'destination';
+    prefix: 'origin' | 'destination' | 'home_city';
     label: string;
     errors: Record<string, string>;
     required?: boolean;
     hint?: string;
+    variant?: 'default' | 'compact';
 }>();
 
 const model = defineModel<TripLocation | null>({ default: null });
+
+const variant = computed(() => props.variant ?? 'default');
 
 const page = usePage();
 
@@ -143,7 +146,11 @@ function onBlur(): void {
 </script>
 
 <template>
-    <div class="grid gap-3 rounded-lg border border-border/60 bg-muted/20 p-4">
+    <div
+        :class="variant === 'compact'
+            ? 'grid gap-2'
+            : 'grid gap-3 rounded-lg border border-border/60 bg-muted/20 p-4'"
+    >
         <div ref="rootRef" class="relative grid gap-2">
             <Label :for="`${prefix}-label`">
                 {{ label }}
@@ -221,7 +228,7 @@ function onBlur(): void {
                 {{ hint }}
             </p>
             <p
-                v-if="locationSearchEnabled"
+                v-if="locationSearchEnabled && variant !== 'compact'"
                 class="text-xs text-muted-foreground"
             >
                 Start typing to search places. Pick a suggestion for accurate maps and trip scope.

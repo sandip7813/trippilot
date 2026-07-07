@@ -2,24 +2,21 @@
 import { Form, Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
-    Calendar,
-    Clock,
     Heart,
-    MapPin,
     Pencil,
-    Sparkles,
     Trash2,
-    Users,
-    Wallet,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
-import InputError from '@/components/InputError.vue';
+import LocationCoordinatesAlert from '@/components/LocationCoordinatesAlert.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import TripHubAtAGlance from '@/components/trip-hub/TripHubAtAGlance.vue';
+import TripHubItinerarySection from '@/components/trip-hub/TripHubItinerarySection.vue';
+import TripHubPracticalSection from '@/components/trip-hub/TripHubPracticalSection.vue';
+import TripHubUsefulLinks from '@/components/trip-hub/TripHubUsefulLinks.vue';
 import TripWeatherCard from '@/components/TripWeatherCard.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -30,12 +27,11 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Spinner } from '@/components/ui/spinner';
 import { edit, index as tripsIndex } from '@/routes/trips';
-import { formatDisplayDate } from '@/lib/dates';
+import { normalizeBudgetBreakdown } from '@/lib/budget';
 import type { Trip } from '@/types/trip';
 import type { TripWeather } from '@/types/weather';
-import { locationLabel, locationRouteLabel } from '@/types/trip';
+import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
 
 const props = defineProps<{
     trip: Trip;
@@ -51,27 +47,34 @@ defineOptions({
     },
 });
 
-const page = usePage();
-
-const hasItinerary = computed(() => (props.trip.itinerary?.days?.length ?? 0) > 0);
-
-const canGenerate = computed(
-    () => props.aiConfigured && Boolean(locationLabel(props.trip.destination)),
+const needsDestinationCoordinates = computed(
+    () => Boolean(props.trip.destination?.label) && ! locationHasCoordinates(props.trip.destination),
 );
 
-const generateHint = computed((): string => {
-    if (!props.aiConfigured) {
-        return 'Add GEMINI_API_KEY to your environment to enable AI generation.';
+const page = usePage();
+
+const appCurrency = computed(
+    () => (page.props.currency as { code?: string } | undefined)?.code ?? 'INR',
+);
+
+const hasBudgetBreakdown = computed(() => {
+    if ((props.trip.itinerary?.days?.length ?? 0) === 0) {
+        return false;
     }
 
-    if (!locationLabel(props.trip.destination)) {
-        return 'Set a destination on this trip before generating an itinerary.';
-    }
+    const budget = normalizeBudgetBreakdown(
+        props.trip.itinerary?.budget_breakdown as Record<string, unknown> | undefined,
+        appCurrency.value,
+    );
 
-    return hasItinerary.value
-        ? 'Regenerate the full day-by-day plan.'
-        : 'Generate a day-by-day plan tailored to this trip.';
+    return budget.hasLineItems || budget.estimatedTotal !== null;
 });
+
+const hasExtras = computed(
+    () => Boolean(props.trip.notes)
+        || (props.trip.itinerary?.packing_list?.length ?? 0) > 0
+        || hasBudgetBreakdown.value,
+);
 
 function toggleFavorite(): void {
     router.patch(`/trips/${props.trip.id}/favorite`, {}, { preserveScroll: true });
@@ -81,7 +84,7 @@ function toggleFavorite(): void {
 <template>
     <Head :title="trip.title" />
 
-    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div class="flex flex-1 flex-col gap-8 p-4 md:p-6">
         <PageHeader
             :title="trip.title"
             :description="locationRouteLabel(trip.origin, trip.destination)"
@@ -140,173 +143,36 @@ function toggleFavorite(): void {
             </Badge>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-                <CardHeader class="pb-2">
-                    <CardTitle class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <Calendar class="size-4" />
-                        Dates
-                    </CardTitle>
-                </CardHeader>
-                <CardContent class="text-sm">
-                    <p>{{ formatDisplayDate(trip.start_date, { weekday: true }) }}</p>
-                    <p class="text-muted-foreground">to {{ formatDisplayDate(trip.end_date, { weekday: true }) }}</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader class="pb-2">
-                    <CardTitle class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <Users class="size-4" />
-                        Travelers
-                    </CardTitle>
-                </CardHeader>
-                <CardContent class="text-2xl font-semibold">{{ trip.travelers }}</CardContent>
-            </Card>
-            <Card>
-                <CardHeader class="pb-2">
-                    <CardTitle class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <Wallet class="size-4" />
-                        Budget
-                    </CardTitle>
-                </CardHeader>
-                <CardContent class="text-2xl font-semibold">
-                    {{ trip.budget != null ? `$${trip.budget.toLocaleString()}` : '—' }}
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader class="pb-2">
-                    <CardTitle class="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <MapPin class="size-4" />
-                        Route
-                    </CardTitle>
-                </CardHeader>
-                <CardContent class="space-y-1 text-sm">
-                    <p v-if="locationLabel(trip.origin)">
-                        <span class="text-muted-foreground">From:</span>
-                        {{ locationLabel(trip.origin) }}
-                    </p>
-                    <p>
-                        <span class="text-muted-foreground">To:</span>
-                        {{ locationLabel(trip.destination) ?? 'Not set' }}
-                    </p>
-                </CardContent>
-            </Card>
+        <LocationCoordinatesAlert
+            v-if="needsDestinationCoordinates"
+            :edit-url="edit(trip.id)"
+        />
+
+        <div class="grid gap-6 xl:grid-cols-5">
+            <div class="space-y-4 xl:col-span-2">
+                <h2 class="text-lg font-semibold tracking-tight">At a glance</h2>
+                <TripHubAtAGlance :trip="trip" />
+            </div>
+
+            <div class="xl:col-span-3">
+                <TripWeatherCard :weather="weather" />
+            </div>
         </div>
 
-        <TripWeatherCard :weather="weather" />
+        <TripHubItinerarySection
+            :trip="trip"
+            :ai-configured="aiConfigured"
+        />
 
-        <Card v-if="trip.notes">
-            <CardHeader>
-                <CardTitle class="text-base">Notes</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p class="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                    {{ trip.notes }}
-                </p>
-            </CardContent>
-        </Card>
+        <section
+            v-if="hasExtras"
+            class="space-y-4"
+        >
+            <h2 class="text-lg font-semibold tracking-tight">Notes &amp; budget</h2>
+            <TripHubPracticalSection :trip="trip" />
+        </section>
 
-        <Card>
-            <CardHeader class="flex flex-row items-start justify-between gap-4">
-                <div>
-                    <CardTitle class="text-base">Itinerary</CardTitle>
-                    <p class="mt-1 text-sm text-muted-foreground">{{ generateHint }}</p>
-                </div>
-                <Form
-                    v-bind="TripController.generateItinerary.form(trip.id)"
-                    v-slot="{ processing }"
-                >
-                    <Button type="submit" :disabled="!canGenerate || processing">
-                        <Spinner v-if="processing" class="mr-2" />
-                        <Sparkles v-else class="mr-2 size-4" />
-                        {{ hasItinerary ? 'Regenerate' : 'Generate with AI' }}
-                    </Button>
-                </Form>
-            </CardHeader>
-            <CardContent class="space-y-4">
-                <InputError
-                    :message="(page.props.errors as Record<string, string>).ai"
-                />
-                <InputError
-                    :message="(page.props.errors as Record<string, string>).destination"
-                />
-
-                <p
-                    v-if="!hasItinerary"
-                    class="text-sm text-muted-foreground"
-                >
-                    No days planned yet. Click generate to build a personalized itinerary with
-                    Gemini.
-                </p>
-
-                <p
-                    v-if="trip.itinerary?.summary"
-                    class="rounded-lg border border-border/60 bg-muted/20 p-4 text-sm leading-relaxed"
-                >
-                    {{ trip.itinerary.summary }}
-                </p>
-
-                <div v-if="hasItinerary" class="space-y-4">
-                    <div
-                        v-for="day in trip.itinerary.days"
-                        :key="day.day"
-                        class="rounded-lg border border-border/60 p-4"
-                    >
-                        <div class="flex flex-wrap items-baseline justify-between gap-2">
-                            <h3 class="font-medium">
-                                Day {{ day.day }}
-                                <span v-if="day.title">— {{ day.title }}</span>
-                            </h3>
-                            <span v-if="day.date" class="text-xs text-muted-foreground">
-                                {{ formatDisplayDate(day.date, { weekday: true }) }}
-                            </span>
-                        </div>
-
-                        <ul v-if="day.activities?.length" class="mt-4 space-y-3">
-                            <li
-                                v-for="(activity, index) in day.activities"
-                                :key="`${day.day}-${index}`"
-                                class="flex gap-3 text-sm"
-                            >
-                                <Clock
-                                    v-if="activity.time"
-                                    class="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                                />
-                                <div>
-                                    <p class="font-medium">
-                                        <span
-                                            v-if="activity.time"
-                                            class="mr-2 text-muted-foreground"
-                                        >
-                                            {{ activity.time }}
-                                        </span>
-                                        {{ activity.title }}
-                                    </p>
-                                    <p
-                                        v-if="activity.notes"
-                                        class="mt-1 text-muted-foreground"
-                                    >
-                                        {{ activity.notes }}
-                                    </p>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div
-                    v-if="trip.itinerary?.packing_list?.length"
-                    class="rounded-lg border border-border/60 p-4"
-                >
-                    <h3 class="text-sm font-medium">Packing list</h3>
-                    <ul class="mt-2 list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                        <li v-for="item in trip.itinerary.packing_list" :key="item">
-                            {{ item }}
-                        </li>
-                    </ul>
-                </div>
-            </CardContent>
-        </Card>
+        <TripHubUsefulLinks :trip="trip" />
 
         <Button variant="ghost" as-child class="self-start">
             <Link :href="tripsIndex()">

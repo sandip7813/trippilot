@@ -5,6 +5,7 @@ namespace App\Services\Ai\Gemini;
 use App\Contracts\Ai\TripGenerator;
 use App\Data\Ai\GeneratedItinerary;
 use App\Exceptions\AiGenerationException;
+use App\Support\BudgetBreakdownNormalizer;
 use Illuminate\Support\Arr;
 use JsonException;
 
@@ -86,6 +87,9 @@ class GeminiTripGenerator implements TripGenerator
         $lines[] = '- Respect the travel style, budget, and traveler count.';
         $lines[] = '- For road trips, factor in driving segments between origin and destination.';
         $lines[] = '- Assign ISO dates (YYYY-MM-DD) to each day when start_date is provided.';
+        $lines[] = '- Include budget.currency as INR with numeric INR amounts (no currency symbols in JSON).';
+        $lines[] = '- budget.breakdown must include accommodation, food, transport, activities, and miscellaneous.';
+        $lines[] = '- budget.estimated_total must be close to the sum of breakdown categories and respect the trip budget when provided.';
 
         return implode("\n", $lines);
     }
@@ -135,7 +139,11 @@ class GeminiTripGenerator implements TripGenerator
         }
 
         if ($budget = Arr::get($context, 'budget')) {
-            $lines[] = 'Budget: $'.number_format((float) $budget, 0);
+            $currency = strtoupper((string) config('trippilot.currency', 'INR'));
+            $lines[] = 'Budget: '.match ($currency) {
+                'INR' => '₹'.number_format((float) $budget, 0),
+                default => $currency.' '.number_format((float) $budget, 0),
+            };
         }
 
         if ($notes = Arr::get($context, 'notes')) {
@@ -182,16 +190,34 @@ class GeminiTripGenerator implements TripGenerator
                 'budget' => [
                     'type' => 'object',
                     'properties' => [
+                        'currency' => ['type' => 'string'],
                         'estimated_total' => ['type' => 'number'],
-                        'breakdown' => ['type' => 'object'],
+                        'breakdown' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'accommodation' => ['type' => 'number'],
+                                'food' => ['type' => 'number'],
+                                'transport' => ['type' => 'number'],
+                                'activities' => ['type' => 'number'],
+                                'miscellaneous' => ['type' => 'number'],
+                            ],
+                            'required' => [
+                                'accommodation',
+                                'food',
+                                'transport',
+                                'activities',
+                                'miscellaneous',
+                            ],
+                        ],
                     ],
+                    'required' => ['currency', 'estimated_total', 'breakdown'],
                 ],
                 'packing_list' => [
                     'type' => 'array',
                     'items' => ['type' => 'string'],
                 ],
             ],
-            'required' => ['title', 'summary', 'days'],
+            'required' => ['title', 'summary', 'days', 'budget'],
         ];
     }
 
@@ -226,7 +252,9 @@ class GeminiTripGenerator implements TripGenerator
             ->all();
 
         /** @var array<string, mixed> $budget */
-        $budget = is_array($data['budget'] ?? null) ? $data['budget'] : [];
+        $budget = is_array($data['budget'] ?? null)
+            ? BudgetBreakdownNormalizer::normalize($data['budget'])
+            : BudgetBreakdownNormalizer::normalize([]);
 
         /** @var array<int, string> $packingList */
         $packingList = is_array($data['packing_list'] ?? null)
