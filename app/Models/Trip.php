@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TravelStyle;
+use App\Enums\TripScope;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
 use Database\Factories\TripFactory;
@@ -19,6 +20,7 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property string $title
  * @property array<string, mixed>|null $origin
  * @property array<string, mixed>|null $destination
+ * @property TripScope|null $trip_scope
  * @property Carbon|null $start_date
  * @property Carbon|null $end_date
  * @property float|null $budget
@@ -49,6 +51,7 @@ class Trip extends Model
         'title',
         'origin',
         'destination',
+        'trip_scope',
         'start_date',
         'end_date',
         'budget',
@@ -67,6 +70,7 @@ class Trip extends Model
         ['status' => 1],
         ['is_favorite' => 1],
         ['travel_style' => 1],
+        ['trip_scope' => 1],
         ['created_at' => -1],
     ];
 
@@ -78,6 +82,7 @@ class Trip extends Model
         return [
             'type' => TripType::class,
             'travel_style' => TravelStyle::class,
+            'trip_scope' => TripScope::class,
             'status' => TripStatus::class,
             'start_date' => 'date',
             'end_date' => 'date',
@@ -91,7 +96,13 @@ class Trip extends Model
     }
 
     /**
-     * @return array{label: string|null, lat: float|null, lng: float|null, place_id: string|null}|null
+     * @return array{
+     *     label: string|null,
+     *     lat: float|null,
+     *     lng: float|null,
+     *     place_id: string|null,
+     *     country_code: string|null,
+     * }|null
      */
     public static function normalizeLocation(mixed $value): ?array
     {
@@ -105,6 +116,7 @@ class Trip extends Model
                 'lat' => null,
                 'lng' => null,
                 'place_id' => null,
+                'country_code' => null,
             ];
         }
 
@@ -118,12 +130,56 @@ class Trip extends Model
             return null;
         }
 
+        $countryCode = $value['country_code'] ?? null;
+
         return [
             'label' => $label,
             'lat' => isset($value['lat']) && $value['lat'] !== '' ? (float) $value['lat'] : null,
             'lng' => isset($value['lng']) && $value['lng'] !== '' ? (float) $value['lng'] : null,
             'place_id' => $value['place_id'] ?? null,
+            'country_code' => is_string($countryCode) && $countryCode !== ''
+                ? strtolower($countryCode)
+                : null,
         ];
+    }
+
+    public static function resolveTripScope(?array $origin, ?array $destination): ?TripScope
+    {
+        $destinationCountry = self::locationCountryCode($destination);
+
+        if ($destinationCountry === null) {
+            return null;
+        }
+
+        $originCountry = self::locationCountryCode($origin);
+
+        if ($originCountry === null) {
+            return $destinationCountry === 'in'
+                ? TripScope::Domestic
+                : TripScope::International;
+        }
+
+        return $originCountry === $destinationCountry
+            ? TripScope::Domestic
+            : TripScope::International;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $location
+     */
+    private static function locationCountryCode(?array $location): ?string
+    {
+        if ($location === null) {
+            return null;
+        }
+
+        $countryCode = $location['country_code'] ?? null;
+
+        if (! is_string($countryCode) || $countryCode === '') {
+            return null;
+        }
+
+        return strtolower($countryCode);
     }
 
     /**
@@ -180,6 +236,8 @@ class Trip extends Model
             'title' => $this->title,
             'origin' => $origin,
             'destination' => $destination,
+            'trip_scope' => $this->trip_scope?->value,
+            'trip_scope_label' => $this->trip_scope?->label(),
             'start_date' => $this->start_date?->toDateString(),
             'end_date' => $this->end_date?->toDateString(),
             'budget' => $this->budget,

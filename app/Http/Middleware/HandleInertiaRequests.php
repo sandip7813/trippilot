@@ -45,6 +45,9 @@ class HandleInertiaRequests extends Middleware
             'brand' => [
                 'logo' => config('trippilot.logo'),
             ],
+            'integrations' => [
+                'locationSearchEnabled' => filled(config('integrations.maps.drivers.geoapify.api_key')),
+            ],
         ];
     }
 }

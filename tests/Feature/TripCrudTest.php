@@ -88,15 +88,55 @@ test('users can create a trip with structured locations', function () {
             'lat' => null,
             'lng' => null,
             'place_id' => null,
+            'country_code' => null,
         ])
         ->and($trip->origin)->toMatchArray([
             'label' => 'Mumbai, India',
             'lat' => 19.076,
             'lng' => 72.8777,
             'place_id' => null,
+            'country_code' => null,
         ])
         ->and($trip->travel_style?->value)->toBe('family')
         ->and($trip->status->value)->toBe('draft');
+});
+
+test('trip scope is derived from origin and destination countries', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'origin' => [
+                'label' => 'Mumbai, India',
+                'country_code' => 'in',
+            ],
+            'destination' => [
+                'label' => 'Goa, India',
+                'country_code' => 'in',
+            ],
+        ]))
+        ->assertRedirect();
+
+    $trip = Trip::query()->where('user_id', $user->id)->latest()->first();
+
+    expect($trip?->trip_scope?->value)->toBe('domestic');
+
+    $this->actingAs($user)
+        ->post(route('trips.store'), validTripPayload([
+            'title' => 'Paris Escape',
+            'destination' => [
+                'label' => 'Paris, France',
+                'country_code' => 'fr',
+            ],
+        ]))
+        ->assertRedirect();
+
+    $internationalTrip = Trip::query()
+        ->where('user_id', $user->id)
+        ->where('title', 'Paris Escape')
+        ->first();
+
+    expect($internationalTrip?->trip_scope?->value)->toBe('international');
 });
 
 test('road trips require an origin', function () {

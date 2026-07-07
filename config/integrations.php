@@ -13,6 +13,7 @@ return [
 
     'maps' => [
         'driver' => env('MAPS_DRIVER', 'geoapify'),
+        'default_country' => env('MAPS_DEFAULT_COUNTRY', 'in'),
 
         'drivers' => [
             'geoapify' => [
@@ -32,9 +33,13 @@ return [
     */
 
     'weather' => [
-        'driver' => env('WEATHER_DRIVER', 'openweathermap'),
+        'driver' => env('WEATHER_DRIVER', 'open_meteo'),
 
         'drivers' => [
+            'open_meteo' => [
+                'forecast_url' => 'https://api.open-meteo.com/v1',
+                'archive_url' => 'https://archive-api.open-meteo.com/v1',
+            ],
             'openweathermap' => [
                 'api_key' => env('OPENWEATHERMAP_API_KEY'),
                 'base_url' => 'https://api.openweathermap.org/data/2.5',

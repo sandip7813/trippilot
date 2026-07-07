@@ -21,12 +21,12 @@ const props = defineProps<{
 const selectedType = ref(props.trip?.type ?? 'vacation');
 const startDateIso = ref(props.trip?.start_date ?? '');
 const endDateIso = ref(props.trip?.end_date ?? '');
+const originLocation = ref<TripLocation | null>(
+    props.trip?.origin ?? props.defaultOrigin ?? null,
+);
+const destinationLocation = ref<TripLocation | null>(props.trip?.destination ?? null);
 
 const today = isoToday();
-
-const originLocation = computed(
-    (): TripLocation | null | undefined => props.trip?.origin ?? props.defaultOrigin,
-);
 
 const isRoadTrip = computed(() => selectedType.value === 'road');
 
@@ -103,18 +103,18 @@ watch(startDateIso, (nextStart) => {
         </div>
 
         <LocationField
+            v-model="originLocation"
             prefix="origin"
             label="Starting from"
-            :location="originLocation"
             :errors="errors"
             :required="isRoadTrip"
             hint="Where your journey begins. Defaults from your profile home city when set."
         />
 
         <LocationField
+            v-model="destinationLocation"
             prefix="destination"
             label="Destination"
-            :location="trip?.destination"
             :errors="errors"
             hint="Where you are headed — main place or final stop."
         />

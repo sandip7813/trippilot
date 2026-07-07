@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Actions\Trips\GenerateTripItinerary;
 use App\Enums\TravelStyle;
+use App\Enums\TripScope;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
 use App\Exceptions\AiGenerationException;
 use App\Http\Requests\StoreTripRequest;
 use App\Http\Requests\UpdateTripRequest;
 use App\Models\Trip;
+use App\Services\Weather\TripWeatherService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -54,11 +56,12 @@ class TripController extends Controller
     {
         $validated = $request->validated();
 
+        $locations = $this->prepareTripLocations($validated);
+
         $trip = Trip::query()->create([
             ...$validated,
+            ...$locations,
             'user_id' => $request->user()->id,
-            'origin' => Trip::normalizeLocation($validated['origin'] ?? null),
-            'destination' => Trip::normalizeLocation($validated['destination'] ?? null),
             'status' => $request->enum('status', TripStatus::class) ?? TripStatus::Draft,
             'is_favorite' => false,
             'itinerary' => [
@@ -74,13 +77,14 @@ class TripController extends Controller
         return to_route('trips.show', $trip);
     }
 
-    public function show(Trip $trip): Response
+    public function show(Trip $trip, TripWeatherService $tripWeather): Response
     {
         $this->authorize('view', $trip);
 
         return Inertia::render('Trips/Show', [
             'trip' => $trip->toFrontend(),
             'aiConfigured' => filled(config('integrations.ai.drivers.gemini.api_key')),
+            'weather' => $tripWeather->forTrip($trip),
         ]);
     }
 
@@ -102,12 +106,16 @@ class TripController extends Controller
 
         $validated = $request->validated();
 
-        if (array_key_exists('origin', $validated)) {
-            $validated['origin'] = Trip::normalizeLocation($validated['origin']);
-        }
+        if (array_key_exists('origin', $validated) || array_key_exists('destination', $validated)) {
+            $locations = $this->prepareTripLocations([
+                'origin' => $validated['origin'] ?? Trip::normalizeLocation($trip->getAttribute('origin')),
+                'destination' => $validated['destination'] ?? Trip::normalizeLocation($trip->getAttribute('destination')),
+            ]);
 
-        if (array_key_exists('destination', $validated)) {
-            $validated['destination'] = Trip::normalizeLocation($validated['destination']);
+            $validated = [
+                ...$validated,
+                ...$locations,
+            ];
         }
 
         $itineraryCleared = false;
@@ -225,6 +233,26 @@ class TripController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array{origin?: array<string, mixed>|null, destination?: array<string, mixed>|null}  $validated
+     * @return array{
+     *     origin: array<string, mixed>|null,
+     *     destination: array<string, mixed>|null,
+     *     trip_scope: TripScope|null,
+     * }
+     */
+    protected function prepareTripLocations(array $validated): array
+    {
+        $origin = Trip::normalizeLocation($validated['origin'] ?? null);
+        $destination = Trip::normalizeLocation($validated['destination'] ?? null);
+
+        return [
+            'origin' => $origin,
+            'destination' => $destination,
+            'trip_scope' => Trip::resolveTripScope($origin, $destination),
+        ];
     }
 
     /**

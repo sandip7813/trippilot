@@ -5,8 +5,11 @@ namespace App\Providers;
 use App\Contracts\Ai\TripGenerator;
 use App\Services\Ai\Gemini\GeminiClient;
 use App\Services\Ai\Gemini\GeminiTripGenerator;
+use App\Services\Maps\Geoapify\GeoapifyAutocomplete;
 use App\Services\Maps\Geoapify\GeoapifyClient;
+use App\Services\Weather\OpenMeteo\OpenMeteoClient;
 use App\Services\Weather\OpenWeatherMap\OpenWeatherMapClient;
+use App\Services\Weather\TripWeatherService;
 use Illuminate\Support\ServiceProvider;
 
 class IntegrationServiceProvider extends ServiceProvider
@@ -17,7 +20,10 @@ class IntegrationServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(GeoapifyClient::class);
+        $this->app->singleton(GeoapifyAutocomplete::class);
         $this->app->singleton(GeminiClient::class);
+        $this->app->singleton(OpenMeteoClient::class);
+        $this->app->singleton(TripWeatherService::class);
         $this->app->singleton(OpenWeatherMapClient::class);
 
         $this->registerMapsServices();
@@ -48,6 +54,9 @@ class IntegrationServiceProvider extends ServiceProvider
         $driver = config('integrations.weather.driver');
 
         $implementations = [
+            'open_meteo' => [
+                // WeatherService::class => OpenMeteoTripWeatherService::class,
+            ],
             'openweathermap' => [
                 // WeatherService::class => OpenWeatherMapService::class,
             ],

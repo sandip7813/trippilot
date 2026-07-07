@@ -14,11 +14,14 @@ export type TravelStyle =
     | 'cruise'
     | 'weekend';
 
+export type TripScope = 'domestic' | 'international';
+
 export type TripLocation = {
     label: string | null;
     lat: number | null;
     lng: number | null;
     place_id?: string | null;
+    country_code?: string | null;
 };
 
 export type TripItinerary = {
@@ -47,6 +50,8 @@ export type Trip = {
     title: string;
     origin: TripLocation | null;
     destination: TripLocation | null;
+    trip_scope: TripScope | null;
+    trip_scope_label: string | null;
     start_date: string | null;
     end_date: string | null;
     budget: number | null;

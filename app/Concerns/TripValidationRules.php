@@ -20,6 +20,7 @@ trait TripValidationRules
             "{$prefix}.lat" => ['nullable', 'numeric', 'between:-90,90'],
             "{$prefix}.lng" => ['nullable', 'numeric', 'between:-180,180'],
             "{$prefix}.place_id" => ['nullable', 'string', 'max:255'],
+            "{$prefix}.country_code" => ['nullable', 'string', 'size:2', 'alpha'],
         ];
     }
 

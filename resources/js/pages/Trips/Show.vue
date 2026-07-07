@@ -16,6 +16,7 @@ import { computed } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
 import InputError from '@/components/InputError.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import TripWeatherCard from '@/components/TripWeatherCard.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,11 +34,13 @@ import { Spinner } from '@/components/ui/spinner';
 import { edit, index as tripsIndex } from '@/routes/trips';
 import { formatDisplayDate } from '@/lib/dates';
 import type { Trip } from '@/types/trip';
+import type { TripWeather } from '@/types/weather';
 import { locationLabel, locationRouteLabel } from '@/types/trip';
 
 const props = defineProps<{
     trip: Trip;
     aiConfigured: boolean;
+    weather: TripWeather | null;
 }>();
 
 defineOptions({
@@ -132,6 +135,9 @@ function toggleFavorite(): void {
             <Badge v-if="trip.travel_style_label" variant="secondary">
                 {{ trip.travel_style_label }}
             </Badge>
+            <Badge v-if="trip.trip_scope_label" variant="outline">
+                {{ trip.trip_scope_label }}
+            </Badge>
         </div>
 
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -186,6 +192,8 @@ function toggleFavorite(): void {
                 </CardContent>
             </Card>
         </div>
+
+        <TripWeatherCard :weather="weather" />
 
         <Card v-if="trip.notes">
             <CardHeader>
