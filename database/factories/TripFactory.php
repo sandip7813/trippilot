@@ -103,11 +103,29 @@ class TripFactory extends Factory
         return $this->state(fn (): array => [
             'type' => TripType::Road,
             'origin' => [
-                'label' => fake()->city(),
-                'lat' => null,
-                'lng' => null,
-                'place_id' => null,
+                'label' => 'Mumbai, India',
+                'lat' => 19.076,
+                'lng' => 72.8777,
+                'place_id' => 'test-origin',
+                'country_code' => 'in',
             ],
+            'destination' => [
+                'label' => 'Pune, India',
+                'lat' => 18.5204,
+                'lng' => 73.8567,
+                'place_id' => 'test-destination',
+                'country_code' => 'in',
+            ],
+            'road_profile' => [
+                'vehicle_class' => 'car',
+                'fuel_type' => 'petrol',
+                'driving_pace' => 'standard',
+                'avoid_tolls' => false,
+                'avoid_highways' => false,
+            ],
+            'stops' => [],
+            'suggested_breaks' => [],
+            'route' => null,
         ]);
     }
 }

@@ -13,16 +13,14 @@ defineProps<{
     <Alert>
         <MapPin class="size-4" />
         <AlertTitle>Update destination for weather &amp; maps</AlertTitle>
-        <AlertDescription class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <AlertDescription
+            class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
             <span>
-                Re-select your destination from the place search so we can save map coordinates.
+                Re-select your destination from the place search so we can save
+                map coordinates.
             </span>
-            <Button
-                variant="outline"
-                size="sm"
-                as-child
-                class="shrink-0"
-            >
+            <Button variant="outline" size="sm" as-child class="shrink-0">
                 <Link :href="editUrl">Edit destination</Link>
             </Button>
         </AlertDescription>

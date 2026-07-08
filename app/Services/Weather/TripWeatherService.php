@@ -88,7 +88,7 @@ class TripWeatherService
             $today,
             $daysUntilStart,
             $useForecast,
-        ): ?array {
+        ): array {
             if ($useForecast) {
                 return $this->buildForecastPayload(
                     $destination,
@@ -109,7 +109,7 @@ class TripWeatherService
 
     /**
      * @param  array{label: string|null, lat: float|null, lng: float|null, place_id: string|null, country_code: string|null}  $destination
-     * @return array<string, mixed>|null
+     * @return array<string, mixed>
      */
     private function buildForecastPayload(
         array $destination,
@@ -117,7 +117,7 @@ class TripWeatherService
         CarbonInterface $endDate,
         CarbonInterface $today,
         int $daysUntilStart,
-    ): ?array {
+    ): array {
         $forecastStart = $daysUntilStart < 0 ? $today : $startDate;
         $tripEndDate = $endDate->copy();
         $maxForecastEnd = $today->copy()->addDays(self::FORECAST_HORIZON_DAYS - 1);
@@ -185,7 +185,16 @@ class TripWeatherService
     }
 
     /**
-     * @param  list<array<string, mixed>>  $forecastDays
+     * @param  array{label: string|null, lat: float|null, lng: float|null, place_id: string|null, country_code: string|null}  $destination
+     * @param  list<array{
+     *     date: string,
+     *     temperature_min: int,
+     *     temperature_max: int,
+     *     precipitation_mm: float,
+     *     weather_code: int,
+     *     weather_label: string,
+     *     weather_kind: string,
+     * }>  $forecastDays
      * @param  array<string, mixed>|null  $typicalRemainder
      * @return array<string, mixed>
      */
@@ -235,7 +244,16 @@ class TripWeatherService
     }
 
     /**
-     * @param  list<array<string, mixed>>  $forecastDays
+     * @param  array{label: string|null, lat: float|null, lng: float|null, place_id: string|null, country_code: string|null}  $destination
+     * @param  list<array{
+     *     date: string,
+     *     temperature_min: int,
+     *     temperature_max: int,
+     *     precipitation_mm: float,
+     *     weather_code: int,
+     *     weather_label: string,
+     *     weather_kind: string,
+     * }>  $forecastDays
      * @return array<string, mixed>
      */
     private function buildForecastOnlyPayload(
@@ -285,7 +303,7 @@ class TripWeatherService
             $periodStart = $this->dateForYear($year, $startDate);
             $periodEnd = $this->dateForYear($year, $endDate);
 
-            if ($periodStart === null || $periodEnd === null || $periodEnd->lt($periodStart)) {
+            if ($periodEnd->lt($periodStart)) {
                 continue;
             }
 
@@ -366,13 +384,13 @@ class TripWeatherService
 
     /**
      * @param  array{label: string|null, lat: float|null, lng: float|null, place_id: string|null, country_code: string|null}  $destination
-     * @return array<string, mixed>|null
+     * @return array<string, mixed>
      */
     private function buildTypicalPayload(
         array $destination,
         CarbonInterface $startDate,
         CarbonInterface $endDate,
-    ): ?array {
+    ): array {
         $stats = $this->buildTypicalStats($destination, $startDate, $endDate);
 
         if ($stats === null) {
@@ -468,6 +486,10 @@ class TripWeatherService
      */
     private function summarizeDays(array $days): string
     {
+        if ($days === []) {
+            return 'No forecast data available.';
+        }
+
         $minTemps = array_column($days, 'temperature_min');
         $maxTemps = array_column($days, 'temperature_max');
         $rainyDays = count(array_filter($days, fn (array $day): bool => $day['precipitation_mm'] >= 1));
@@ -481,7 +503,7 @@ class TripWeatherService
         );
     }
 
-    private function dateForYear(int $year, CarbonInterface $reference): ?Carbon
+    private function dateForYear(int $year, CarbonInterface $reference): Carbon
     {
         if ($reference->month === 2 && $reference->day === 29 && ! Carbon::create($year, 1, 1)->isLeapYear()) {
             return Carbon::create($year, 2, 28)->startOfDay();

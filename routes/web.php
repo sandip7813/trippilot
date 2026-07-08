@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocationSearchController;
+use App\Http\Controllers\RoadTripController;
 use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,7 +22,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('trips.generate');
     Route::resource('trips', TripController::class);
 
-    Route::inertia('road-trips', 'RoadTrips/Index')->name('road-trips.index');
+    Route::post('road-trips/{trip}/route', [RoadTripController::class, 'computeRoute'])
+        ->name('road-trips.route');
+    Route::post('road-trips/{trip}/suggest-breaks', [RoadTripController::class, 'suggestBreaks'])
+        ->middleware('throttle:5,1')
+        ->name('road-trips.suggest-breaks');
+    Route::post('road-trips/{trip}/amenities', [RoadTripController::class, 'amenities'])
+        ->name('road-trips.amenities');
+    Route::post('road-trips/{trip}/accept-break', [RoadTripController::class, 'acceptBreak'])
+        ->name('road-trips.accept-break');
+    Route::resource('road-trips', RoadTripController::class)->except(['destroy']);
 });
 
 require __DIR__.'/settings.php';

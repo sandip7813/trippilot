@@ -74,9 +74,9 @@ export function parseDisplayDate(value: string): string | null {
     const parsed = new Date(year, month - 1, day);
 
     if (
-        parsed.getFullYear() !== year
-        || parsed.getMonth() + 1 !== month
-        || parsed.getDate() !== day
+        parsed.getFullYear() !== year ||
+        parsed.getMonth() + 1 !== month ||
+        parsed.getDate() !== day
     ) {
         return null;
     }
@@ -95,7 +95,11 @@ export function formatWeekdayShort(iso: string | null | undefined): string {
         return '';
     }
 
-    return new Date(parsed.year, parsed.month - 1, parsed.day).toLocaleDateString('en-GB', {
+    return new Date(
+        parsed.year,
+        parsed.month - 1,
+        parsed.day,
+    ).toLocaleDateString('en-GB', {
         weekday: 'short',
     });
 }
@@ -114,7 +118,9 @@ export function isoToDisplay(iso: string | null | undefined): string {
     return formatDisplayDate(iso) === '—' ? '' : formatDisplayDate(iso);
 }
 
-export function parseIsoDate(iso: string): { year: number; month: number; day: number } | null {
+export function parseIsoDate(
+    iso: string,
+): { year: number; month: number; day: number } | null {
     const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
     if (!match) {

@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
  * @property string|null $remember_token
+ * @property array<string, mixed>|null $travel_preferences
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -48,7 +49,7 @@ class User extends Authenticatable
      */
     public function homeCityLocation(): ?array
     {
-        $preferences = $this->travel_preferences ?? [];
+        $preferences = is_array($this->travel_preferences) ? $this->travel_preferences : [];
 
         return Trip::normalizeLocation($preferences['home_city'] ?? null);
     }

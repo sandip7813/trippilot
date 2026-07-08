@@ -17,7 +17,12 @@ const page = usePage();
 const mapOpen = ref(false);
 
 const appCurrency = computed(
-    () => (page.props.currency as { code?: string; locale?: string } | undefined) ?? { code: 'INR', locale: 'en-IN' },
+    () =>
+        (page.props.currency as
+            { code?: string; locale?: string } | undefined) ?? {
+            code: 'INR',
+            locale: 'en-IN',
+        },
 );
 
 const formattedBudget = computed(() => {
@@ -47,58 +52,106 @@ const transportHint = computed((): string => {
     return 'Set a mapped destination';
 });
 
-const canShowMap = computed(() => locationHasCoordinates(props.trip.destination));
+const canShowMap = computed(() =>
+    locationHasCoordinates(props.trip.destination),
+);
 </script>
 
 <template>
     <div class="grid gap-4 sm:grid-cols-2">
-        <div class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm sm:col-span-2">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-sky-500/15 text-sky-600 dark:text-sky-400">
+        <div
+            class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm sm:col-span-2"
+        >
+            <span
+                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-sky-500/15 text-sky-600 dark:text-sky-400"
+            >
                 <Calendar class="size-4" />
             </span>
             <div class="min-w-0 flex-1">
-                <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Dates</p>
-                <p class="text-sm font-semibold leading-snug">{{ dateRange }}</p>
+                <p
+                    class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                    Dates
+                </p>
+                <p class="text-sm leading-snug font-semibold">
+                    {{ dateRange }}
+                </p>
             </div>
         </div>
 
-        <div class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-violet-500/15 text-violet-600 dark:text-violet-400">
+        <div
+            class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm"
+        >
+            <span
+                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-violet-500/15 text-violet-600 dark:text-violet-400"
+            >
                 <Users class="size-4" />
             </span>
             <div>
-                <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Travelers</p>
+                <p
+                    class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                    Travelers
+                </p>
                 <p class="text-sm font-semibold">{{ trip.travelers }}</p>
             </div>
         </div>
 
-        <div class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+        <div
+            class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm"
+        >
+            <span
+                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+            >
                 <Wallet class="size-4" />
             </span>
             <div class="min-w-0">
-                <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Budget</p>
-                <p class="text-sm font-semibold leading-snug">{{ formattedBudget }}</p>
+                <p
+                    class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                    Budget
+                </p>
+                <p class="text-sm leading-snug font-semibold">
+                    {{ formattedBudget }}
+                </p>
             </div>
         </div>
 
-        <div class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm sm:col-span-2">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400">
+        <div
+            class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm sm:col-span-2"
+        >
+            <span
+                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400"
+            >
                 <Train class="size-4" />
             </span>
             <div class="min-w-0 flex-1">
-                <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Transport</p>
-                <p class="text-sm leading-snug text-muted-foreground">{{ transportHint }}</p>
+                <p
+                    class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                >
+                    Transport
+                </p>
+                <p class="text-sm leading-snug text-muted-foreground">
+                    {{ transportHint }}
+                </p>
             </div>
         </div>
 
-        <div class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm sm:col-span-2">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-teal-500/15 text-teal-600 dark:text-teal-400">
+        <div
+            class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm sm:col-span-2"
+        >
+            <span
+                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-teal-500/15 text-teal-600 dark:text-teal-400"
+            >
                 <MapPin class="size-4" />
             </span>
             <div class="min-w-0 flex-1 text-sm leading-snug">
                 <div class="flex flex-wrap items-start justify-between gap-2">
-                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Route</p>
+                    <p
+                        class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    >
+                        Route
+                    </p>
                     <Button
                         v-if="canShowMap"
                         type="button"

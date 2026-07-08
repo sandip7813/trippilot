@@ -20,7 +20,9 @@ withDefaults(
             aria-live="polite"
             aria-busy="true"
         >
-            <div class="flex flex-col items-center gap-3 rounded-xl border border-border/60 bg-background/95 px-8 py-6 shadow-lg">
+            <div
+                class="flex flex-col items-center gap-3 rounded-xl border border-border/60 bg-background/95 px-8 py-6 shadow-lg"
+            >
                 <Spinner class="size-8 text-primary" />
                 <p class="text-sm font-medium text-foreground">
                     {{ message }}

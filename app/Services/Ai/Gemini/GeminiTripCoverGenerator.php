@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Log;
 class GeminiTripCoverGenerator implements TripCoverGenerator
 {
     public function __construct(
-        private GeminiClient $client,
         private TripCoverPromptBuilder $promptBuilder,
     ) {}
 
@@ -43,6 +42,10 @@ class GeminiTripCoverGenerator implements TripCoverGenerator
                 'model' => $model,
                 'response' => $response->json(),
             ]);
+        }
+
+        if ($imageBytes === null || $imageBytes === '') {
+            return null;
         }
 
         return $imageBytes;

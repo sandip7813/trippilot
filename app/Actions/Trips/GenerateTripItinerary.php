@@ -5,13 +5,12 @@ namespace App\Actions\Trips;
 use App\Contracts\Ai\TripGenerator;
 use App\Enums\TripStatus;
 use App\Models\Trip;
-use App\Services\Trips\TripCoverImageService;
 
 class GenerateTripItinerary
 {
     public function __construct(
         private TripGenerator $tripGenerator,
-        private TripCoverImageService $coverImageService,
+        private SyncTripCoverImage $syncTripCoverImage,
     ) {}
 
     public function __invoke(Trip $trip): Trip
@@ -25,9 +24,9 @@ class GenerateTripItinerary
 
         $trip = $trip->fresh();
 
-        $this->coverImageService->generateForTripIfMissing($trip);
+        ($this->syncTripCoverImage)($trip, onlyIfMissing: true);
 
-        return $trip->fresh();
+        return $trip;
     }
 
     /**
@@ -56,7 +55,7 @@ class GenerateTripItinerary
     private function dayCount(Trip $trip): int
     {
         if ($trip->start_date !== null && $trip->end_date !== null) {
-            return max(1, $trip->start_date->diffInDays($trip->end_date) + 1);
+            return max(1, (int) $trip->start_date->diffInDays($trip->end_date) + 1);
         }
 
         return 5;

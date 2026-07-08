@@ -1,10 +1,13 @@
 <?php
 
+use App\Jobs\SyncTripCoverImageJob;
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\Trips\TripCoverImageService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
-function skipUnlessMongoDbAvailableForCovers(): void
+function skipUnlessMongoDbAvailableForCoverJob(): void
 {
     if (! extension_loaded('mongodb')) {
         test()->markTestSkipped('MongoDB PHP extension is not installed.');
@@ -17,12 +20,13 @@ function skipUnlessMongoDbAvailableForCovers(): void
     }
 }
 
-function fakePollinationsCoverImage(): void
+function fakePollinationsCoverImageForJob(): void
 {
     config([
         'integrations.trip_covers.driver' => 'pollinations',
         'integrations.trip_covers.enabled' => true,
         'integrations.trip_covers.drivers.pollinations.base_url' => 'https://image.pollinations.ai/prompt',
+        'integrations.trip_covers.use_gemini_prompt' => false,
     ]);
 
     $pngBytes = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
@@ -65,13 +69,13 @@ function validTripPayloadForCover(array $overrides = []): array
 }
 
 beforeEach(function () {
-    skipUnlessMongoDbAvailableForCovers();
+    skipUnlessMongoDbAvailableForCoverJob();
 
     Trip::query()->whereNotNull('_id')->delete();
 });
 
-test('trip creation generates destination cover images', function () {
-    fakePollinationsCoverImage();
+test('trip creation queues destination cover generation', function () {
+    Queue::fake();
 
     $user = User::factory()->create();
 
@@ -79,15 +83,13 @@ test('trip creation generates destination cover images', function () {
         ->post(route('trips.store'), validTripPayloadForCover())
         ->assertRedirect();
 
-    $trip = Trip::query()->where('user_id', $user->id)->latest()->first();
-
-    expect($trip)->not->toBeNull()
-        ->and($trip->cover_image_path)->toContain('-banner.jpg')
-        ->and($trip->cover_image_thumb_path)->toContain('-thumb.jpg');
+    Queue::assertPushed(SyncTripCoverImageJob::class, function (SyncTripCoverImageJob $job): bool {
+        return $job->onlyIfMissing === false;
+    });
 });
 
-test('updating the destination regenerates cover images', function () {
-    fakePollinationsCoverImage();
+test('updating the destination queues cover regeneration', function () {
+    Queue::fake();
 
     $user = User::factory()->create();
     $trip = Trip::factory()->forUser($user)->create([
@@ -98,8 +100,6 @@ test('updating the destination regenerates cover images', function () {
             'place_id' => 'test-destination',
             'country_code' => 'jp',
         ],
-        'cover_image_path' => 'trip-covers/old-banner.jpg',
-        'cover_image_thumb_path' => 'trip-covers/old-thumb.jpg',
     ]);
 
     $this->actingAs($user)
@@ -114,17 +114,56 @@ test('updating the destination regenerates cover images', function () {
         ]))
         ->assertRedirect(route('trips.show', $trip));
 
-    $trip->refresh();
-
-    expect($trip->cover_image_path)->toContain('-banner.jpg')
-        ->and($trip->cover_image_thumb_path)->toContain('-thumb.jpg');
+    Queue::assertPushed(SyncTripCoverImageJob::class);
 });
 
-test('updating non-destination fields keeps existing cover paths', function () {
-    fakePollinationsCoverImage();
+test('sync trip cover image job stores cover images', function () {
+    fakePollinationsCoverImageForJob();
 
     $user = User::factory()->create();
     $trip = Trip::factory()->forUser($user)->create([
+        'destination' => [
+            'label' => 'Shimla, Himachal Pradesh, India',
+            'lat' => 31.1048,
+            'lng' => 77.1734,
+            'place_id' => 'test-shimla',
+            'country_code' => 'in',
+        ],
+    ]);
+
+    (new SyncTripCoverImageJob((string) $trip->id))->handle(app(TripCoverImageService::class));
+
+    $trip->refresh();
+
+    expect($trip->cover_image_path)->toBeString()->toContain('-banner.jpg')
+        ->and($trip->cover_image_thumb_path)->toBeString()->toContain('-thumb.jpg');
+});
+
+test('sync trip cover image job skips when cover already exists and only if missing', function () {
+    fakePollinationsCoverImageForJob();
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create([
+        'cover_image_path' => 'trip-covers/existing-banner.jpg',
+        'cover_image_thumb_path' => 'trip-covers/existing-thumb.jpg',
+    ]);
+
+    (new SyncTripCoverImageJob((string) $trip->id, onlyIfMissing: true))
+        ->handle(app(TripCoverImageService::class));
+
+    $trip->refresh();
+
+    expect($trip->cover_image_path)->toBe('trip-covers/existing-banner.jpg');
+
+    Http::assertNothingSent();
+});
+
+test('updating non-destination fields keeps existing cover paths', function () {
+    fakePollinationsCoverImageForJob();
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create([
+        'destination' => validTripPayloadForCover()['destination'],
         'cover_image_path' => 'trip-covers/existing-banner.jpg',
         'cover_image_thumb_path' => 'trip-covers/existing-thumb.jpg',
     ]);

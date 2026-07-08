@@ -45,6 +45,8 @@ test('super admin users can access super admin settings', function () {
 });
 
 test('authenticated users can visit trip placeholder pages', function () {
+    skipUnlessMongoDbAvailable();
+
     $user = User::factory()->create();
     $this->actingAs($user);
 
@@ -53,16 +55,7 @@ test('authenticated users can visit trip placeholder pages', function () {
 });
 
 test('mongodb connection can persist trip documents', function () {
-    if (! extension_loaded('mongodb')) {
-        $this->markTestSkipped('MongoDB PHP extension is not installed.');
-    }
-
-    try {
-        Trip::query()->where('_id', '!=', null)->limit(1)->get();
-    } catch (\Throwable $exception) {
-        $this->markTestSkipped('MongoDB is not available: '.$exception->getMessage());
-    }
-
+    skipUnlessMongoDbAvailable();
     $trip = Trip::query()->create([
         'user_id' => 1,
         'type' => 'vacation',
@@ -77,6 +70,8 @@ test('mongodb connection can persist trip documents', function () {
 })->group('mongodb');
 
 test('inertia shares brand logo from config', function () {
+    skipUnlessMongoDbAvailable();
+
     config(['trippilot.logo' => 'pin']);
 
     $user = User::factory()->create();

@@ -17,13 +17,14 @@ const appCurrency = computed(
 
 const budget = computed(() =>
     normalizeBudgetBreakdown(
-        props.trip.itinerary?.budget_breakdown as Record<string, unknown> | undefined,
+        props.trip.itinerary?.budget_breakdown as
+            Record<string, unknown> | undefined,
         appCurrency.value,
     ),
 );
 
 const needsBudgetRegeneration = computed(
-    () => budget.value.estimatedTotal !== null && ! budget.value.hasLineItems,
+    () => budget.value.estimatedTotal !== null && !budget.value.hasLineItems,
 );
 </script>
 
@@ -31,16 +32,16 @@ const needsBudgetRegeneration = computed(
     <Card class="card-vibrant overflow-hidden">
         <div class="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
         <CardHeader class="pb-2">
-            <CardTitle class="text-base font-semibold">Budget breakdown</CardTitle>
+            <CardTitle class="text-base font-semibold"
+                >Budget breakdown</CardTitle
+            >
             <p class="text-xs text-muted-foreground">
-                AI estimate from your itinerary — separate from your planned budget above.
+                AI estimate from your itinerary — separate from your planned
+                budget above.
             </p>
         </CardHeader>
         <CardContent class="space-y-3">
-            <dl
-                v-if="budget.lines.length"
-                class="space-y-2 text-sm"
-            >
+            <dl v-if="budget.lines.length" class="space-y-2 text-sm">
                 <div
                     v-for="line in budget.lines"
                     :key="line.label"
@@ -57,17 +58,15 @@ const needsBudgetRegeneration = computed(
                 <span>Estimated total</span>
                 <span>{{ budget.estimatedTotal }}</span>
             </p>
-            <p
-                v-else-if="budget.estimatedTotal"
-                class="text-lg font-semibold"
-            >
+            <p v-else-if="budget.estimatedTotal" class="text-lg font-semibold">
                 Estimated total: {{ budget.estimatedTotal }}
             </p>
             <p
                 v-if="needsBudgetRegeneration"
                 class="text-sm text-muted-foreground"
             >
-                Category breakdown was not saved for this itinerary. Regenerate to refresh accommodation, food, transport, and other line items.
+                Category breakdown was not saved for this itinerary. Regenerate
+                to refresh accommodation, food, transport, and other line items.
             </p>
         </CardContent>
     </Card>

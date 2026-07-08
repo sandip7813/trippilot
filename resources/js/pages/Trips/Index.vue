@@ -27,10 +27,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { tripCardAccent } from '@/lib/card-accents';
+import { formatDisplayDateRange } from '@/lib/dates';
 import { create, index as tripsIndex } from '@/routes/trips';
 import { edit, show } from '@/routes/trips';
-import { formatDisplayDateRange } from '@/lib/dates';
-import { tripCardAccent } from '@/lib/card-accents';
 import type { Trip, TripCounts, TripFilter } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
@@ -61,7 +61,11 @@ const deleteDialogOpen = ref(false);
 const tripToDelete = ref<Trip | null>(null);
 
 function setFilter(filter: TripFilter): void {
-    router.get(tripsIndex({ query: { filter } }), {}, { preserveState: true, preserveScroll: true });
+    router.get(
+        tripsIndex({ query: { filter } }),
+        {},
+        { preserveState: true, preserveScroll: true },
+    );
 }
 
 function toggleFavorite(trip: Trip): void {
@@ -78,7 +82,9 @@ function closeDeleteDialog(): void {
     tripToDelete.value = null;
 }
 
-function statusVariant(status: Trip['status']): 'default' | 'secondary' | 'outline' {
+function statusVariant(
+    status: Trip['status'],
+): 'default' | 'secondary' | 'outline' {
     if (status === 'planned') {
         return 'default';
     }
@@ -120,17 +126,29 @@ function coverThumbUrl(trip: Trip): string | null {
                 :key="item.key"
                 :variant="props.filter === item.key ? 'default' : 'outline'"
                 size="sm"
-                :class="props.filter === item.key ? 'shadow-md shadow-teal-500/20' : 'border-border/70 bg-card/60'"
+                :class="
+                    props.filter === item.key
+                        ? 'shadow-md shadow-teal-500/20'
+                        : 'border-border/70 bg-card/60'
+                "
                 @click="setFilter(item.key)"
             >
                 {{ item.label }}
-                <span class="ml-1.5 text-xs opacity-70">({{ counts[item.key] }})</span>
+                <span class="ml-1.5 text-xs opacity-70"
+                    >({{ counts[item.key] }})</span
+                >
             </Button>
         </div>
 
         <EmptyState
             v-if="trips.length === 0"
-            :title="filter === 'favorites' ? 'No favorite trips' : filter === 'archived' ? 'No archived trips' : 'No trips yet'"
+            :title="
+                filter === 'favorites'
+                    ? 'No favorite trips'
+                    : filter === 'archived'
+                      ? 'No archived trips'
+                      : 'No trips yet'
+            "
             :description="
                 filter === 'all'
                     ? 'Create your first trip to start building an itinerary. Then generate a plan with AI.'
@@ -179,7 +197,9 @@ function coverThumbUrl(trip: Trip): string | null {
                     <div>
                         <div class="flex items-start justify-between gap-2">
                             <div class="min-w-0 flex-1">
-                                <h3 class="truncate text-base font-semibold leading-tight">
+                                <h3
+                                    class="truncate text-base leading-tight font-semibold"
+                                >
                                     <Link
                                         :href="show(trip.id)"
                                         class="transition-colors hover:text-primary"
@@ -191,25 +211,48 @@ function coverThumbUrl(trip: Trip): string | null {
                                     v-if="locationLabel(trip.destination)"
                                     class="mt-1 flex items-center gap-1 text-sm text-muted-foreground"
                                 >
-                                    <MapPin class="size-3.5 shrink-0 text-teal-600 dark:text-teal-400" />
-                                    <span class="truncate">{{ locationLabel(trip.destination) }}</span>
+                                    <MapPin
+                                        class="size-3.5 shrink-0 text-teal-600 dark:text-teal-400"
+                                    />
+                                    <span class="truncate">{{
+                                        locationLabel(trip.destination)
+                                    }}</span>
                                 </p>
                             </div>
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 class="size-8 shrink-0"
-                                :title="trip.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
-                                :class="trip.is_favorite ? 'text-rose-500 hover:bg-rose-500/10 hover:text-rose-600' : 'text-muted-foreground'"
+                                :title="
+                                    trip.is_favorite
+                                        ? 'Remove from favorites'
+                                        : 'Add to favorites'
+                                "
+                                :class="
+                                    trip.is_favorite
+                                        ? 'text-rose-500 hover:bg-rose-500/10 hover:text-rose-600'
+                                        : 'text-muted-foreground'
+                                "
                                 @click="toggleFavorite(trip)"
                             >
-                                <Heart class="size-4" :class="trip.is_favorite ? 'fill-current' : ''" />
+                                <Heart
+                                    class="size-4"
+                                    :class="
+                                        trip.is_favorite ? 'fill-current' : ''
+                                    "
+                                />
                             </Button>
                         </div>
 
                         <div class="mt-2.5 flex flex-wrap gap-1.5">
-                            <Badge :variant="statusVariant(trip.status)" class="text-xs">{{ trip.status_label }}</Badge>
-                            <Badge variant="outline" class="text-xs">{{ trip.type_label }}</Badge>
+                            <Badge
+                                :variant="statusVariant(trip.status)"
+                                class="text-xs"
+                                >{{ trip.status_label }}</Badge
+                            >
+                            <Badge variant="outline" class="text-xs">{{
+                                trip.type_label
+                            }}</Badge>
                             <Badge
                                 v-if="trip.travel_style_label"
                                 variant="secondary"
@@ -219,14 +262,27 @@ function coverThumbUrl(trip: Trip): string | null {
                             </Badge>
                         </div>
 
-                        <div class="mt-2.5 space-y-1 text-sm text-muted-foreground">
+                        <div
+                            class="mt-2.5 space-y-1 text-sm text-muted-foreground"
+                        >
                             <p class="flex items-center gap-2">
-                                <Calendar class="size-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
-                                <span class="truncate">{{ formatDisplayDateRange(trip.start_date, trip.end_date) }}</span>
+                                <Calendar
+                                    class="size-3.5 shrink-0 text-sky-600 dark:text-sky-400"
+                                />
+                                <span class="truncate">{{
+                                    formatDisplayDateRange(
+                                        trip.start_date,
+                                        trip.end_date,
+                                    )
+                                }}</span>
                             </p>
                             <p class="flex items-center gap-2">
-                                <Users class="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                                {{ trip.travelers }} traveler{{ trip.travelers === 1 ? '' : 's' }}
+                                <Users
+                                    class="size-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+                                />
+                                {{ trip.travelers }} traveler{{
+                                    trip.travelers === 1 ? '' : 's'
+                                }}
                             </p>
                         </div>
                     </div>
@@ -235,7 +291,12 @@ function coverThumbUrl(trip: Trip): string | null {
                         <Button size="sm" as-child class="min-w-0 flex-1">
                             <Link :href="show(trip.id)">View trip</Link>
                         </Button>
-                        <Button variant="outline" size="sm" as-child class="shrink-0">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            as-child
+                            class="shrink-0"
+                        >
                             <Link :href="edit(trip.id)">
                                 <Pencil class="size-4" />
                             </Link>
@@ -256,15 +317,20 @@ function coverThumbUrl(trip: Trip): string | null {
 
         <Dialog
             v-model:open="deleteDialogOpen"
-            @update:open="(open) => { if (!open) tripToDelete = null; }"
+            @update:open="
+                (open) => {
+                    if (!open) tripToDelete = null;
+                }
+            "
         >
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Delete this trip?</DialogTitle>
                     <DialogDescription>
                         <template v-if="tripToDelete">
-                            This will permanently remove "{{ tripToDelete.title }}" and its itinerary.
-                            This action cannot be undone.
+                            This will permanently remove "{{
+                                tripToDelete.title
+                            }}" and its itinerary. This action cannot be undone.
                         </template>
                     </DialogDescription>
                 </DialogHeader>
@@ -282,7 +348,11 @@ function coverThumbUrl(trip: Trip): string | null {
                             :show="processing"
                             message="Deleting trip..."
                         />
-                        <Button type="submit" variant="destructive" :disabled="processing">
+                        <Button
+                            type="submit"
+                            variant="destructive"
+                            :disabled="processing"
+                        >
                             Delete trip
                         </Button>
                     </Form>

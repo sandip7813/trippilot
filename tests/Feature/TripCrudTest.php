@@ -33,19 +33,6 @@ function validTripPayload(array $overrides = []): array
     ], $overrides);
 }
 
-function skipUnlessMongoDbAvailable(): void
-{
-    if (! extension_loaded('mongodb')) {
-        test()->markTestSkipped('MongoDB PHP extension is not installed.');
-    }
-
-    try {
-        Trip::query()->where('_id', '!=', null)->limit(1)->get();
-    } catch (Throwable $exception) {
-        test()->markTestSkipped('MongoDB is not available: '.$exception->getMessage());
-    }
-}
-
 beforeEach(function () {
     skipUnlessMongoDbAvailable();
 
@@ -345,9 +332,6 @@ test('updating non-material trip details keeps the itinerary', function () {
 
     $basePayload = validTripPayload([
         'title' => 'Old Title',
-        'destination' => [
-            'label' => 'Tokyo, Japan',
-        ],
     ]);
 
     $trip = Trip::factory()->forUser($user)->withItinerary()->create([
@@ -356,12 +340,8 @@ test('updating non-material trip details keeps the itinerary', function () {
         'travelers' => $basePayload['travelers'],
         'start_date' => $basePayload['start_date'],
         'end_date' => $basePayload['end_date'],
-        'destination' => [
-            'label' => 'Tokyo, Japan',
-            'lat' => null,
-            'lng' => null,
-            'place_id' => null,
-        ],
+        'origin' => $basePayload['origin'],
+        'destination' => $basePayload['destination'],
     ]);
 
     $this->actingAs($user)

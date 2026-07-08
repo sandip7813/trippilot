@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { Settings, ShieldCheck } from '@lucide/vue';
-import PageHeader from '@/components/PageHeader.vue';
 import LogoOptionsShowcase from '@/components/LogoOptionsShowcase.vue';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import PageHeader from '@/components/PageHeader.vue';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { settings as superSettings } from '@/routes/admin/super';
 
 defineOptions({
@@ -22,9 +28,21 @@ defineOptions({
 });
 
 const integrationItems = [
-    { name: 'Geoapify', description: 'Maps, geocoding, and routing', status: 'Configured' },
-    { name: 'Google Gemini', description: 'AI itinerary and chat generation', status: 'Configured' },
-    { name: 'Open-Meteo', description: 'Weather forecast and seasonal climate data (no API key)', status: 'Configured' },
+    {
+        name: 'Geoapify',
+        description: 'Maps, geocoding, and routing',
+        status: 'Configured',
+    },
+    {
+        name: 'Google Gemini',
+        description: 'AI itinerary and chat generation',
+        status: 'Configured',
+    },
+    {
+        name: 'Open-Meteo',
+        description: 'Weather forecast and seasonal climate data (no API key)',
+        status: 'Configured',
+    },
 ];
 </script>
 
@@ -45,8 +63,9 @@ const integrationItems = [
                     Integrations
                 </CardTitle>
                 <CardDescription>
-                    External service drivers registered via IntegrationServiceProvider. Full
-                    configuration UI arrives in Phase 6.
+                    External service drivers registered via
+                    IntegrationServiceProvider. Full configuration UI arrives in
+                    Phase 6.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -58,7 +77,9 @@ const integrationItems = [
                     >
                         <div>
                             <p class="text-sm font-medium">{{ item.name }}</p>
-                            <p class="text-xs text-muted-foreground">{{ item.description }}</p>
+                            <p class="text-xs text-muted-foreground">
+                                {{ item.description }}
+                            </p>
                         </div>
                         <span
                             class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
@@ -74,7 +95,8 @@ const integrationItems = [
             <CardHeader>
                 <CardTitle class="text-base">Brand logo</CardTitle>
                 <CardDescription>
-                    All logos are transparent SVGs. Preview options below and pick your favourite.
+                    All logos are transparent SVGs. Preview options below and
+                    pick your favourite.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -82,12 +104,17 @@ const integrationItems = [
             </CardContent>
         </Card>
 
-        <Card class="border-dashed border-sidebar-border/70 dark:border-sidebar-border">
+        <Card
+            class="border-dashed border-sidebar-border/70 dark:border-sidebar-border"
+        >
             <CardContent class="py-10 text-center">
                 <ShieldCheck class="mx-auto size-10 text-muted-foreground/50" />
-                <p class="mt-4 text-sm font-medium">Advanced settings coming soon</p>
+                <p class="mt-4 text-sm font-medium">
+                    Advanced settings coming soon
+                </p>
                 <p class="mt-1 text-xs text-muted-foreground">
-                    Admin management, driver switching, and audit logs will be added in Phase 6.
+                    Admin management, driver switching, and audit logs will be
+                    added in Phase 6.
                 </p>
             </CardContent>
         </Card>

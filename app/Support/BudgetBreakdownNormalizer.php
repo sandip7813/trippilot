@@ -62,7 +62,7 @@ class BudgetBreakdownNormalizer
         $result = [];
 
         foreach ($data as $key => $value) {
-            if (! is_string($key) || in_array($key, ['estimated_total', 'total', 'breakdown', 'currency'], true)) {
+            if (in_array($key, ['estimated_total', 'total', 'breakdown', 'currency'], true)) {
                 continue;
             }
 

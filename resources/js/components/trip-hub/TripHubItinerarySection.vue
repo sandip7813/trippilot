@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { Form, usePage } from '@inertiajs/vue3';
-import { ChevronLeft, ChevronRight, Clock, Sparkles, CalendarDays } from '@lucide/vue';
+import {
+    ChevronLeft,
+    ChevronRight,
+    Clock,
+    Sparkles,
+    CalendarDays,
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
+import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,8 +20,8 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 import { formatDisplayDate, formatWeekdayShort } from '@/lib/dates';
+import { cn } from '@/lib/utils';
 import type { Trip } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
@@ -41,11 +48,11 @@ const canGenerate = computed(
 );
 
 const generateHint = computed((): string => {
-    if (! props.aiConfigured) {
+    if (!props.aiConfigured) {
         return 'Add GEMINI_API_KEY to your environment to enable AI generation.';
     }
 
-    if (! locationLabel(props.trip.destination)) {
+    if (!locationLabel(props.trip.destination)) {
         return 'Set a destination on this trip before generating an itinerary.';
     }
 
@@ -108,15 +115,17 @@ function nextDay(): void {
 <template>
     <Card class="card-vibrant overflow-hidden">
         <div class="brand-gradient h-1.5 opacity-90" />
-        <CardHeader class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <CardHeader
+            class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+        >
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-2">
                     <CardTitle class="text-lg font-bold">Itinerary</CardTitle>
-                    <Badge class="bg-violet-500/15 text-violet-700 dark:text-violet-300">AI suggested</Badge>
                     <Badge
-                        v-if="hasItinerary"
-                        variant="outline"
+                        class="bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                        >AI suggested</Badge
                     >
+                    <Badge v-if="hasItinerary" variant="outline">
                         {{ days.length }} days
                     </Badge>
                 </div>
@@ -129,10 +138,15 @@ function nextDay(): void {
                 v-slot="{ processing }"
                 class="shrink-0"
             >
-                <Button
-                    type="submit"
-                    :disabled="!canGenerate || processing"
-                >
+                <FormSavingOverlay
+                    :show="processing"
+                    :message="
+                        hasItinerary
+                            ? 'Regenerating itinerary...'
+                            : 'Generating itinerary...'
+                    "
+                />
+                <Button type="submit" :disabled="!canGenerate || processing">
                     <Spinner v-if="processing" class="mr-2" />
                     <Sparkles v-else class="mr-2 size-4" />
                     {{ hasItinerary ? 'Regenerate' : 'Generate with AI' }}
@@ -141,14 +155,18 @@ function nextDay(): void {
         </CardHeader>
 
         <CardContent class="space-y-4">
-            <InputError :message="(page.props.errors as Record<string, string>).ai" />
-            <InputError :message="(page.props.errors as Record<string, string>).destination" />
+            <InputError
+                :message="(page.props.errors as Record<string, string>).ai"
+            />
+            <InputError
+                :message="
+                    (page.props.errors as Record<string, string>).destination
+                "
+            />
 
-            <p
-                v-if="!hasItinerary"
-                class="text-sm text-muted-foreground"
-            >
-                No days planned yet. Generate a personalized itinerary with Gemini.
+            <p v-if="!hasItinerary" class="text-sm text-muted-foreground">
+                No days planned yet. Generate a personalized itinerary with
+                Gemini.
             </p>
 
             <p
@@ -160,32 +178,35 @@ function nextDay(): void {
 
             <template v-if="hasItinerary && selectedDay">
                 <div class="-mx-1 flex gap-2 overflow-x-auto pb-1">
-                    <Tooltip
-                        v-for="(day, index) in days"
-                        :key="day.day"
-                    >
+                    <Tooltip v-for="(day, index) in days" :key="day.day">
                         <TooltipTrigger as-child>
                             <button
                                 type="button"
-                                :class="cn(
-                                    'flex min-w-[6.75rem] shrink-0 flex-col items-center gap-1 rounded-lg border px-3 py-2.5 text-center transition-colors',
-                                    index === selectedDayIndex
-                                        ? 'border-primary bg-primary text-primary-foreground'
-                                        : 'border-border bg-muted/30 hover:bg-accent',
-                                )"
+                                :class="
+                                    cn(
+                                        'flex min-w-[6.75rem] shrink-0 flex-col items-center gap-1 rounded-lg border px-3 py-2.5 text-center transition-colors',
+                                        index === selectedDayIndex
+                                            ? 'border-primary bg-primary text-primary-foreground'
+                                            : 'border-border bg-muted/30 hover:bg-accent',
+                                    )
+                                "
                                 @click="selectDay(index)"
                             >
-                                <span class="flex items-center gap-1.5 text-sm font-semibold leading-none">
+                                <span
+                                    class="flex items-center gap-1.5 text-sm leading-none font-semibold"
+                                >
                                     <CalendarDays class="size-4 shrink-0" />
                                     {{ dayTabDateLabel(day) }}
                                 </span>
                                 <span
-                                    :class="cn(
-                                        'text-xs leading-tight',
-                                        index === selectedDayIndex
-                                            ? 'text-primary-foreground/90'
-                                            : 'text-muted-foreground',
-                                    )"
+                                    :class="
+                                        cn(
+                                            'text-xs leading-tight',
+                                            index === selectedDayIndex
+                                                ? 'text-primary-foreground/90'
+                                                : 'text-muted-foreground',
+                                        )
+                                    "
                                 >
                                     {{ dayTabSubtitle(day) }}
                                 </span>
@@ -194,7 +215,9 @@ function nextDay(): void {
                         <TooltipContent side="top" class="max-w-xs">
                             <div class="space-y-1 text-center text-sm">
                                 <p>{{ dayTooltipParts(day).date }}</p>
-                                <p class="font-medium">{{ dayTooltipParts(day).dayCount }}</p>
+                                <p class="font-medium">
+                                    {{ dayTooltipParts(day).dayCount }}
+                                </p>
                                 <p>{{ dayTooltipParts(day).title }}</p>
                             </div>
                         </TooltipContent>
@@ -202,17 +225,25 @@ function nextDay(): void {
                 </div>
 
                 <div class="rounded-lg border border-border/60">
-                    <div class="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-4">
+                    <div
+                        class="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-4"
+                    >
                         <div class="space-y-1">
-                            <h3 class="text-base font-semibold leading-tight">
+                            <h3 class="text-base leading-tight font-semibold">
                                 Day {{ selectedDay.day }}
-                                <span v-if="selectedDay.title">— {{ selectedDay.title }}</span>
+                                <span v-if="selectedDay.title"
+                                    >— {{ selectedDay.title }}</span
+                                >
                             </h3>
                             <p
                                 v-if="selectedDay.date"
                                 class="text-sm font-medium text-teal-700 dark:text-teal-300"
                             >
-                                {{ formatDisplayDate(selectedDay.date, { weekday: true }) }}
+                                {{
+                                    formatDisplayDate(selectedDay.date, {
+                                        weekday: true,
+                                    })
+                                }}
                             </p>
                         </div>
                         <div class="flex items-center gap-1">
@@ -226,7 +257,9 @@ function nextDay(): void {
                             >
                                 <ChevronLeft class="size-4" />
                             </Button>
-                            <span class="min-w-16 text-center text-xs text-muted-foreground">
+                            <span
+                                class="min-w-16 text-center text-xs text-muted-foreground"
+                            >
                                 {{ selectedDayIndex + 1 }} / {{ days.length }}
                             </span>
                             <Button
@@ -274,10 +307,7 @@ function nextDay(): void {
                             </div>
                         </li>
                     </ul>
-                    <p
-                        v-else
-                        class="px-4 py-6 text-sm text-muted-foreground"
-                    >
+                    <p v-else class="px-4 py-6 text-sm text-muted-foreground">
                         No activities listed for this day.
                     </p>
                 </div>

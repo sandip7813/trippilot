@@ -45,9 +45,15 @@ const accentClasses = {
                 <component :is="icon" class="size-5" />
             </div>
             <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-muted-foreground">{{ label }}</p>
-                <p class="mt-1 text-2xl font-bold tracking-tight">{{ value }}</p>
-                <p v-if="hint" class="mt-1 text-xs text-muted-foreground">{{ hint }}</p>
+                <p class="text-sm font-medium text-muted-foreground">
+                    {{ label }}
+                </p>
+                <p class="mt-1 text-2xl font-bold tracking-tight">
+                    {{ value }}
+                </p>
+                <p v-if="hint" class="mt-1 text-xs text-muted-foreground">
+                    {{ hint }}
+                </p>
             </div>
         </CardContent>
     </Card>

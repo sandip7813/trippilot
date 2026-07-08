@@ -2,15 +2,13 @@
 
 namespace App\Actions\Trips;
 
+use App\Jobs\SyncTripCoverImageJob;
 use App\Models\Trip;
-use App\Services\Trips\TripCoverImageService;
 
 class SyncTripCoverImage
 {
-    public function __construct(private TripCoverImageService $coverImageService) {}
-
-    public function __invoke(Trip $trip): bool
+    public function __invoke(Trip $trip, bool $onlyIfMissing = false): void
     {
-        return $this->coverImageService->generateForTrip($trip) !== null;
+        SyncTripCoverImageJob::dispatch((string) $trip->id, $onlyIfMissing);
     }
 }

@@ -211,7 +211,9 @@ function onKeydown(event: KeyboardEvent): void {
                 </button>
             </div>
 
-            <div class="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
+            <div
+                class="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground"
+            >
                 <div
                     v-for="day in weekDays"
                     :key="day"
@@ -231,23 +233,28 @@ function onKeydown(event: KeyboardEvent): void {
                         v-for="(cell, cellIndex) in week"
                         :key="cellIndex"
                     >
-                        <div
-                            v-if="!cell"
-                            class="size-8"
-                        />
+                        <div v-if="!cell" class="size-8" />
                         <button
                             v-else
                             type="button"
                             :disabled="cell.disabled"
                             :aria-label="cell.iso"
                             :aria-selected="cell.selected"
-                            :class="cn(
-                                'inline-flex size-8 items-center justify-center rounded-md text-sm transition-colors',
-                                cell.disabled && 'cursor-not-allowed text-muted-foreground/40',
-                                !cell.disabled && !cell.selected && 'hover:bg-accent',
-                                cell.selected && 'bg-primary text-primary-foreground hover:bg-primary',
-                                cell.today && !cell.selected && 'border border-primary font-medium',
-                            )"
+                            :class="
+                                cn(
+                                    'inline-flex size-8 items-center justify-center rounded-md text-sm transition-colors',
+                                    cell.disabled &&
+                                        'cursor-not-allowed text-muted-foreground/40',
+                                    !cell.disabled &&
+                                        !cell.selected &&
+                                        'hover:bg-accent',
+                                    cell.selected &&
+                                        'bg-primary text-primary-foreground hover:bg-primary',
+                                    cell.today &&
+                                        !cell.selected &&
+                                        'border border-primary font-medium',
+                                )
+                            "
                             @click="selectDate(cell.iso)"
                         >
                             {{ cell.day }}

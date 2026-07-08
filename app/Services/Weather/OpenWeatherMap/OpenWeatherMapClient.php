@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Http;
 
 class OpenWeatherMapClient
 {
+    /**
+     * @param  array<string, mixed>  $query
+     */
     public function get(string $endpoint, array $query = []): Response
     {
         return $this->client()

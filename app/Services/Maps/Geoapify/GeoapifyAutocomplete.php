@@ -77,10 +77,6 @@ class GeoapifyAutocomplete
         $suggestions = [];
 
         foreach ($results as $result) {
-            if (! is_array($result)) {
-                continue;
-            }
-
             $label = $result['formatted'] ?? $result['address_line1'] ?? null;
 
             if (! is_string($label) || $label === '') {

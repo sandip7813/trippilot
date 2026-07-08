@@ -9,7 +9,7 @@ type Props = {
     variant?: 'default' | 'light';
 };
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     variant: 'default',
 });
 
@@ -41,7 +41,9 @@ const gradLight = computed(() => `globe-grad-light-${uid}`);
             cx="24"
             cy="24"
             r="16"
-            :stroke="variant === 'light' ? `url(#${gradLight})` : `url(#${grad})`"
+            :stroke="
+                variant === 'light' ? `url(#${gradLight})` : `url(#${grad})`
+            "
             stroke-width="2.5"
         />
         <!-- Meridians -->

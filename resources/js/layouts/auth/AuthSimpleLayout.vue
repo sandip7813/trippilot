@@ -13,26 +13,32 @@ defineProps<{
 <template>
     <div class="grid min-h-svh lg:grid-cols-2">
         <!-- Brand panel with banner image -->
-        <div class="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between">
+        <div
+            class="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between"
+        >
             <img
                 src="/images/hero-banner.jpg"
                 alt=""
                 class="absolute inset-0 size-full object-cover"
             />
-            <div class="absolute inset-0 bg-gradient-to-b from-teal-950/75 via-violet-900/65 to-orange-900/70" />
+            <div
+                class="absolute inset-0 bg-gradient-to-b from-teal-950/75 via-violet-900/65 to-orange-900/70"
+            />
 
-            <div class="relative flex flex-1 flex-col justify-between p-10 text-white">
+            <div
+                class="relative flex flex-1 flex-col justify-between p-10 text-white"
+            >
                 <Link :href="home()">
                     <TripPilotBrand variant="light" size="md" show-tagline />
                 </Link>
 
                 <div class="space-y-6">
-                    <h2 class="text-3xl font-bold leading-tight tracking-tight">
+                    <h2 class="text-3xl leading-tight font-bold tracking-tight">
                         Your next adventure starts here.
                     </h2>
                     <p class="max-w-md leading-relaxed text-white/80">
-                        Build AI-powered itineraries, map road trips, and get weather-aware
-                        recommendations — all in one place.
+                        Build AI-powered itineraries, map road trips, and get
+                        weather-aware recommendations — all in one place.
                     </p>
                     <ul class="space-y-3 text-sm text-white/90">
                         <li class="flex items-center gap-2">
@@ -53,7 +59,9 @@ defineProps<{
         </div>
 
         <!-- Form panel -->
-        <div class="app-page-bg flex flex-col items-center justify-center p-6 md:p-10">
+        <div
+            class="app-page-bg flex flex-col items-center justify-center p-6 md:p-10"
+        >
             <div class="w-full max-w-sm">
                 <div class="mb-8 flex flex-col items-center gap-4 lg:hidden">
                     <Link :href="home()">

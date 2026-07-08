@@ -11,7 +11,11 @@ const props = defineProps<{
 const mapUrl = computed(() => {
     const destination = props.trip.destination;
 
-    if (! locationHasCoordinates(destination) || destination?.lat == null || destination?.lng == null) {
+    if (
+        !locationHasCoordinates(destination) ||
+        destination?.lat == null ||
+        destination?.lng == null
+    ) {
         return null;
     }
 
@@ -21,10 +25,10 @@ const mapUrl = computed(() => {
 
 <template>
     <section class="space-y-3 border-t border-border/60 pt-6">
-        <h2 class="text-sm font-medium text-muted-foreground">
-            Useful links
-        </h2>
-        <div class="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-2">
+        <h2 class="text-sm font-medium text-muted-foreground">Useful links</h2>
+        <div
+            class="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-2"
+        >
             <a
                 v-if="mapUrl"
                 :href="mapUrl"
