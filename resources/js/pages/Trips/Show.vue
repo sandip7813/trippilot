@@ -30,12 +30,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { edit, index as tripsIndex } from '@/routes/trips';
 import { normalizeBudgetBreakdown } from '@/lib/budget';
-import type { Trip } from '@/types/trip';
-import type { TripWeather } from '@/types/weather';
-import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
 import { cn } from '@/lib/utils';
+import { edit, index as tripsIndex } from '@/routes/trips';
+import type { Trip } from '@/types/trip';
+import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
+import type { TripWeather } from '@/types/weather';
 
 const props = defineProps<{
     trip: Trip;
@@ -45,14 +45,14 @@ const props = defineProps<{
 
 defineOptions({
     layout: {
-        breadcrumbs: [
-            { title: 'Trips', href: tripsIndex() },
-        ],
+        breadcrumbs: [{ title: 'Trips', href: tripsIndex() }],
     },
 });
 
 const needsDestinationCoordinates = computed(
-    () => Boolean(props.trip.destination?.label) && ! locationHasCoordinates(props.trip.destination),
+    () =>
+        Boolean(props.trip.destination?.label) &&
+        !locationHasCoordinates(props.trip.destination),
 );
 
 const page = usePage();
@@ -67,7 +67,8 @@ const hasBudgetBreakdown = computed(() => {
     }
 
     const budget = normalizeBudgetBreakdown(
-        props.trip.itinerary?.budget_breakdown as Record<string, unknown> | undefined,
+        props.trip.itinerary?.budget_breakdown as
+            Record<string, unknown> | undefined,
         appCurrency.value,
     );
 
@@ -75,13 +76,18 @@ const hasBudgetBreakdown = computed(() => {
 });
 
 const hasExtras = computed(
-    () => Boolean(props.trip.notes)
-        || (props.trip.itinerary?.packing_list?.length ?? 0) > 0
-        || hasBudgetBreakdown.value,
+    () =>
+        Boolean(props.trip.notes) ||
+        (props.trip.itinerary?.packing_list?.length ?? 0) > 0 ||
+        hasBudgetBreakdown.value,
 );
 
 function toggleFavorite(): void {
-    router.patch(`/trips/${props.trip.id}/favorite`, {}, { preserveScroll: true });
+    router.patch(
+        `/trips/${props.trip.id}/favorite`,
+        {},
+        { preserveScroll: true },
+    );
 }
 
 const bannerExpanded = ref(false);
@@ -97,12 +103,14 @@ const bannerExpanded = ref(false);
             :class="bannerExpanded ? 'bg-muted/30' : ''"
         >
             <div
-                :class="cn(
-                    'w-full overflow-hidden',
-                    bannerExpanded
-                        ? 'aspect-[21/9] min-h-[13rem] sm:min-h-[16rem] lg:min-h-[20rem]'
-                        : 'h-40 md:h-52',
-                )"
+                :class="
+                    cn(
+                        'w-full overflow-hidden',
+                        bannerExpanded
+                            ? 'aspect-[21/9] min-h-[13rem] sm:min-h-[16rem] lg:min-h-[20rem]'
+                            : 'h-40 md:h-52',
+                    )
+                "
             >
                 <img
                     :src="trip.cover_image_url"
@@ -111,10 +119,14 @@ const bannerExpanded = ref(false);
                     height="900"
                     fetchpriority="high"
                     decoding="async"
-                    :class="cn(
-                        'size-full',
-                        bannerExpanded ? 'object-contain object-center' : 'object-cover',
-                    )"
+                    :class="
+                        cn(
+                            'size-full',
+                            bannerExpanded
+                                ? 'object-contain object-center'
+                                : 'object-cover',
+                        )
+                    "
                 />
             </div>
             <Button
@@ -128,15 +140,24 @@ const bannerExpanded = ref(false);
                 <Minimize2 v-if="bannerExpanded" class="size-4" />
                 <Maximize2 v-else class="size-4" />
             </Button>
-            <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+            <div
+                class="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent"
+            />
             <div class="absolute inset-x-0 bottom-0 p-4 md:p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div class="min-w-0">
-                        <h1 class="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+                        <h1
+                            class="text-2xl font-bold tracking-tight text-foreground md:text-3xl"
+                        >
                             {{ trip.title }}
                         </h1>
                         <p class="mt-1 text-sm text-muted-foreground">
-                            {{ locationRouteLabel(trip.origin, trip.destination) }}
+                            {{
+                                locationRouteLabel(
+                                    trip.origin,
+                                    trip.destination,
+                                )
+                            }}
                         </p>
                     </div>
                     <Button
@@ -169,11 +190,18 @@ const bannerExpanded = ref(false);
                     <Button
                         variant="outline"
                         size="icon"
-                        :title="trip.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
+                        :title="
+                            trip.is_favorite
+                                ? 'Remove from favorites'
+                                : 'Add to favorites'
+                        "
                         :class="trip.is_favorite ? 'text-rose-500' : ''"
                         @click="toggleFavorite"
                     >
-                        <Heart class="size-4" :class="trip.is_favorite ? 'fill-current' : ''" />
+                        <Heart
+                            class="size-4"
+                            :class="trip.is_favorite ? 'fill-current' : ''"
+                        />
                     </Button>
                     <Button variant="outline" as-child>
                         <Link :href="edit(trip.id)">
@@ -192,8 +220,10 @@ const bannerExpanded = ref(false);
                             <DialogHeader>
                                 <DialogTitle>Delete this trip?</DialogTitle>
                                 <DialogDescription>
-                                    This will permanently remove "{{ trip.title }}" and its itinerary.
-                                    This action cannot be undone.
+                                    This will permanently remove "{{
+                                        trip.title
+                                    }}" and its itinerary. This action cannot be
+                                    undone.
                                 </DialogDescription>
                             </DialogHeader>
                             <DialogFooter>
@@ -201,14 +231,20 @@ const bannerExpanded = ref(false);
                                     <Button variant="outline">Cancel</Button>
                                 </DialogClose>
                                 <Form
-                                    v-bind="TripController.destroy.form(trip.id)"
+                                    v-bind="
+                                        TripController.destroy.form(trip.id)
+                                    "
                                     v-slot="{ processing }"
                                 >
                                     <FormSavingOverlay
                                         :show="processing"
                                         message="Deleting trip..."
                                     />
-                                    <Button type="submit" variant="destructive" :disabled="processing">
+                                    <Button
+                                        type="submit"
+                                        variant="destructive"
+                                        :disabled="processing"
+                                    >
                                         Delete trip
                                     </Button>
                                 </Form>
@@ -219,18 +255,22 @@ const bannerExpanded = ref(false);
             </template>
         </PageHeader>
 
-        <div
-            v-else
-            class="flex flex-wrap items-center justify-end gap-2"
-        >
+        <div v-else class="flex flex-wrap items-center justify-end gap-2">
             <Button
                 variant="outline"
                 size="icon"
-                :title="trip.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
+                :title="
+                    trip.is_favorite
+                        ? 'Remove from favorites'
+                        : 'Add to favorites'
+                "
                 :class="trip.is_favorite ? 'text-rose-500' : ''"
                 @click="toggleFavorite"
             >
-                <Heart class="size-4" :class="trip.is_favorite ? 'fill-current' : ''" />
+                <Heart
+                    class="size-4"
+                    :class="trip.is_favorite ? 'fill-current' : ''"
+                />
             </Button>
             <Button variant="outline" as-child>
                 <Link :href="edit(trip.id)">
@@ -249,8 +289,8 @@ const bannerExpanded = ref(false);
                     <DialogHeader>
                         <DialogTitle>Delete this trip?</DialogTitle>
                         <DialogDescription>
-                            This will permanently remove "{{ trip.title }}" and its itinerary.
-                            This action cannot be undone.
+                            This will permanently remove "{{ trip.title }}" and
+                            its itinerary. This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -265,7 +305,11 @@ const bannerExpanded = ref(false);
                                 :show="processing"
                                 message="Deleting trip..."
                             />
-                            <Button type="submit" variant="destructive" :disabled="processing">
+                            <Button
+                                type="submit"
+                                variant="destructive"
+                                :disabled="processing"
+                            >
                                 Delete trip
                             </Button>
                         </Form>
@@ -275,8 +319,15 @@ const bannerExpanded = ref(false);
         </div>
 
         <div class="flex flex-wrap gap-2">
-            <Badge class="bg-teal-500/15 text-teal-800 hover:bg-teal-500/20 dark:text-teal-200">{{ trip.status_label }}</Badge>
-            <Badge variant="outline" class="border-violet-500/30 bg-violet-500/5">{{ trip.type_label }}</Badge>
+            <Badge
+                class="bg-teal-500/15 text-teal-800 hover:bg-teal-500/20 dark:text-teal-200"
+                >{{ trip.status_label }}</Badge
+            >
+            <Badge
+                variant="outline"
+                class="border-violet-500/30 bg-violet-500/5"
+                >{{ trip.type_label }}</Badge
+            >
             <Badge
                 v-if="trip.travel_style_label"
                 variant="secondary"
@@ -295,7 +346,7 @@ const bannerExpanded = ref(false);
 
         <LocationCoordinatesAlert
             v-if="needsDestinationCoordinates"
-            :edit-url="edit(trip.id)"
+            :edit-url="edit.url(trip.id)"
         />
 
         <div class="grid gap-6 xl:grid-cols-5">
@@ -309,15 +360,9 @@ const bannerExpanded = ref(false);
             </div>
         </div>
 
-        <TripHubItinerarySection
-            :trip="trip"
-            :ai-configured="aiConfigured"
-        />
+        <TripHubItinerarySection :trip="trip" :ai-configured="aiConfigured" />
 
-        <section
-            v-if="hasExtras"
-            class="space-y-4"
-        >
+        <section v-if="hasExtras" class="space-y-4">
             <h2 class="section-heading">Notes &amp; budget</h2>
             <TripHubPracticalSection :trip="trip" />
         </section>

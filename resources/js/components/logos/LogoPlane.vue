@@ -9,7 +9,7 @@ type Props = {
     variant?: 'default' | 'light';
 };
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     variant: 'default',
 });
 
@@ -38,7 +38,9 @@ const gradLight = computed(() => `plane-grad-light-${uid}`);
         </defs>
         <path
             d="M8 36 C 16 20, 28 12, 40 8"
-            :stroke="variant === 'light' ? `url(#${gradLight})` : `url(#${grad})`"
+            :stroke="
+                variant === 'light' ? `url(#${gradLight})` : `url(#${grad})`
+            "
             stroke-width="2.5"
             stroke-linecap="round"
             fill="none"

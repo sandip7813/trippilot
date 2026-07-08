@@ -212,13 +212,13 @@ class TripController extends Controller
      */
     protected function tripTypeOptions(): array
     {
-        return collect(TripType::cases())
-            ->map(fn (TripType $type): array => [
+        return array_map(
+            fn (TripType $type): array => [
                 'value' => $type->value,
                 'label' => $type->label(),
-            ])
-            ->values()
-            ->all();
+            ],
+            TripType::cases(),
+        );
     }
 
     /**
@@ -226,13 +226,13 @@ class TripController extends Controller
      */
     protected function tripStatusOptions(): array
     {
-        return collect(TripStatus::cases())
-            ->map(fn (TripStatus $status): array => [
+        return array_map(
+            fn (TripStatus $status): array => [
                 'value' => $status->value,
                 'label' => $status->label(),
-            ])
-            ->values()
-            ->all();
+            ],
+            TripStatus::cases(),
+        );
     }
 
     /**
@@ -240,13 +240,13 @@ class TripController extends Controller
      */
     protected function travelStyleOptions(): array
     {
-        return collect(TravelStyle::cases())
-            ->map(fn (TravelStyle $style): array => [
+        return array_map(
+            fn (TravelStyle $style): array => [
                 'value' => $style->value,
                 'label' => $style->label(),
-            ])
-            ->values()
-            ->all();
+            ],
+            TravelStyle::cases(),
+        );
     }
 
     /**

@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import type { Component, HTMLAttributes } from 'vue';
-import { ACTIVE_LOGO, type LogoVariant } from '@/config/brand';
 import LogoCompass from '@/components/logos/LogoCompass.vue';
 import LogoGlobe from '@/components/logos/LogoGlobe.vue';
 import LogoMonogram from '@/components/logos/LogoMonogram.vue';
 import LogoPin from '@/components/logos/LogoPin.vue';
 import LogoPlane from '@/components/logos/LogoPlane.vue';
+import { ACTIVE_LOGO } from '@/config/brand';
+import type { LogoVariant } from '@/config/brand';
 
 defineOptions({ inheritAttrs: false });
 

@@ -8,8 +8,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { openStreetMapEmbedUrl } from '@/lib/maps';
-import { openStreetMapUrl } from '@/types/trip';
 import type { TripLocation } from '@/types/trip';
+import { openStreetMapUrl } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
 const props = defineProps<{
@@ -23,7 +23,11 @@ const hasCoordinates = computed(
 );
 
 const embedUrl = computed(() => {
-    if (! hasCoordinates.value || props.destination?.lat == null || props.destination?.lng == null) {
+    if (
+        !hasCoordinates.value ||
+        props.destination?.lat == null ||
+        props.destination?.lng == null
+    ) {
         return null;
     }
 
@@ -31,7 +35,11 @@ const embedUrl = computed(() => {
 });
 
 const externalMapUrl = computed(() => {
-    if (! hasCoordinates.value || props.destination?.lat == null || props.destination?.lng == null) {
+    if (
+        !hasCoordinates.value ||
+        props.destination?.lat == null ||
+        props.destination?.lng == null
+    ) {
         return null;
     }
 
@@ -41,7 +49,9 @@ const externalMapUrl = computed(() => {
 
 <template>
     <Dialog v-model:open="open">
-        <DialogContent class="gap-0 overflow-hidden p-0 sm:max-w-6xl w-[min(96vw,72rem)]">
+        <DialogContent
+            class="w-[min(96vw,72rem)] gap-0 overflow-hidden p-0 sm:max-w-6xl"
+        >
             <DialogHeader class="space-y-1 border-b border-border/60 px-6 py-4">
                 <DialogTitle>Destination map</DialogTitle>
                 <DialogDescription>
@@ -62,11 +72,9 @@ const externalMapUrl = computed(() => {
                 />
             </div>
 
-            <p
-                v-else
-                class="px-6 py-8 text-sm text-muted-foreground"
-            >
-                Map preview is available when the destination has saved coordinates from search.
+            <p v-else class="px-6 py-8 text-sm text-muted-foreground">
+                Map preview is available when the destination has saved
+                coordinates from search.
             </p>
 
             <div

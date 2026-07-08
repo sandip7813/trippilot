@@ -8,9 +8,27 @@ use Illuminate\Support\Facades\Http;
 
 class GeoapifyClient
 {
+    /**
+     * @param  array<string, mixed>  $query
+     */
     public function get(string $endpoint, array $query = []): Response
     {
         return $this->client()
+            ->get($endpoint, [
+                ...$query,
+                'apiKey' => $this->apiKey(),
+            ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    public function getV2(string $endpoint, array $query = []): Response
+    {
+        return Http::baseUrl('https://api.geoapify.com/v2/')
+            ->timeout(10)
+            ->connectTimeout(5)
+            ->retry([100, 500], 2, throw: false)
             ->get($endpoint, [
                 ...$query,
                 'apiKey' => $this->apiKey(),

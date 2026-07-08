@@ -80,11 +80,15 @@ export type TripCounts = {
     archived: number;
 };
 
-export function locationLabel(location: TripLocation | null | undefined): string | null {
+export function locationLabel(
+    location: TripLocation | null | undefined,
+): string | null {
     return location?.label ?? null;
 }
 
-export function locationHasCoordinates(location: TripLocation | null | undefined): boolean {
+export function locationHasCoordinates(
+    location: TripLocation | null | undefined,
+): boolean {
     return location?.lat != null && location?.lng != null;
 }
 

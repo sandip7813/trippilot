@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Http;
 
 class GeminiClient
 {
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     public function post(string $model, string $action, array $payload): Response
     {
         return $this->client()

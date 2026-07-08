@@ -64,7 +64,7 @@ class OpenMeteoClient
     ): array {
         $baseUrl = config('integrations.weather.drivers.open_meteo.archive_url');
 
-        return Http::pool(function (Pool $pool) use ($baseUrl, $latitude, $longitude, $periods, $daily): array {
+        $responses = Http::pool(function (Pool $pool) use ($baseUrl, $latitude, $longitude, $periods, $daily): array {
             $requests = [];
 
             foreach ($periods as $period) {
@@ -85,6 +85,16 @@ class OpenMeteoClient
 
             return $requests;
         });
+
+        $result = [];
+
+        foreach ($responses as $key => $response) {
+            if ($response instanceof Response) {
+                $result[$key] = $response;
+            }
+        }
+
+        return $result;
     }
 
     private function client(string $baseUrl): PendingRequest

@@ -9,6 +9,7 @@ use App\Enums\TripType;
 use Carbon\CarbonInterface;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Carbon;
 use MongoDB\Laravel\Eloquent\Model;
@@ -31,7 +32,11 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property string|null $notes
  * @property string|null $cover_image_path
  * @property string|null $cover_image_thumb_path
- * @property array<string, mixed> $itinerary
+ * @property array<string, mixed>|null $road_profile
+ * @property list<array<string, mixed>>|null $stops
+ * @property array<string, mixed>|null $route
+ * @property list<array<string, mixed>>|null $suggested_breaks
+ * @property array<string, mixed>|null $amenities_cache
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -42,7 +47,7 @@ class Trip extends Model
 
     protected $connection = 'mongodb';
 
-    protected $collection = 'trips';
+    protected string $collection = 'trips';
 
     /**
      * @var list<string>
@@ -65,6 +70,11 @@ class Trip extends Model
         'cover_image_path',
         'cover_image_thumb_path',
         'itinerary',
+        'road_profile',
+        'stops',
+        'route',
+        'suggested_breaks',
+        'amenities_cache',
     ];
 
     /**
@@ -97,7 +107,38 @@ class Trip extends Model
             'origin' => 'array',
             'destination' => 'array',
             'itinerary' => 'array',
+            'road_profile' => 'array',
+            'stops' => 'array',
+            'suggested_breaks' => 'array',
+            'amenities_cache' => 'array',
         ];
+    }
+
+    /**
+     * @return Attribute<array<string, mixed>|null, array<string, mixed>|null>
+     */
+    protected function route(): Attribute
+    {
+        return Attribute::make(
+            get: fn (mixed $value): ?array => self::normalizeRoute(is_array($value) ? $value : null),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $route
+     * @return array<string, mixed>|null
+     */
+    public static function normalizeRoute(?array $route): ?array
+    {
+        if ($route === null) {
+            return null;
+        }
+
+        if (array_key_exists('distance_km', $route) && $route['distance_km'] !== null) {
+            $route['distance_km'] = (float) $route['distance_km'];
+        }
+
+        return $route;
     }
 
     /**
@@ -148,6 +189,10 @@ class Trip extends Model
         ];
     }
 
+    /**
+     * @param  array<string, mixed>|null  $origin
+     * @param  array<string, mixed>|null  $destination
+     */
     public static function resolveTripScope(?array $origin, ?array $destination): ?TripScope
     {
         $destinationCountry = self::locationCountryCode($destination);
@@ -185,6 +230,20 @@ class Trip extends Model
         }
 
         return strtolower($countryCode);
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeRoad(Builder $query): Builder
+    {
+        return $query->where('type', TripType::Road->value);
+    }
+
+    public function isRoadTrip(): bool
+    {
+        return $this->type === TripType::Road;
     }
 
     /**
@@ -254,6 +313,11 @@ class Trip extends Model
             'cover_image_url' => $this->coverImageUrl(),
             'cover_image_thumb_url' => $this->coverImageThumbUrl(),
             'itinerary' => $this->itineraryForFrontend(),
+            'road_profile' => $this->isRoadTrip() ? $this->roadProfileForFrontend() : null,
+            'stops' => $this->isRoadTrip() ? $this->stopsForFrontend() : [],
+            'route' => $this->isRoadTrip() ? $this->routeForFrontend() : null,
+            'suggested_breaks' => $this->isRoadTrip() ? $this->suggestedBreaksForFrontend() : [],
+            'amenities_cache' => $this->isRoadTrip() ? $this->amenitiesCacheForFrontend() : null,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
@@ -321,7 +385,7 @@ class Trip extends Model
     {
         return match ($key) {
             'type' => $this->type->value !== (string) $incoming,
-            'travel_style' => ($this->travel_style?->value ?? null) !== ($incoming !== null && $incoming !== '' ? (string) $incoming : null),
+            'travel_style' => ($this->travel_style instanceof TravelStyle ? $this->travel_style->value : null) !== ($incoming !== null && $incoming !== '' ? (string) $incoming : null),
             'travelers' => (int) $this->travelers !== (int) $incoming,
             'start_date' => $this->dateValue($this->start_date) !== $this->normalizeDateInput($incoming),
             'end_date' => $this->dateValue($this->end_date) !== $this->normalizeDateInput($incoming),
@@ -398,5 +462,67 @@ class Trip extends Model
         $version = $this->updated_at?->getTimestamp() ?? time();
 
         return asset('storage/'.$path).'?v='.$version;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function roadProfileForFrontend(): ?array
+    {
+        $profile = $this->road_profile;
+
+        if (! is_array($profile) || $profile === []) {
+            return null;
+        }
+
+        return $profile;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function stopsForFrontend(): array
+    {
+        $stops = $this->stops;
+
+        if (! is_array($stops)) {
+            return [];
+        }
+
+        return array_values(array_filter($stops, is_array(...)));
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function routeForFrontend(): ?array
+    {
+        $route = $this->route;
+
+        return is_array($route) && $route !== [] ? $route : null;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function suggestedBreaksForFrontend(): array
+    {
+        $breaks = $this->suggested_breaks;
+
+        if (! is_array($breaks)) {
+            return [];
+        }
+
+        return array_values(array_filter($breaks, is_array(...)));
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function amenitiesCacheForFrontend(): ?array
+    {
+        $cache = $this->amenities_cache;
+
+        return is_array($cache) && $cache !== [] ? $cache : null;
     }
 }

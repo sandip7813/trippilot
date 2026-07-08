@@ -42,10 +42,7 @@ defineOptions({
             v-slot="{ errors, processing }"
             class="space-y-6"
         >
-            <FormSavingOverlay
-                :show="processing"
-                message="Creating trip..."
-            />
+            <FormSavingOverlay :show="processing" message="Creating trip..." />
 
             <Card class="card-vibrant overflow-hidden">
                 <div class="brand-gradient h-1.5" />

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import TripFormFields from '@/components/TripFormFields.vue';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ArrowLeft, MapPin, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import TripFormFields from '@/components/TripFormFields.vue';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
@@ -24,14 +24,14 @@ const { trip } = defineProps<{
 const hasItinerary = computed(() => (trip.itinerary?.days?.length ?? 0) > 0);
 
 const needsDestinationCoordinates = computed(
-    () => Boolean(trip.destination?.label) && ! locationHasCoordinates(trip.destination),
+    () =>
+        Boolean(trip.destination?.label) &&
+        !locationHasCoordinates(trip.destination),
 );
 
 defineOptions({
     layout: {
-        breadcrumbs: [
-            { title: 'Trips', href: tripsIndex() },
-        ],
+        breadcrumbs: [{ title: 'Trips', href: tripsIndex() }],
     },
 });
 </script>
@@ -58,8 +58,9 @@ defineOptions({
             <TriangleAlert class="size-4" />
             <AlertTitle>AI itinerary will be removed</AlertTitle>
             <AlertDescription>
-                Changing route, dates, travelers, or planning details clears your current
-                itinerary. You can generate a fresh plan after saving.
+                Changing route, dates, travelers, or planning details clears
+                your current itinerary. You can generate a fresh plan after
+                saving.
             </AlertDescription>
         </Alert>
 
@@ -67,7 +68,8 @@ defineOptions({
             <MapPin class="size-4" />
             <AlertTitle>Re-select destination from search</AlertTitle>
             <AlertDescription>
-                Pick your destination from the dropdown below to enable weather, maps, and trip scope.
+                Pick your destination from the dropdown below to enable weather,
+                maps, and trip scope.
             </AlertDescription>
         </Alert>
 
@@ -76,10 +78,7 @@ defineOptions({
             v-slot="{ errors, processing }"
             class="space-y-6"
         >
-            <FormSavingOverlay
-                :show="processing"
-                message="Saving changes..."
-            />
+            <FormSavingOverlay :show="processing" message="Saving changes..." />
 
             <Card class="card-vibrant overflow-hidden">
                 <div class="brand-gradient h-1.5" />
@@ -93,7 +92,11 @@ defineOptions({
                         show-status
                     />
 
-                    <input type="hidden" name="is_favorite" :value="trip.is_favorite ? '1' : '0'" />
+                    <input
+                        type="hidden"
+                        name="is_favorite"
+                        :value="trip.is_favorite ? '1' : '0'"
+                    />
                 </CardContent>
             </Card>
 

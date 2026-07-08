@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Trip;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +48,17 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+function skipUnlessMongoDbAvailable(): void
+{
+    if (! extension_loaded('mongodb')) {
+        test()->markTestSkipped('MongoDB PHP extension is not installed.');
+    }
+
+    try {
+        Trip::query()->where('_id', '!=', null)->limit(1)->get();
+    } catch (Throwable $exception) {
+        test()->markTestSkipped('MongoDB is not available: '.$exception->getMessage());
+    }
 }

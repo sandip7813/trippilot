@@ -41,7 +41,11 @@ const mustPickFromSearch = computed(
 );
 
 function hasValidSelection(location: TripLocation | null | undefined): boolean {
-    return location?.lat != null && location?.lng != null && Boolean(location.label?.trim());
+    return (
+        location?.lat != null &&
+        location?.lng != null &&
+        Boolean(location.label?.trim())
+    );
 }
 
 onClickOutside(rootRef, () => {
@@ -61,7 +65,7 @@ watch(
 const debouncedSearch = useDebounceFn(async (value: string) => {
     const trimmed = value.trim();
 
-    if (! locationSearchEnabled.value || trimmed.length < 2) {
+    if (!locationSearchEnabled.value || trimmed.length < 2) {
         suggestions.value = [];
         loading.value = false;
 
@@ -71,15 +75,18 @@ const debouncedSearch = useDebounceFn(async (value: string) => {
     loading.value = true;
 
     try {
-        const response = await fetch(locationSearch.url({ query: { q: trimmed } }), {
-            headers: {
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
+        const response = await fetch(
+            locationSearch.url({ query: { q: trimmed } }),
+            {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
             },
-            credentials: 'same-origin',
-        });
+        );
 
-        if (! response.ok) {
+        if (!response.ok) {
             suggestions.value = [];
 
             return;
@@ -103,12 +110,12 @@ function syncFreeText(value: string): void {
 
     model.value = trimmed
         ? {
-            label: trimmed,
-            lat: null,
-            lng: null,
-            place_id: null,
-            country_code: null,
-        }
+              label: trimmed,
+              lat: null,
+              lng: null,
+              place_id: null,
+              country_code: null,
+          }
         : null;
 }
 
@@ -120,7 +127,10 @@ function onInput(event: Event): void {
 
     if (locationSearchEnabled.value) {
         if (mustPickFromSearch.value) {
-            if (! hasValidSelection(model.value) || value !== model.value?.label) {
+            if (
+                !hasValidSelection(model.value) ||
+                value !== model.value?.label
+            ) {
                 model.value = null;
             }
 
@@ -170,16 +180,17 @@ function onBlur(): void {
         }
 
         if (mustPickFromSearch.value) {
-            if (! hasValidSelection(model.value)) {
+            if (!hasValidSelection(model.value)) {
                 query.value = '';
                 model.value = null;
-                selectionError.value = 'Pick a place from the search suggestions.';
+                selectionError.value =
+                    'Pick a place from the search suggestions.';
             }
 
             return;
         }
 
-        if (! open.value && query.value.trim() !== (model.value?.label ?? '')) {
+        if (!open.value && query.value.trim() !== (model.value?.label ?? '')) {
             syncFreeText(query.value);
         }
     }, 150);
@@ -188,9 +199,11 @@ function onBlur(): void {
 
 <template>
     <div
-        :class="variant === 'compact'
-            ? 'grid gap-2'
-            : 'grid gap-3 rounded-lg border border-border/60 bg-muted/20 p-4'"
+        :class="
+            variant === 'compact'
+                ? 'grid gap-2'
+                : 'grid gap-3 rounded-lg border border-border/60 bg-muted/20 p-4'
+        "
     >
         <div ref="rootRef" class="relative grid gap-2">
             <Label :for="`${prefix}-label`">
@@ -204,7 +217,11 @@ function onBlur(): void {
                     :model-value="query"
                     autocomplete="off"
                     :required="required"
-                    :placeholder="locationSearchEnabled ? 'Search city or region...' : 'City, region, or country'"
+                    :placeholder="
+                        locationSearchEnabled
+                            ? 'Search city or region...'
+                            : 'City, region, or country'
+                    "
                     class="pr-9"
                     @input="onInput"
                     @focus="onFocus"
@@ -231,7 +248,9 @@ function onBlur(): void {
                     class="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
                     @mousedown.prevent="selectSuggestion(suggestion)"
                 >
-                    <MapPin class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                    <MapPin
+                        class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                    />
                     <span>{{ suggestion.label }}</span>
                 </button>
             </div>
@@ -262,10 +281,7 @@ function onBlur(): void {
                 :value="model?.country_code ?? ''"
             />
 
-            <p
-                v-if="hint"
-                class="text-xs text-muted-foreground"
-            >
+            <p v-if="hint" class="text-xs text-muted-foreground">
                 {{ hint }}
             </p>
             <p
@@ -273,10 +289,12 @@ function onBlur(): void {
                 class="text-xs text-muted-foreground"
             >
                 <template v-if="mustPickFromSearch">
-                    Start typing, then pick a suggestion — manual text is not accepted.
+                    Start typing, then pick a suggestion — manual text is not
+                    accepted.
                 </template>
                 <template v-else>
-                    Start typing to search places. Pick a suggestion for accurate maps and trip scope.
+                    Start typing to search places. Pick a suggestion for
+                    accurate maps and trip scope.
                 </template>
             </p>
             <p
@@ -286,7 +304,15 @@ function onBlur(): void {
                 Coordinates saved from your selection.
             </p>
 
-            <InputError :message="selectionError ?? errors[`${prefix}.label`] ?? errors[`${prefix}[label]`] ?? errors[`${prefix}.lat`] ?? errors[`${prefix}[lat]`]" />
+            <InputError
+                :message="
+                    selectionError ??
+                    errors[`${prefix}.label`] ??
+                    errors[`${prefix}[label]`] ??
+                    errors[`${prefix}.lat`] ??
+                    errors[`${prefix}[lat]`]
+                "
+            />
         </div>
     </div>
 </template>

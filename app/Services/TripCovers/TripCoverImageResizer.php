@@ -11,7 +11,7 @@ class TripCoverImageResizer
      */
     public function toJpegThumbnail(string $imageBytes, int $width, int $height, int $quality = 82): ?string
     {
-        if ($imageBytes === '') {
+        if ($imageBytes === '' || $width < 1 || $height < 1) {
             return null;
         }
 
@@ -25,12 +25,6 @@ class TripCoverImageResizer
 
         $sourceWidth = imagesx($source);
         $sourceHeight = imagesy($source);
-
-        if ($sourceWidth <= 0 || $sourceHeight <= 0) {
-            imagedestroy($source);
-
-            return null;
-        }
 
         $thumbnail = imagecreatetruecolor($width, $height);
 
@@ -67,7 +61,11 @@ class TripCoverImageResizer
         imagedestroy($thumbnail);
         $jpegBytes = ob_get_clean();
 
-        if ($encoded === false || ! is_string($jpegBytes) || $jpegBytes === '') {
+        if ($encoded === false) {
+            return null;
+        }
+
+        if ($jpegBytes === '') {
             return null;
         }
 

@@ -37,7 +37,10 @@ const textClasses = {
             :variant="variant"
             :logo="logo"
         />
-        <div v-if="showTagline || $slots.default" class="flex flex-col leading-tight">
+        <div
+            v-if="showTagline || $slots.default"
+            class="flex flex-col leading-tight"
+        >
             <span
                 :class="[
                     'font-bold tracking-tight',
@@ -51,7 +54,9 @@ const textClasses = {
                 v-if="showTagline"
                 :class="[
                     'text-xs font-medium',
-                    variant === 'light' ? 'text-white/75' : 'text-muted-foreground',
+                    variant === 'light'
+                        ? 'text-white/75'
+                        : 'text-muted-foreground',
                 ]"
             >
                 Plan smarter. Travel further.

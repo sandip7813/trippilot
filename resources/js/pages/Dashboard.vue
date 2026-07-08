@@ -11,10 +11,16 @@ import {
 import { computed } from 'vue';
 import PageHeader from '@/components/PageHeader.vue';
 import StatCard from '@/components/StatCard.vue';
-import { formatDisplayDate } from '@/lib/dates';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { formatDisplayDate } from '@/lib/dates';
 import { dashboard } from '@/routes';
 import { index as roadTripsIndex } from '@/routes/road-trips';
 import { create, index as tripsIndex, show } from '@/routes/trips';
@@ -72,25 +78,33 @@ const quickActions = [
         <div
             class="card-vibrant relative overflow-hidden rounded-2xl p-6 md:p-8"
         >
-            <div class="brand-gradient absolute inset-x-0 top-0 h-1.5 opacity-90" />
             <div
-                class="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full bg-violet-500/15 blur-3xl"
+                class="brand-gradient absolute inset-x-0 top-0 h-1.5 opacity-90"
+            />
+            <div
+                class="pointer-events-none absolute -top-12 -right-12 size-48 rounded-full bg-violet-500/15 blur-3xl"
             />
             <div
                 class="pointer-events-none absolute -bottom-8 left-1/3 size-36 rounded-full bg-teal-500/15 blur-3xl"
             />
-            <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div
+                class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <div>
-                    <p class="text-sm font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+                    <p
+                        class="text-sm font-semibold tracking-wider text-teal-600 uppercase dark:text-teal-400"
+                    >
                         Welcome back
                     </p>
-                    <h1 class="mt-1 text-2xl font-bold tracking-tight md:text-3xl">
+                    <h1
+                        class="mt-1 text-2xl font-bold tracking-tight md:text-3xl"
+                    >
                         Hey, {{ userName }}
                         <span class="ml-1">✈️</span>
                     </h1>
                     <p class="mt-2 max-w-lg text-sm text-muted-foreground">
-                        Your travel command center is ready. Start a new trip or pick up where
-                        you left off.
+                        Your travel command center is ready. Start a new trip or
+                        pick up where you left off.
                     </p>
                 </div>
                 <Button as-child class="shrink-0 self-start sm:self-center">
@@ -126,12 +140,17 @@ const quickActions = [
             />
         </div>
 
-        <Card v-if="recentTrips.length > 0" class="card-vibrant overflow-hidden">
+        <Card
+            v-if="recentTrips.length > 0"
+            class="card-vibrant overflow-hidden"
+        >
             <div class="h-1 bg-gradient-to-r from-teal-500 to-violet-500" />
             <CardHeader class="flex flex-row items-center justify-between">
                 <div>
                     <CardTitle class="text-base">Recent trips</CardTitle>
-                    <CardDescription>Pick up where you left off</CardDescription>
+                    <CardDescription
+                        >Pick up where you left off</CardDescription
+                    >
                 </div>
                 <Button variant="ghost" size="sm" as-child>
                     <Link :href="tripsIndex()">View all</Link>
@@ -147,7 +166,10 @@ const quickActions = [
                     <div class="min-w-0">
                         <p class="truncate font-medium">{{ trip.title }}</p>
                         <p class="truncate text-sm text-muted-foreground">
-                            {{ locationLabel(trip.destination) ?? 'No destination' }}
+                            {{
+                                locationLabel(trip.destination) ??
+                                'No destination'
+                            }}
                         </p>
                     </div>
                     <Badge variant="outline">{{ trip.status_label }}</Badge>
@@ -156,7 +178,10 @@ const quickActions = [
         </Card>
 
         <div>
-            <PageHeader title="Quick actions" description="Jump into planning." />
+            <PageHeader
+                title="Quick actions"
+                description="Jump into planning."
+            />
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <Card
                     v-for="action in quickActions"
@@ -178,11 +203,20 @@ const quickActions = [
                                 {{ action.badge }}
                             </span>
                         </div>
-                        <CardTitle class="text-base">{{ action.title }}</CardTitle>
-                        <CardDescription>{{ action.description }}</CardDescription>
+                        <CardTitle class="text-base">{{
+                            action.title
+                        }}</CardTitle>
+                        <CardDescription>{{
+                            action.description
+                        }}</CardDescription>
                     </CardHeader>
                     <CardContent class="pt-0">
-                        <Button variant="ghost" size="sm" as-child class="group/btn -ml-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            as-child
+                            class="group/btn -ml-2"
+                        >
                             <Link :href="action.href">
                                 Explore
                                 <ArrowRight

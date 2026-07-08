@@ -33,7 +33,9 @@ class UnsplashTripCoverGenerator implements TripCoverGenerator
             $photo = $this->findPhoto($accessKey, $query);
 
             if ($photo !== null) {
-                return $this->downloadPhoto($accessKey, $photo, $destination);
+                $bytes = $this->downloadPhoto($accessKey, $photo, $destination);
+
+                return $bytes !== null && $bytes !== '' ? $bytes : null;
             }
         }
 
@@ -63,6 +65,7 @@ class UnsplashTripCoverGenerator implements TripCoverGenerator
 
     /**
      * @param  array<string, mixed>  $photo
+     * @param  array<string, mixed>  $destination
      */
     private function downloadPhoto(string $accessKey, array $photo, array $destination): ?string
     {

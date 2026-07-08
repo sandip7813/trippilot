@@ -44,7 +44,7 @@ class ProfileController extends Controller
             $user->email_verified_at = null;
         }
 
-        $preferences = $user->travel_preferences ?? [];
+        $preferences = is_array($user->travel_preferences) ? $user->travel_preferences : [];
 
         if (array_key_exists('home_city', $validated)) {
             $preferences['home_city'] = Trip::normalizeLocation($validated['home_city']);

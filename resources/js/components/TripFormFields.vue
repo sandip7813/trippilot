@@ -24,7 +24,9 @@ const endDateIso = ref(props.trip?.end_date ?? '');
 const originLocation = ref<TripLocation | null>(
     props.trip?.origin ?? props.defaultOrigin ?? null,
 );
-const destinationLocation = ref<TripLocation | null>(props.trip?.destination ?? null);
+const destinationLocation = ref<TripLocation | null>(
+    props.trip?.destination ?? null,
+);
 const notes = ref(props.trip?.notes ?? '');
 
 const today = isoToday();
@@ -37,7 +39,9 @@ const minStartDate = computed((): string => {
     return today;
 });
 
-const minEndDate = computed((): string => startDateIso.value || minStartDate.value);
+const minEndDate = computed(
+    (): string => startDateIso.value || minStartDate.value,
+);
 
 watch(startDateIso, (nextStart) => {
     if (nextStart && endDateIso.value && endDateIso.value < nextStart) {
@@ -146,7 +150,9 @@ watch(startDateIso, (nextStart) => {
                     :min="minStartDate"
                 />
                 <p class="text-xs text-muted-foreground">
-                    Click to pick a date. Today or later{{ trip ? ', unless keeping an existing date' : '' }}.
+                    Click to pick a date. Today or later{{
+                        trip ? ', unless keeping an existing date' : ''
+                    }}.
                 </p>
                 <InputError :message="errors.start_date" />
             </div>

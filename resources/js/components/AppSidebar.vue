@@ -14,9 +14,9 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { dashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { settings as superSettings } from '@/routes/admin/super';
-import { dashboard } from '@/routes';
 import { index as roadTripsIndex } from '@/routes/road-trips';
 import { index as tripsIndex } from '@/routes/trips';
 import type { Auth, NavItem } from '@/types';

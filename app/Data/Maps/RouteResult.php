@@ -15,4 +15,19 @@ readonly class RouteResult
         public array $polyline,
         public array $legs = [],
     ) {}
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'distance_km' => (float) $this->distanceKm,
+            'duration_seconds' => $this->durationSeconds,
+            'has_tolls' => $this->hasTolls,
+            'polyline' => $this->polyline,
+            'legs' => $this->legs,
+            'computed_at' => now()->toIso8601String(),
+        ];
+    }
 }

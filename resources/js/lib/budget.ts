@@ -9,7 +9,12 @@ export type BudgetLine = {
     amount: string;
 };
 
-const RESERVED_KEYS = new Set(['estimated_total', 'total', 'breakdown', 'currency']);
+const RESERVED_KEYS = new Set([
+    'estimated_total',
+    'total',
+    'breakdown',
+    'currency',
+]);
 
 export function formatBudgetLabel(key: string): string {
     return key
@@ -22,7 +27,11 @@ function toAmount(value: unknown): number | null {
         return value;
     }
 
-    if (typeof value === 'string' && value.trim() !== '' && ! Number.isNaN(Number(value))) {
+    if (
+        typeof value === 'string' &&
+        value.trim() !== '' &&
+        !Number.isNaN(Number(value))
+    ) {
         return Number(value);
     }
 
@@ -47,19 +56,24 @@ function fromAssociativeBreakdown(
     data: Record<string, unknown>,
 ): Array<{ label: string; amount: number }> {
     return Object.entries(data)
-        .filter(([key]) => ! RESERVED_KEYS.has(key))
+        .filter(([key]) => !RESERVED_KEYS.has(key))
         .map(([key, value]) => ({
             label: formatBudgetLabel(key),
             amount: toAmount(value),
         }))
-        .filter((line): line is { label: string; amount: number } => line.amount !== null);
+        .filter(
+            (line): line is { label: string; amount: number } =>
+                line.amount !== null,
+        );
 }
 
-function fromListBreakdown(items: unknown[]): Array<{ label: string; amount: number }> {
+function fromListBreakdown(
+    items: unknown[],
+): Array<{ label: string; amount: number }> {
     const lines: Array<{ label: string; amount: number }> = [];
 
     for (const item of items) {
-        if (! item || typeof item !== 'object' || Array.isArray(item)) {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
             continue;
         }
 
@@ -81,13 +95,24 @@ function fromListBreakdown(items: unknown[]): Array<{ label: string; amount: num
 export function normalizeBudgetBreakdown(
     breakdown: Record<string, unknown> | undefined,
     defaultCurrency = 'INR',
-): { estimatedTotal: string | null; lines: BudgetLine[]; currency: string; hasLineItems: boolean } {
-    if (! breakdown || Object.keys(breakdown).length === 0) {
-        return { estimatedTotal: null, lines: [], currency: defaultCurrency, hasLineItems: false };
+): {
+    estimatedTotal: string | null;
+    lines: BudgetLine[];
+    currency: string;
+    hasLineItems: boolean;
+} {
+    if (!breakdown || Object.keys(breakdown).length === 0) {
+        return {
+            estimatedTotal: null,
+            lines: [],
+            currency: defaultCurrency,
+            hasLineItems: false,
+        };
     }
 
     const currency =
-        typeof breakdown.currency === 'string' && breakdown.currency.trim() !== ''
+        typeof breakdown.currency === 'string' &&
+        breakdown.currency.trim() !== ''
             ? breakdown.currency.trim().toUpperCase()
             : defaultCurrency;
 
@@ -104,17 +129,26 @@ export function normalizeBudgetBreakdown(
 
     const lines = rawLines.map((line) => ({
         label: line.label,
-        amount: formatMoney(line.amount, { currency, locale: currencyLocale(currency) }),
+        amount: formatMoney(line.amount, {
+            currency,
+            locale: currencyLocale(currency),
+        }),
     }));
 
-    const explicitTotal = toAmount(breakdown.estimated_total ?? breakdown.total);
+    const explicitTotal = toAmount(
+        breakdown.estimated_total ?? breakdown.total,
+    );
     const summedTotal = rawLines.reduce((sum, line) => sum + line.amount, 0);
     const totalAmount = explicitTotal ?? (summedTotal > 0 ? summedTotal : null);
 
     return {
-        estimatedTotal: totalAmount !== null
-            ? formatMoney(totalAmount, { currency, locale: currencyLocale(currency) })
-            : null,
+        estimatedTotal:
+            totalAmount !== null
+                ? formatMoney(totalAmount, {
+                      currency,
+                      locale: currencyLocale(currency),
+                  })
+                : null,
         lines,
         currency,
         hasLineItems: lines.length > 0,

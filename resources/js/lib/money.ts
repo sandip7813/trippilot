@@ -6,7 +6,11 @@ export type MoneyOptions = {
 
 export function formatMoney(
     amount: number,
-    { currency = 'INR', locale = 'en-IN', maximumFractionDigits = 0 }: MoneyOptions = {},
+    {
+        currency = 'INR',
+        locale = 'en-IN',
+        maximumFractionDigits = 0,
+    }: MoneyOptions = {},
 ): string {
     return new Intl.NumberFormat(locale, {
         style: 'currency',

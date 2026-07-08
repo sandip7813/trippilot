@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { Check } from '@lucide/vue';
+import { computed } from 'vue';
 import TripPilotLogoMark from '@/components/logos/TripPilotLogoMark.vue';
-import { ACTIVE_LOGO, LOGO_OPTIONS, type LogoVariant } from '@/config/brand';
+import { ACTIVE_LOGO, LOGO_OPTIONS } from '@/config/brand';
+import type { LogoVariant } from '@/config/brand';
 
 const page = usePage();
 
@@ -47,7 +48,11 @@ const activeLogo = computed((): LogoVariant => {
             <div
                 class="mt-3 flex size-20 items-center justify-center rounded-xl bg-teal-950 shadow-sm"
             >
-                <TripPilotLogoMark :logo="option.id" variant="light" class="size-14" />
+                <TripPilotLogoMark
+                    :logo="option.id"
+                    variant="light"
+                    class="size-14"
+                />
             </div>
 
             <h3 class="mt-4 text-sm font-semibold">{{ option.label }}</h3>
@@ -65,9 +70,13 @@ const activeLogo = computed((): LogoVariant => {
     </div>
     <p class="mt-4 text-xs text-muted-foreground">
         Set
-        <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">TRIPPILOT_LOGO</code>
+        <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]"
+            >TRIPPILOT_LOGO</code
+        >
         in your
-        <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">.env</code>
+        <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]"
+            >.env</code
+        >
         file to one of:
         <code class="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]"
             >plane | compass | pin | globe | monogram</code

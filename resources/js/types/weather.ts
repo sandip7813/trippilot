@@ -20,7 +20,12 @@ export type TripWeatherTypical = {
 
 export type TripWeather = {
     available: boolean;
-    reason?: 'missing_coordinates' | 'missing_dates' | 'past_trip' | 'driver_disabled' | 'fetch_failed';
+    reason?:
+        | 'missing_coordinates'
+        | 'missing_dates'
+        | 'past_trip'
+        | 'driver_disabled'
+        | 'fetch_failed';
     message?: string;
     mode?: 'forecast' | 'typical' | 'mixed';
     mode_label?: string;

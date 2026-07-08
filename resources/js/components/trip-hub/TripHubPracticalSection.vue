@@ -24,7 +24,8 @@ const hasBudgetBreakdown = computed(() => {
     }
 
     const budget = normalizeBudgetBreakdown(
-        props.trip.itinerary?.budget_breakdown as Record<string, unknown> | undefined,
+        props.trip.itinerary?.budget_breakdown as
+            Record<string, unknown> | undefined,
         appCurrency.value,
     );
 
@@ -37,10 +38,14 @@ const hasBudgetBreakdown = computed(() => {
         <Card v-if="trip.notes" class="card-vibrant overflow-hidden">
             <div class="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
             <CardHeader class="pb-2">
-                <CardTitle class="text-base font-semibold">Your notes</CardTitle>
+                <CardTitle class="text-base font-semibold"
+                    >Your notes</CardTitle
+                >
             </CardHeader>
             <CardContent>
-                <p class="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                <p
+                    class="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground"
+                >
                     {{ trip.notes }}
                 </p>
             </CardContent>
@@ -49,23 +54,21 @@ const hasBudgetBreakdown = computed(() => {
         <Card v-if="packingList.length" class="card-vibrant overflow-hidden">
             <div class="h-1 bg-gradient-to-r from-teal-500 to-emerald-500" />
             <CardHeader class="pb-2">
-                <CardTitle class="text-base font-semibold">Packing list</CardTitle>
+                <CardTitle class="text-base font-semibold"
+                    >Packing list</CardTitle
+                >
             </CardHeader>
             <CardContent>
-                <ul class="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                    <li
-                        v-for="item in packingList"
-                        :key="item"
-                    >
+                <ul
+                    class="list-inside list-disc space-y-1 text-sm text-muted-foreground"
+                >
+                    <li v-for="item in packingList" :key="item">
                         {{ item }}
                     </li>
                 </ul>
             </CardContent>
         </Card>
 
-        <TripHubBudgetBreakdown
-            v-if="hasBudgetBreakdown"
-            :trip="trip"
-        />
+        <TripHubBudgetBreakdown v-if="hasBudgetBreakdown" :trip="trip" />
     </div>
 </template>

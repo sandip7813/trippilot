@@ -55,7 +55,7 @@ class GenerateTripItinerary
     private function dayCount(Trip $trip): int
     {
         if ($trip->start_date !== null && $trip->end_date !== null) {
-            return max(1, $trip->start_date->diffInDays($trip->end_date) + 1);
+            return max(1, (int) $trip->start_date->diffInDays($trip->end_date) + 1);
         }
 
         return 5;

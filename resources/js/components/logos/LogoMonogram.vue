@@ -9,7 +9,7 @@ type Props = {
     variant?: 'default' | 'light';
 };
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     variant: 'default',
 });
 

@@ -112,7 +112,10 @@ const homeCityLocation = ref<TripLocation | null>(homeCity ?? null);
             </div>
 
             <div class="flex items-center gap-4">
-                <Button :disabled="processing" data-test="update-profile-button">
+                <Button
+                    :disabled="processing"
+                    data-test="update-profile-button"
+                >
                     Save
                 </Button>
             </div>

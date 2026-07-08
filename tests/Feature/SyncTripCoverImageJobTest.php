@@ -135,8 +135,8 @@ test('sync trip cover image job stores cover images', function () {
 
     $trip->refresh();
 
-    expect($trip->cover_image_path)->toContain('-banner.jpg')
-        ->and($trip->cover_image_thumb_path)->toContain('-thumb.jpg');
+    expect($trip->cover_image_path)->toBeString()->toContain('-banner.jpg')
+        ->and($trip->cover_image_thumb_path)->toBeString()->toContain('-thumb.jpg');
 });
 
 test('sync trip cover image job skips when cover already exists and only if missing', function () {
@@ -163,6 +163,7 @@ test('updating non-destination fields keeps existing cover paths', function () {
 
     $user = User::factory()->create();
     $trip = Trip::factory()->forUser($user)->create([
+        'destination' => validTripPayloadForCover()['destination'],
         'cover_image_path' => 'trip-covers/existing-banner.jpg',
         'cover_image_thumb_path' => 'trip-covers/existing-thumb.jpg',
     ]);
