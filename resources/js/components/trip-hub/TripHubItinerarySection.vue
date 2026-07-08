@@ -3,6 +3,7 @@ import { Form, usePage } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight, Clock, Sparkles, CalendarDays } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
+import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -129,6 +130,10 @@ function nextDay(): void {
                 v-slot="{ processing }"
                 class="shrink-0"
             >
+                <FormSavingOverlay
+                    :show="processing"
+                    :message="hasItinerary ? 'Regenerating itinerary...' : 'Generating itinerary...'"
+                />
                 <Button
                     type="submit"
                     :disabled="!canGenerate || processing"

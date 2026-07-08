@@ -73,13 +73,11 @@ class TripController extends Controller
             ],
         ]);
 
-        $coverGenerated = $syncTripCoverImage($trip);
+        $syncTripCoverImage($trip);
 
         Inertia::flash('toast', [
-            'type' => $coverGenerated ? 'success' : 'warning',
-            'message' => $coverGenerated
-                ? __('Trip created.')
-                : __('Trip created, but the destination cover could not be generated.'),
+            'type' => 'success',
+            'message' => __('Trip created. Your destination cover will appear shortly.'),
         ]);
 
         return to_route('trips.show', $trip);
