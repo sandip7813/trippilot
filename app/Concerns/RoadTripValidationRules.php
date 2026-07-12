@@ -42,6 +42,7 @@ trait RoadTripValidationRules
             'stops.*.place_id' => ['nullable', 'string', 'max:255'],
             'stops.*.kind' => ['nullable', 'string', 'in:stop,overnight,break,scenic'],
             'stops.*.notes' => ['nullable', 'string', 'max:1000'],
+            'stops.*.address' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

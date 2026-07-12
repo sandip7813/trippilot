@@ -13,9 +13,8 @@ withDefaults(
 </script>
 
 <template>
-    <Teleport to="body">
+    <Teleport v-if="show" to="body">
         <div
-            v-if="show"
             class="fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-[1px]"
             aria-live="polite"
             aria-busy="true"

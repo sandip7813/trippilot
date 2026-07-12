@@ -9,7 +9,6 @@ use App\Enums\TripType;
 use Carbon\CarbonInterface;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Carbon;
 use MongoDB\Laravel\Eloquent\Model;
@@ -104,24 +103,34 @@ class Trip extends Model
             'budget' => 'float',
             'travelers' => 'integer',
             'is_favorite' => 'boolean',
-            'origin' => 'array',
-            'destination' => 'array',
-            'itinerary' => 'array',
-            'road_profile' => 'array',
-            'stops' => 'array',
-            'suggested_breaks' => 'array',
-            'amenities_cache' => 'array',
         ];
     }
 
     /**
-     * @return Attribute<array<string, mixed>|null, array<string, mixed>|null>
+     * @return array<string, mixed>|array<int, mixed>|null
      */
-    protected function route(): Attribute
+    public static function coerceStructuredArray(mixed $value): ?array
     {
-        return Attribute::make(
-            get: fn (mixed $value): ?array => self::normalizeRoute(is_array($value) ? $value : null),
-        );
+        $value = self::decodeStructuredValue($value);
+
+        return is_array($value) ? $value : null;
+    }
+
+    public static function decodeStructuredValue(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '' || ! str_starts_with($trimmed, '{') && ! str_starts_with($trimmed, '[')) {
+            return $value;
+        }
+
+        $decoded = json_decode($trimmed, true);
+
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : $value;
     }
 
     /**
@@ -152,6 +161,8 @@ class Trip extends Model
      */
     public static function normalizeLocation(mixed $value): ?array
     {
+        $value = self::decodeStructuredValue($value);
+
         if ($value === null || $value === '') {
             return null;
         }
@@ -244,6 +255,16 @@ class Trip extends Model
     public function isRoadTrip(): bool
     {
         return $this->type === TripType::Road;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function routeData(): ?array
+    {
+        return self::normalizeRoute(
+            self::coerceStructuredArray($this->getAttribute('route')),
+        );
     }
 
     /**
@@ -348,7 +369,8 @@ class Trip extends Model
 
     public function hasGeneratedItinerary(): bool
     {
-        $days = $this->itinerary['days'] ?? [];
+        $itinerary = self::coerceStructuredArray($this->getAttribute('itinerary')) ?? [];
+        $days = $itinerary['days'] ?? [];
 
         return is_array($days) && $days !== [];
     }
@@ -427,7 +449,7 @@ class Trip extends Model
      */
     private function itineraryForFrontend(): array
     {
-        $itinerary = $this->itinerary ?? [];
+        $itinerary = self::coerceStructuredArray($this->getAttribute('itinerary')) ?? [];
 
         return [
             'days' => is_array($itinerary['days'] ?? null) ? $itinerary['days'] : [],
@@ -469,7 +491,7 @@ class Trip extends Model
      */
     private function roadProfileForFrontend(): ?array
     {
-        $profile = $this->road_profile;
+        $profile = self::coerceStructuredArray($this->getAttributes()['road_profile'] ?? $this->road_profile);
 
         if (! is_array($profile) || $profile === []) {
             return null;
@@ -483,7 +505,7 @@ class Trip extends Model
      */
     private function stopsForFrontend(): array
     {
-        $stops = $this->stops;
+        $stops = self::coerceStructuredArray($this->getAttributes()['stops'] ?? $this->stops);
 
         if (! is_array($stops)) {
             return [];
@@ -497,7 +519,9 @@ class Trip extends Model
      */
     private function routeForFrontend(): ?array
     {
-        $route = $this->route;
+        $route = self::normalizeRoute(
+            self::coerceStructuredArray($this->getAttribute('route')),
+        );
 
         return is_array($route) && $route !== [] ? $route : null;
     }
@@ -507,7 +531,7 @@ class Trip extends Model
      */
     private function suggestedBreaksForFrontend(): array
     {
-        $breaks = $this->suggested_breaks;
+        $breaks = self::coerceStructuredArray($this->getAttributes()['suggested_breaks'] ?? $this->suggested_breaks);
 
         if (! is_array($breaks)) {
             return [];
@@ -521,7 +545,7 @@ class Trip extends Model
      */
     private function amenitiesCacheForFrontend(): ?array
     {
-        $cache = $this->amenities_cache;
+        $cache = self::coerceStructuredArray($this->getAttributes()['amenities_cache'] ?? $this->amenities_cache);
 
         return is_array($cache) && $cache !== [] ? $cache : null;
     }

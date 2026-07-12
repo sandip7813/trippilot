@@ -45,8 +45,27 @@ const destinationLocation = ref<TripLocation | null>(
 );
 const notes = ref(props.trip?.notes ?? '');
 const selectedFuelType = ref(profile.value.fuel_type);
+const selectedVehicleClass = ref(profile.value.vehicle_class);
 
 const today = isoToday();
+
+const isBicycleTrip = computed(
+    () => selectedVehicleClass.value === 'bicycle',
+);
+
+const visibleFuelTypes = computed(() =>
+    isBicycleTrip.value
+        ? props.fuelTypes.filter((option) => option.value === 'none')
+        : props.fuelTypes.filter((option) => option.value !== 'none'),
+);
+
+watch(selectedVehicleClass, (vehicleClass) => {
+    if (vehicleClass === 'bicycle') {
+        selectedFuelType.value = 'none';
+    } else if (selectedFuelType.value === 'none') {
+        selectedFuelType.value = 'petrol';
+    }
+});
 
 const minStartDate = computed((): string => {
     if (props.trip?.start_date && props.trip.start_date < today) {
@@ -112,6 +131,7 @@ watch(startDateIso, (nextStart) => {
                 <select
                     id="road_profile_vehicle_class"
                     name="road_profile[vehicle_class]"
+                    v-model="selectedVehicleClass"
                     class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                     required
                 >
@@ -137,14 +157,20 @@ watch(startDateIso, (nextStart) => {
                     required
                 >
                     <option
-                        v-for="option in fuelTypes"
+                        v-for="option in visibleFuelTypes"
                         :key="option.value"
                         :value="option.value"
-                        :selected="profile.fuel_type === option.value"
                     >
                         {{ option.label }}
                     </option>
                 </select>
+                <p
+                    v-if="isBicycleTrip"
+                    class="text-xs text-muted-foreground"
+                >
+                    Fuel and EV layers are hidden for bicycle trips. Use food,
+                    hotels, viewpoints, and bike shops along the route instead.
+                </p>
                 <InputError :message="errors['road_profile.fuel_type']" />
             </div>
         </div>
@@ -208,7 +234,7 @@ watch(startDateIso, (nextStart) => {
             <InputError :message="errors['road_profile.ev_range_km']" />
         </div>
 
-        <div class="flex flex-wrap gap-6">
+        <div v-if="!isBicycleTrip" class="flex flex-wrap gap-6">
             <label class="flex items-center gap-2 text-sm">
                 <input
                     type="hidden"

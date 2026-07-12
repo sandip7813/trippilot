@@ -67,16 +67,8 @@ class GeoapifyRoutingService implements RoutingService
     {
         $properties = is_array($feature['properties'] ?? null) ? $feature['properties'] : [];
         $geometry = is_array($feature['geometry'] ?? null) ? $feature['geometry'] : [];
-        /** @var list<array{0: float, 1: float}> $coordinates */
-        $coordinates = is_array($geometry['coordinates'] ?? null) ? $geometry['coordinates'] : [];
 
-        $polyline = collect($coordinates)
-            ->map(fn (array $coordinate): array => [
-                (float) $coordinate[1],
-                (float) $coordinate[0],
-            ])
-            ->values()
-            ->all();
+        $polyline = $this->extractPolyline($geometry);
 
         /** @var list<array<string, mixed>> $legs */
         $legs = is_array($properties['legs'] ?? null) ? $properties['legs'] : [];
@@ -88,5 +80,48 @@ class GeoapifyRoutingService implements RoutingService
             polyline: $polyline,
             legs: $legs,
         );
+    }
+
+    /**
+     * Geoapify returns MultiLineString geometry (one line per route leg).
+     *
+     * @param  array<string, mixed>  $geometry
+     * @return list<array{0: float, 1: float}>
+     */
+    private function extractPolyline(array $geometry): array
+    {
+        $type = (string) ($geometry['type'] ?? 'LineString');
+        /** @var list<mixed> $coordinates */
+        $coordinates = is_array($geometry['coordinates'] ?? null) ? $geometry['coordinates'] : [];
+
+        if ($coordinates === []) {
+            return [];
+        }
+
+        /** @var list<list<array{0: float|int, 1: float|int}>> $lines */
+        $lines = $type === 'MultiLineString'
+            ? array_values(array_filter($coordinates, is_array(...)))
+            : [$coordinates];
+
+        $polyline = [];
+
+        foreach ($lines as $line) {
+            foreach ($line as $coordinate) {
+                if (! is_array($coordinate) || count($coordinate) < 2) {
+                    continue;
+                }
+
+                if (! is_numeric($coordinate[0]) || ! is_numeric($coordinate[1])) {
+                    continue;
+                }
+
+                $polyline[] = [
+                    (float) $coordinate[1],
+                    (float) $coordinate[0],
+                ];
+            }
+        }
+
+        return $polyline;
     }
 }

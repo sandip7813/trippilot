@@ -13,15 +13,20 @@ class GeoapifyPlacesService implements PlacesService
     /**
      * @return array<int, PlaceResult>
      */
-    public function searchNearby(float $latitude, float $longitude, string $category, int $limit = 10): array
-    {
+    public function searchNearby(
+        float $latitude,
+        float $longitude,
+        string $category,
+        int $limit = 10,
+        int $radiusMeters = 2000,
+    ): array {
         if (! filled(config('integrations.maps.drivers.geoapify.api_key'))) {
             return [];
         }
 
         $response = $this->client->getV2('places', [
             'categories' => $category,
-            'filter' => "circle:{$longitude},{$latitude},2000",
+            'filter' => "circle:{$longitude},{$latitude},{$radiusMeters}",
             'bias' => "proximity:{$longitude},{$latitude}",
             'limit' => min($limit, 20),
         ]);
@@ -49,12 +54,17 @@ class GeoapifyPlacesService implements PlacesService
      * @param  list<string>  $categories
      * @return array<int, PlaceResult>
      */
-    public function searchNearPoint(float $latitude, float $longitude, array $categories, int $limit = 15): array
-    {
+    public function searchNearPoint(
+        float $latitude,
+        float $longitude,
+        array $categories,
+        int $limit = 15,
+        int $radiusMeters = 2000,
+    ): array {
         $results = [];
 
         foreach ($categories as $category) {
-            foreach ($this->searchNearby($latitude, $longitude, $category, $limit) as $place) {
+            foreach ($this->searchNearby($latitude, $longitude, $category, $limit, $radiusMeters) as $place) {
                 $key = $place->placeId ?? "{$place->latitude},{$place->longitude},{$place->name}";
 
                 if (! isset($results[$key])) {
@@ -87,11 +97,38 @@ class GeoapifyPlacesService implements PlacesService
 
         return new PlaceResult(
             name: $name,
-            category: (string) ($properties['categories'] ?? $category),
+            category: $this->resolveCategory($properties['categories'] ?? null, $category),
             latitude: (float) $coordinates[1],
             longitude: (float) $coordinates[0],
             address: isset($properties['formatted']) ? (string) $properties['formatted'] : null,
             placeId: isset($properties['place_id']) ? (string) $properties['place_id'] : null,
         );
+    }
+
+    private function resolveCategory(mixed $categories, string $fallback): string
+    {
+        if (is_string($categories) && $categories !== '') {
+            return $categories;
+        }
+
+        if (! is_array($categories)) {
+            return $fallback;
+        }
+
+        $labels = [];
+
+        foreach ($categories as $category) {
+            if (is_string($category) && $category !== '') {
+                $labels[] = $category;
+
+                continue;
+            }
+
+            if (is_array($category) && is_string($category['name'] ?? null) && $category['name'] !== '') {
+                $labels[] = $category['name'];
+            }
+        }
+
+        return $labels !== [] ? implode(', ', array_values(array_unique($labels))) : $fallback;
     }
 }

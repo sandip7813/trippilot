@@ -98,7 +98,7 @@ class RoadTripController extends Controller
             ...$this->formOptions(),
             'mapsConfigured' => filled(config('integrations.maps.drivers.geoapify.api_key')),
             'aiConfigured' => filled(config('integrations.ai.drivers.gemini.api_key')),
-            'amenityLayers' => array_keys(RoadTripAmenitiesService::LAYER_CATEGORIES),
+            'amenityLayers' => app(RoadTripAmenitiesService::class)->layersForTrip($road_trip),
         ]);
     }
 
@@ -164,7 +164,9 @@ class RoadTripController extends Controller
         $this->authorize('update', $trip);
         $this->ensureRoadTrip($trip);
 
-        if (! is_array($trip->route) || ($trip->route['polyline'] ?? []) === []) {
+        $route = $trip->routeData();
+
+        if (! is_array($route) || ($route['polyline'] ?? []) === []) {
             return back()->withErrors(['route' => __('Calculate the route before suggesting breaks.')]);
         }
 
@@ -197,18 +199,34 @@ class RoadTripController extends Controller
 
         $layer = (string) $request->string('layer', 'fuel');
 
-        if (! is_array($trip->route) || ($trip->route['polyline'] ?? []) === []) {
+        if (! in_array($layer, $amenitiesService->layersForTrip($trip), true)) {
+            return back()->withErrors([
+                'amenity' => __('This amenity type is not relevant for your vehicle.'),
+            ]);
+        }
+
+        $route = $trip->routeData();
+
+        if (! is_array($route) || ($route['polyline'] ?? []) === []) {
             return back()->withErrors(['route' => __('Calculate the route before loading amenities.')]);
         }
 
         $places = $amenitiesService->fetchForTrip($trip, $layer);
-        $cache = is_array($trip->amenities_cache) ? $trip->amenities_cache : [];
+        $cache = Trip::coerceStructuredArray($trip->getAttribute('amenities_cache')) ?? [];
         $cache[$layer] = [
             'places' => $places,
             'fetched_at' => now()->toIso8601String(),
         ];
 
         $trip->update(['amenities_cache' => $cache]);
+
+        Inertia::flash('amenityLayer', $layer);
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __(':layer loaded on the map.', [
+                'layer' => __(RoadTripAmenitiesService::LAYER_LABELS[$layer] ?? $layer),
+            ]),
+        ]);
 
         return back();
     }
@@ -238,12 +256,40 @@ class RoadTripController extends Controller
             'place_id' => $match['place_id'] ?? null,
             'kind' => (string) ($match['kind'] ?? 'break'),
             'notes' => (string) ($match['reason'] ?? ''),
+            'address' => isset($match['address']) ? (string) $match['address'] : null,
             'source' => 'ai_suggested',
         ];
 
         $trip->update(['stops' => $stops]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Stop added to your trip.')]);
+
+        return back();
+    }
+
+    public function removeStop(Trip $trip, Request $request): RedirectResponse
+    {
+        $this->authorize('update', $trip);
+        $this->ensureRoadTrip($trip);
+
+        $stopIndex = $request->integer('stop_index');
+
+        if ($stopIndex < 0) {
+            return back()->withErrors(['stop' => __('Stop not found.')]);
+        }
+
+        /** @var list<array<string, mixed>> $stops */
+        $stops = is_array($trip->stops) ? $trip->stops : [];
+
+        if (! array_key_exists($stopIndex, $stops)) {
+            return back()->withErrors(['stop' => __('Stop not found.')]);
+        }
+
+        array_splice($stops, $stopIndex, 1);
+
+        $trip->update(['stops' => array_values($stops)]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Stop removed.')]);
 
         return back();
     }
