@@ -49,9 +49,12 @@ function fakeGeoapifyRouting(): void
         'https://api.geoapify.com/v1/routing*' => Http::response([
             'features' => [[
                 'geometry' => [
+                    'type' => 'MultiLineString',
                     'coordinates' => [
-                        [72.8777, 19.076],
-                        [73.8567, 18.5204],
+                        [
+                            [72.8777, 19.076],
+                            [73.8567, 18.5204],
+                        ],
                     ],
                 ],
                 'properties' => [
@@ -107,8 +110,8 @@ test('users can create a road trip and calculate the route', function () {
     expect($trip)->not->toBeNull()
         ->and($trip->type->value)->toBe('road')
         ->and($trip->road_profile['vehicle_class'] ?? null)->toBe('car')
-        ->and($trip->route['distance_km'] ?? null)->toBe(150.0)
-        ->and($trip->route['polyline'] ?? [])->not->toBeEmpty();
+        ->and($trip->routeData()['distance_km'] ?? null)->toBe(150.0)
+        ->and($trip->routeData()['polyline'] ?? [])->not->toBeEmpty();
 });
 
 test('users can view their road trip show page', function () {
@@ -150,7 +153,7 @@ test('users can recalculate a road trip route', function () {
         ->post(route('road-trips.route', $trip))
         ->assertRedirect();
 
-    expect($trip->fresh()->route['distance_km'] ?? null)->toBe(150.0);
+    expect($trip->fresh()->routeData()['distance_km'] ?? null)->toBe(150.0);
 });
 
 test('users can accept a suggested break as a stop', function () {
@@ -181,4 +184,62 @@ test('users can accept a suggested break as a stop', function () {
     expect($stops)->toHaveCount(1)
         ->and($stops[0]['label'])->toBe('Highway dhaba')
         ->and($stops[0]['source'])->toBe('ai_suggested');
+});
+
+test('users can remove a stop from a road trip', function () {
+    $user = User::factory()->create();
+
+    $trip = Trip::factory()->forUser($user)->road()->create([
+        'stops' => [
+            [
+                'label' => 'Fuel stop',
+                'lat' => 18.9,
+                'lng' => 73.2,
+                'address' => 'Highway Fuel Stop, Pune, Maharashtra, India',
+            ],
+            [
+                'label' => 'Lunch break',
+                'lat' => 18.95,
+                'lng' => 73.25,
+                'address' => 'Roadside Cafe, Pune, Maharashtra, India',
+            ],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->delete(route('road-trips.remove-stop', $trip), ['stop_index' => 0])
+        ->assertRedirect();
+
+    $stops = $trip->fresh()->stops;
+
+    expect($stops)->toHaveCount(1)
+        ->and($stops[0]['label'])->toBe('Lunch break');
+});
+
+test('accepting a break stores the stop address when available', function () {
+    $user = User::factory()->create();
+    $breakId = 'break-with-address';
+
+    $trip = Trip::factory()->forUser($user)->road()->create([
+        'suggested_breaks' => [[
+            'id' => $breakId,
+            'kind' => 'fuel',
+            'title' => 'Indian Oil',
+            'reason' => 'Suggested stop along your route.',
+            'sequence' => 1,
+            'label' => 'Indian Oil',
+            'lat' => 23.2,
+            'lng' => 88.0,
+            'place_id' => 'place-2',
+            'address' => 'Indian Oil, Kolkata, West Bengal, India',
+        ]],
+        'stops' => [],
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('road-trips.accept-break', $trip), ['break_id' => $breakId])
+        ->assertRedirect();
+
+    expect($trip->fresh()->stops[0]['address'] ?? null)
+        ->toBe('Indian Oil, Kolkata, West Bengal, India');
 });

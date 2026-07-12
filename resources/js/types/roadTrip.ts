@@ -27,6 +27,7 @@ export type RoadTripStop = {
     place_id?: string | null;
     kind?: string;
     notes?: string;
+    address?: string | null;
     source?: string;
 };
 
@@ -52,7 +53,26 @@ export type RoadTripPlace = {
     place_id?: string | null;
     category?: string;
     address?: string | null;
+    route_zone?: 'en_route' | 'destination';
 };
+
+export function amenityRouteZoneLabel(
+    zone: RoadTripPlace['route_zone'],
+): string | null {
+    if (zone === 'en_route') {
+        return 'En route';
+    }
+
+    if (zone === 'destination') {
+        return 'Destination';
+    }
+
+    return null;
+}
+
+export function amenityPlaceKey(place: RoadTripPlace): string {
+    return place.place_id ?? `${place.lat}:${place.lng}:${place.name}`;
+}
 
 export type AmenitiesCache = Record<
     string,
@@ -82,10 +102,51 @@ export const amenityLayerLabels: Record<string, string> = {
     ev: 'EV charging',
     hotels: 'Hotels',
     food: 'Food',
+    toilets: 'Restrooms',
+    supermarkets: 'Supermarkets & stores',
+    atm: 'ATMs',
     parking: 'Parking',
     pharmacy: 'Pharmacies',
+    hospitals: 'Hospitals & clinics',
+    mechanics: 'Mechanics & garages',
+    tyres: 'Tyre shops',
+    rest_areas: 'Rest areas',
+    emergency: 'Police & emergency',
     viewpoints: 'Viewpoints',
+    bike: 'Bike shops & repair',
 };
+
+export type AmenityLayerStyle = {
+    color: string;
+    glyph: string;
+};
+
+export const amenityLayerStyles: Record<string, AmenityLayerStyle> = {
+    fuel: { color: '#ea580c', glyph: '⛽' },
+    ev: { color: '#16a34a', glyph: '⚡' },
+    hotels: { color: '#7c3aed', glyph: '🏨' },
+    food: { color: '#dc2626', glyph: '🍽' },
+    toilets: { color: '#0284c7', glyph: '🚻' },
+    supermarkets: { color: '#d97706', glyph: '🛒' },
+    atm: { color: '#059669', glyph: '🏧' },
+    parking: { color: '#2563eb', glyph: 'P' },
+    pharmacy: { color: '#db2777', glyph: '✚' },
+    hospitals: { color: '#e11d48', glyph: '🏥' },
+    mechanics: { color: '#475569', glyph: '🔧' },
+    tyres: { color: '#64748b', glyph: '🛞' },
+    rest_areas: { color: '#84cc16', glyph: '☕' },
+    emergency: { color: '#b91c1c', glyph: '🚨' },
+    viewpoints: { color: '#0891b2', glyph: '◎' },
+    bike: { color: '#0d9488', glyph: '🚲' },
+};
+
+export function amenityLayerStyle(layer: string | null | undefined): AmenityLayerStyle {
+    if (layer && amenityLayerStyles[layer]) {
+        return amenityLayerStyles[layer];
+    }
+
+    return { color: '#6366f1', glyph: '•' };
+}
 
 export function formatDrivingDuration(seconds: number): string {
     const hours = Math.floor(seconds / 3600);
@@ -117,6 +178,40 @@ export function breakKindLabel(kind: string): string {
     };
 
     return labels[kind] ?? kind;
+}
+
+export function breakDisplayReason(reason: string | null | undefined): string | null {
+    const trimmed = reason?.trim();
+
+    if (! trimmed || trimmed === 'Suggested stop along your route.') {
+        return null;
+    }
+
+    return trimmed;
+}
+
+export function stopDisplayAddress(stop: RoadTripStop): string | null {
+    const address = stop.address?.trim();
+
+    if (address) {
+        return address;
+    }
+
+    return null;
+}
+
+export function hasCalculatedRoute(
+    route: RoadTripRoute | null | undefined,
+): boolean {
+    if (!route) {
+        return false;
+    }
+
+    if ((route.polyline?.length ?? 0) >= 2) {
+        return true;
+    }
+
+    return (route.distance_km ?? 0) > 0 && (route.duration_seconds ?? 0) > 0;
 }
 
 export function locationCoordinates(

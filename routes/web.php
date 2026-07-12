@@ -31,6 +31,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('road-trips.amenities');
     Route::post('road-trips/{trip}/accept-break', [RoadTripController::class, 'acceptBreak'])
         ->name('road-trips.accept-break');
+    Route::delete('road-trips/{trip}/stops', [RoadTripController::class, 'removeStop'])
+        ->name('road-trips.remove-stop');
     Route::resource('road-trips', RoadTripController::class)->except(['destroy']);
 });
 

@@ -50,3 +50,13 @@ test('normalize location stores lowercase country codes', function () {
         'country_code' => 'fr',
     ]);
 });
+
+test('normalize location decodes json-encoded mongodb values', function () {
+    expect(Trip::normalizeLocation('{"label":"Kolkata, WB, India","lat":22.5726459,"lng":88.3638953,"country_code":"in"}'))
+        ->toMatchArray([
+            'label' => 'Kolkata, WB, India',
+            'lat' => 22.5726459,
+            'lng' => 88.3638953,
+            'country_code' => 'in',
+        ]);
+});

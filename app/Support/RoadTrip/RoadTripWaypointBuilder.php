@@ -20,7 +20,7 @@ class RoadTripWaypointBuilder
         }
 
         /** @var list<array<string, mixed>> $stops */
-        $stops = is_array($trip->stops) ? $trip->stops : [];
+        $stops = Trip::coerceStructuredArray($trip->getAttribute('stops')) ?? [];
 
         foreach ($stops as $stop) {
             $lat = isset($stop['lat']) ? (float) $stop['lat'] : null;

@@ -100,7 +100,7 @@ class RoadTripBreakSuggestionService
      */
     private function gatherCandidates(Trip $trip): array
     {
-        $layers = ['fuel', 'food', 'hotels', 'ev', 'viewpoints'];
+        $layers = $this->amenitiesService->layersForTrip($trip);
         $candidates = [];
 
         foreach ($layers as $layer) {
@@ -206,7 +206,7 @@ class RoadTripBreakSuggestionService
 
         $origin = Trip::normalizeLocation($trip->getAttribute('origin'))['label'] ?? 'Origin';
         $destination = Trip::normalizeLocation($trip->getAttribute('destination'))['label'] ?? 'Destination';
-        $route = is_array($trip->route) ? $trip->route : [];
+        $route = $trip->routeData() ?? [];
         $distance = (float) ($route['distance_km'] ?? 0);
         $durationHours = round(((int) ($route['duration_seconds'] ?? 0)) / 3600, 1);
 

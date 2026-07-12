@@ -17,7 +17,7 @@ class RoadTripRouteService
 
     public function computeAndStore(Trip $trip): RouteResult
     {
-        $roadProfile = is_array($trip->road_profile) ? $trip->road_profile : [];
+        $roadProfile = Trip::coerceStructuredArray($trip->getAttribute('road_profile')) ?? [];
         $vehicleClass = VehicleClass::tryFrom((string) ($roadProfile['vehicle_class'] ?? 'car')) ?? VehicleClass::Car;
 
         $waypoints = $this->waypointBuilder->build($trip);
