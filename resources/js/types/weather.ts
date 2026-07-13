@@ -27,7 +27,7 @@ export type TripWeather = {
         | 'driver_disabled'
         | 'fetch_failed';
     message?: string;
-    mode?: 'forecast' | 'typical' | 'mixed';
+    mode?: 'forecast' | 'typical' | 'mixed' | 'multi_city';
     mode_label?: string;
     location_label?: string | null;
     period_label?: string;
@@ -45,4 +45,13 @@ export type TripWeather = {
     sample_years?: number;
     disclaimer?: string;
     source?: string;
+    segments?: TripWeatherSegment[];
+};
+
+export type TripWeatherSegment = TripWeather & {
+    segment_label?: string | null;
+    sequence?: number | null;
+    date_from?: string | null;
+    date_to?: string | null;
+    nights?: number | null;
 };

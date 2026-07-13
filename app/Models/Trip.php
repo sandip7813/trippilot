@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use App\Enums\TravelStyle;
+use App\Enums\TripCoverSource;
+use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
+use App\Services\Trips\TripCoverImageService;
+use App\Services\Trips\TripRouteResolver;
 use Carbon\CarbonInterface;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,6 +25,9 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property string $title
  * @property array<string, mixed>|null $origin
  * @property array<string, mixed>|null $destination
+ * @property TripRouteMode|null $route_mode
+ * @property list<array<string, mixed>>|null $waypoints
+ * @property bool|null $returns_to_origin
  * @property TripScope|null $trip_scope
  * @property Carbon|null $start_date
  * @property Carbon|null $end_date
@@ -31,6 +38,13 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property string|null $notes
  * @property string|null $cover_image_path
  * @property string|null $cover_image_thumb_path
+ * @property int $cover_image_version
+ * @property string|null $cover_image_source
+ * @property int|null $cover_image_source_index
+ * @property string|null $cover_image_ref
+ * @property list<string>|null $cover_image_tried_refs
+ * @property bool $cover_image_exhausted
+ * @property array<string, string|null>|null $cover_image_attribution
  * @property array<string, mixed>|null $road_profile
  * @property list<array<string, mixed>>|null $stops
  * @property array<string, mixed>|null $route
@@ -58,6 +72,9 @@ class Trip extends Model
         'title',
         'origin',
         'destination',
+        'route_mode',
+        'waypoints',
+        'returns_to_origin',
         'trip_scope',
         'start_date',
         'end_date',
@@ -68,6 +85,13 @@ class Trip extends Model
         'notes',
         'cover_image_path',
         'cover_image_thumb_path',
+        'cover_image_version',
+        'cover_image_source',
+        'cover_image_source_index',
+        'cover_image_ref',
+        'cover_image_tried_refs',
+        'cover_image_exhausted',
+        'cover_image_attribution',
         'itinerary',
         'road_profile',
         'stops',
@@ -96,6 +120,8 @@ class Trip extends Model
         return [
             'type' => TripType::class,
             'travel_style' => TravelStyle::class,
+            'route_mode' => TripRouteMode::class,
+            'returns_to_origin' => 'boolean',
             'trip_scope' => TripScope::class,
             'status' => TripStatus::class,
             'start_date' => 'date',
@@ -103,7 +129,17 @@ class Trip extends Model
             'budget' => 'float',
             'travelers' => 'integer',
             'is_favorite' => 'boolean',
+            'cover_image_exhausted' => 'boolean',
+            'cover_image_source_index' => 'integer',
+            'cover_image_version' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Trip $trip): void {
+            app(TripCoverImageService::class)->deleteForTrip($trip);
+        });
     }
 
     /**
@@ -206,23 +242,63 @@ class Trip extends Model
      */
     public static function resolveTripScope(?array $origin, ?array $destination): ?TripScope
     {
-        $destinationCountry = self::locationCountryCode($destination);
+        return self::resolveTripScopeFromLocations([$origin, $destination]);
+    }
 
-        if ($destinationCountry === null) {
+    /**
+     * @param  list<array<string, mixed>|null>  $locations
+     */
+    public static function resolveTripScopeFromLocations(array $locations): ?TripScope
+    {
+        $countries = collect($locations)
+            ->filter(fn (mixed $item): bool => is_array($item))
+            ->map(fn (array $location): ?string => self::locationCountryCode($location))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($countries === []) {
             return null;
         }
 
-        $originCountry = self::locationCountryCode($origin);
-
-        if ($originCountry === null) {
-            return $destinationCountry === 'in'
-                ? TripScope::Domestic
-                : TripScope::International;
+        if (count($countries) > 1) {
+            return TripScope::International;
         }
 
-        return $originCountry === $destinationCountry
+        return $countries[0] === 'in'
             ? TripScope::Domestic
             : TripScope::International;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>|null  $waypoints
+     * @return list<array<string, mixed>>
+     */
+    public static function normalizeWaypoints(?array $waypoints): array
+    {
+        if ($waypoints === null) {
+            return [];
+        }
+
+        return collect($waypoints)
+            ->filter(fn (mixed $item): bool => is_array($item))
+            ->values()
+            ->map(function (array $waypoint, int $index): array {
+                return [
+                    'sequence' => is_numeric($waypoint['sequence'] ?? null)
+                        ? (int) $waypoint['sequence']
+                        : $index + 1,
+                    'location' => self::normalizeLocation($waypoint['location'] ?? null),
+                    'nights' => is_numeric($waypoint['nights'] ?? null)
+                        ? max(0, (int) $waypoint['nights'])
+                        : null,
+                    'notes' => isset($waypoint['notes']) ? (string) $waypoint['notes'] : null,
+                ];
+            })
+            ->sortBy('sequence')
+            ->values()
+            ->all();
     }
 
     /**
@@ -321,6 +397,10 @@ class Trip extends Model
             'title' => $this->title,
             'origin' => $origin,
             'destination' => $destination,
+            'route_mode' => $this->routeModeForFrontend(),
+            'waypoints' => $this->waypointsForFrontend(),
+            'returns_to_origin' => $this->returnsToOriginForFrontend(),
+            'route_summary' => $this->routeSummaryForFrontend(),
             'trip_scope' => $this->trip_scope?->value,
             'trip_scope_label' => $this->trip_scope?->label(),
             'start_date' => $this->start_date?->toDateString(),
@@ -333,6 +413,11 @@ class Trip extends Model
             'notes' => $this->notes,
             'cover_image_url' => $this->coverImageUrl(),
             'cover_image_thumb_url' => $this->coverImageThumbUrl(),
+            'cover_image_version' => (int) ($this->cover_image_version ?? 0),
+            'cover_image_source' => $this->cover_image_source,
+            'cover_image_source_label' => $this->coverSourceLabel(),
+            'cover_image_exhausted' => (bool) ($this->cover_image_exhausted ?? false),
+            'cover_image_attribution' => $this->cover_image_attribution,
             'itinerary' => $this->itineraryForFrontend(),
             'road_profile' => $this->isRoadTrip() ? $this->roadProfileForFrontend() : null,
             'stops' => $this->isRoadTrip() ? $this->stopsForFrontend() : [],
@@ -385,6 +470,9 @@ class Trip extends Model
             'travel_style',
             'origin',
             'destination',
+            'route_mode',
+            'waypoints',
+            'returns_to_origin',
             'start_date',
             'end_date',
             'travelers',
@@ -413,6 +501,9 @@ class Trip extends Model
             'end_date' => $this->dateValue($this->end_date) !== $this->normalizeDateInput($incoming),
             'origin' => $this->normalizedLocation($this->getAttribute('origin')) !== self::normalizeLocation($incoming),
             'destination' => $this->normalizedLocation($this->getAttribute('destination')) !== self::normalizeLocation($incoming),
+            'route_mode' => ($this->route_mode instanceof TripRouteMode ? $this->route_mode->value : TripRouteMode::Simple->value) !== (string) $incoming,
+            'waypoints' => self::normalizeWaypoints($this->getAttribute('waypoints')) !== self::normalizeWaypoints(is_array($incoming) ? $incoming : null),
+            'returns_to_origin' => (bool) ($this->returns_to_origin ?? true) !== (bool) $incoming,
             default => false,
         };
     }
@@ -475,15 +566,30 @@ class Trip extends Model
         return $thumbUrl ?? $this->coverImageUrl();
     }
 
+    public function coverSourceLabel(): ?string
+    {
+        if (! is_string($this->cover_image_source) || $this->cover_image_source === '') {
+            return null;
+        }
+
+        return TripCoverSource::tryFrom($this->cover_image_source)?->label();
+    }
+
     private function publicStorageUrl(mixed $path): ?string
     {
         if (! is_string($path) || $path === '') {
             return null;
         }
 
-        $version = $this->updated_at?->getTimestamp() ?? time();
+        $version = (int) ($this->cover_image_version ?? 0);
 
-        return asset('storage/'.$path).'?v='.$version;
+        if ($version > 0) {
+            return asset('storage/'.$path).'?v='.$version;
+        }
+
+        $timestamp = $this->updated_at?->getTimestamp() ?? time();
+
+        return asset('storage/'.$path).'?v='.$timestamp;
     }
 
     /**
@@ -548,5 +654,47 @@ class Trip extends Model
         $cache = self::coerceStructuredArray($this->getAttributes()['amenities_cache'] ?? $this->amenities_cache);
 
         return is_array($cache) && $cache !== [] ? $cache : null;
+    }
+
+    private function routeModeForFrontend(): string
+    {
+        if ($this->route_mode instanceof TripRouteMode) {
+            return $this->route_mode->value;
+        }
+
+        $waypoints = self::normalizeWaypoints($this->getAttribute('waypoints'));
+
+        return count($waypoints) > 1
+            ? TripRouteMode::MultiCity->value
+            : TripRouteMode::Simple->value;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function waypointsForFrontend(): array
+    {
+        if ($this->isRoadTrip()) {
+            return [];
+        }
+
+        return self::normalizeWaypoints($this->getAttribute('waypoints'));
+    }
+
+    private function returnsToOriginForFrontend(): bool
+    {
+        return $this->returns_to_origin ?? true;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function routeSummaryForFrontend(): ?array
+    {
+        if ($this->isRoadTrip()) {
+            return null;
+        }
+
+        return app(TripRouteResolver::class)->summary($this);
     }
 }

@@ -14,10 +14,12 @@ use App\Exceptions\AiGenerationException;
 use App\Exceptions\RoadTripException;
 use App\Http\Requests\StoreRoadTripRequest;
 use App\Http\Requests\UpdateRoadTripRequest;
+use App\Http\Requests\UploadTripCoverImageRequest;
 use App\Models\Trip;
 use App\Services\RoadTrips\RoadTripAmenitiesService;
 use App\Services\RoadTrips\RoadTripBreakSuggestionService;
 use App\Services\RoadTrips\RoadTripRouteService;
+use App\Services\Trips\TripCoverImageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -69,7 +71,7 @@ class RoadTripController extends Controller
             'road_profile' => $validated['road_profile'],
         ]);
 
-        $syncTripCoverImage($trip);
+        $syncTripCoverImage($trip, onlyIfMissing: true);
 
         try {
             $routeService->computeAndStore($trip->fresh());
@@ -135,12 +137,64 @@ class RoadTripController extends Controller
         $newDestinationLabel = Trip::normalizeLocation($road_trip->getAttribute('destination'))['label'] ?? null;
 
         if (($previousDestinationLabel ?? '') !== ($newDestinationLabel ?? '')) {
-            $syncTripCoverImage($road_trip->fresh());
+            $road_trip->update([
+                'cover_image_path' => null,
+                'cover_image_thumb_path' => null,
+                'cover_image_source' => null,
+                'cover_image_source_index' => null,
+                'cover_image_ref' => null,
+                'cover_image_tried_refs' => [],
+                'cover_image_exhausted' => false,
+                'cover_image_attribution' => null,
+            ]);
+
+            $syncTripCoverImage($road_trip->fresh(), onlyIfMissing: true);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Road trip updated.')]);
 
         return to_route('road-trips.show', $road_trip);
+    }
+
+    public function syncCover(Trip $trip, SyncTripCoverImage $syncTripCoverImage): RedirectResponse
+    {
+        $this->authorize('update', $trip);
+        $this->ensureRoadTrip($trip);
+
+        $syncTripCoverImage($trip, onlyIfMissing: false);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Looking for another photo from a different source.'),
+        ]);
+
+        return back();
+    }
+
+    public function uploadCover(
+        UploadTripCoverImageRequest $request,
+        Trip $trip,
+        TripCoverImageService $coverImageService,
+    ): RedirectResponse {
+        $this->authorize('update', $trip);
+        $this->ensureRoadTrip($trip);
+
+        $path = $coverImageService->storeUpload($trip, $request->file('cover'));
+
+        if ($path === null) {
+            return back()->withErrors([
+                'cover' => __('The cover image could not be uploaded.'),
+            ]);
+        }
+
+        $trip->increment('cover_image_version');
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Cover image uploaded.'),
+        ]);
+
+        return back();
     }
 
     public function computeRoute(Trip $trip, RoadTripRouteService $routeService): RedirectResponse

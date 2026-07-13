@@ -6,6 +6,7 @@ use App\Concerns\TripValidationRules;
 use App\Enums\TripStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreTripRequest extends FormRequest
 {
@@ -25,6 +26,11 @@ class StoreTripRequest extends FormRequest
             ...$this->tripRules(),
             'status' => ['sometimes', Rule::enum(TripStatus::class)],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $this->validateMultiCityTrip($validator);
     }
 
     /**

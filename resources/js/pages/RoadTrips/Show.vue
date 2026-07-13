@@ -23,6 +23,10 @@ import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue
 import RoadTripController from '@/actions/App/Http/Controllers/RoadTripController';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import InputError from '@/components/InputError.vue';
+import TripCoverPlaceholder from '@/components/TripCoverPlaceholder.vue';
+import TripCoverRegenerateButton from '@/components/TripCoverRegenerateButton.vue';
+import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
+import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -86,6 +90,8 @@ const errors = computed(
 );
 
 const hasRoute = computed(() => hasCalculatedRoute(props.trip.route));
+
+const { waitingForCover } = useTripCoverAutoRefresh();
 
 const hasRoutePolyline = computed(
     () => (props.trip.route?.polyline?.length ?? 0) >= 2,
@@ -227,6 +233,61 @@ onUnmounted(() => {
     <Head :title="trip.title" />
 
     <div class="flex flex-1 flex-col gap-5 p-4 md:p-6">
+        <TripCoverPlaceholder
+            v-if="!trip.cover_image_url"
+            :exhausted="Boolean(trip.cover_image_exhausted)"
+            :pending="waitingForCover"
+            :sync-cover-form="RoadTripController.syncCover.form(trip.id)"
+            :upload-cover-form="RoadTripController.uploadCover.form(trip.id)"
+            class="-mx-4 md:-mx-6"
+        />
+
+        <div
+            v-else
+            class="relative -mx-4 overflow-hidden rounded-2xl border border-border/70 shadow-md md:-mx-6"
+        >
+            <img
+                :key="`${trip.cover_image_version}-${trip.cover_image_url}`"
+                :src="trip.cover_image_url"
+                :alt="`${trip.title} cover`"
+                class="h-36 w-full object-cover md:h-44"
+                width="1920"
+                height="600"
+                fetchpriority="high"
+                decoding="async"
+            />
+            <div
+                class="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent"
+            />
+            <div class="absolute top-3 right-3 flex items-center gap-2">
+                <TripCoverRegenerateButton
+                    :form-binding="
+                        RoadTripController.syncCover.form(trip.id)
+                    "
+                    :has-cover="true"
+                    :exhausted="Boolean(trip.cover_image_exhausted)"
+                    variant="secondary"
+                    size="sm"
+                    class="border-border/60 bg-background/90 shadow-sm backdrop-blur-sm"
+                />
+                <TripCoverUploadButton
+                    :form-binding="
+                        RoadTripController.uploadCover.form(trip.id)
+                    "
+                    variant="secondary"
+                    size="sm"
+                    class="border-border/60 bg-background/90 shadow-sm backdrop-blur-sm"
+                />
+            </div>
+        </div>
+
+        <p
+            v-if="trip.cover_image_url && trip.cover_image_source_label"
+            class="-mt-2 text-xs text-muted-foreground"
+        >
+            Photo: {{ trip.cover_image_source_label }}
+        </p>
+
         <div class="space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <Button variant="ghost" size="sm" class="-ml-2 h-8" as-child>

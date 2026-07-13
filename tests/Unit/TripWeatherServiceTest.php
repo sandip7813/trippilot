@@ -235,6 +235,80 @@ test('trip weather explains when weather driver is not open meteo', function () 
     ]);
 });
 
+test('trip weather returns per-city segments for multi-city trips', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-07'));
+
+    Http::fake([
+        'api.open-meteo.com/*' => Http::response([
+            'daily' => [
+                'time' => ['2026-07-20', '2026-07-21', '2026-07-22'],
+                'temperature_2m_max' => [32.0, 31.0, 30.0],
+                'temperature_2m_min' => [26.0, 25.0, 24.0],
+                'precipitation_sum' => [2.0, 0.0, 1.0],
+                'weathercode' => [2, 0, 61],
+            ],
+        ]),
+    ]);
+
+    $trip = new Trip;
+    $trip->forceFill([
+        'route_mode' => 'multi_city',
+        'returns_to_origin' => false,
+        'origin' => [
+            'label' => 'Delhi, India',
+            'lat' => 28.6139,
+            'lng' => 77.2090,
+            'place_id' => 'delhi',
+            'country_code' => 'in',
+        ],
+        'destination' => [
+            'label' => 'Jaipur, India',
+            'lat' => 26.9124,
+            'lng' => 75.7873,
+            'place_id' => 'jaipur',
+            'country_code' => 'in',
+        ],
+        'waypoints' => [
+            [
+                'sequence' => 1,
+                'nights' => 2,
+                'location' => [
+                    'label' => 'Agra, India',
+                    'lat' => 27.1767,
+                    'lng' => 78.0081,
+                    'place_id' => 'agra',
+                    'country_code' => 'in',
+                ],
+            ],
+            [
+                'sequence' => 2,
+                'nights' => 2,
+                'location' => [
+                    'label' => 'Jaipur, India',
+                    'lat' => 26.9124,
+                    'lng' => 75.7873,
+                    'place_id' => 'jaipur',
+                    'country_code' => 'in',
+                ],
+            ],
+        ],
+        'start_date' => Carbon::parse('2026-07-20'),
+        'end_date' => Carbon::parse('2026-07-24'),
+    ]);
+
+    $weather = app(TripWeatherService::class)->forTrip($trip);
+
+    expect($weather)->not->toBeNull()
+        ->and($weather['available'])->toBeTrue()
+        ->and($weather['mode'])->toBe('multi_city')
+        ->and($weather['segments'])->toHaveCount(2)
+        ->and($weather['segments'][0]['segment_label'])->toBe('Agra, India')
+        ->and($weather['segments'][0]['forecast_days'])->not->toBeEmpty()
+        ->and($weather['segments'][1]['segment_label'])->toBe('Jaipur, India')
+        ->and($weather['segments'][1]['forecast_days'])->not->toBeEmpty()
+        ->and($weather['disclaimer'])->toContain('Each stop');
+});
+
 test('open meteo client calls forecast endpoint without an api key', function () {
     Http::fake([
         'api.open-meteo.com/*' => Http::response(['daily' => ['time' => []]]),

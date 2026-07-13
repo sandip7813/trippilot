@@ -231,6 +231,13 @@ function nextDay(): void {
                         <div class="space-y-1">
                             <h3 class="text-base leading-tight font-semibold">
                                 Day {{ selectedDay.day }}
+                                <Badge
+                                    v-if="selectedDay.city"
+                                    variant="secondary"
+                                    class="ml-2 align-middle text-[10px]"
+                                >
+                                    {{ selectedDay.city }}
+                                </Badge>
                                 <span v-if="selectedDay.title"
                                     >— {{ selectedDay.title }}</span
                                 >

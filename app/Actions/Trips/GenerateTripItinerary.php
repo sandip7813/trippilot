@@ -5,12 +5,14 @@ namespace App\Actions\Trips;
 use App\Contracts\Ai\TripGenerator;
 use App\Enums\TripStatus;
 use App\Models\Trip;
+use App\Services\Trips\TripRouteResolver;
 
 class GenerateTripItinerary
 {
     public function __construct(
         private TripGenerator $tripGenerator,
         private SyncTripCoverImage $syncTripCoverImage,
+        private TripRouteResolver $routeResolver,
     ) {}
 
     public function __invoke(Trip $trip): Trip
@@ -43,6 +45,11 @@ class GenerateTripItinerary
             'travel_style_label' => $trip->travel_style?->label(),
             'origin' => Trip::normalizeLocation($trip->getAttribute('origin')),
             'destination' => Trip::normalizeLocation($trip->getAttribute('destination')),
+            'route_mode' => $this->routeResolver->routeMode($trip)->value,
+            'returns_to_origin' => $this->routeResolver->returnsToOrigin($trip),
+            'waypoints' => $this->routeResolver->normalizedWaypoints($trip),
+            'route_summary' => $this->routeResolver->summary($trip),
+            'travel_legs' => $this->routeResolver->travelLegs($trip),
             'start_date' => $trip->start_date?->toDateString(),
             'end_date' => $trip->end_date?->toDateString(),
             'day_count' => $this->dayCount($trip),

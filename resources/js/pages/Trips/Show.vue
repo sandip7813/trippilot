@@ -13,9 +13,14 @@ import TripController from '@/actions/App/Http/Controllers/TripController';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import LocationCoordinatesAlert from '@/components/LocationCoordinatesAlert.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import TripCoverPlaceholder from '@/components/TripCoverPlaceholder.vue';
+import TripCoverRegenerateButton from '@/components/TripCoverRegenerateButton.vue';
+import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
+import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import TripHubAtAGlance from '@/components/trip-hub/TripHubAtAGlance.vue';
 import TripHubItinerarySection from '@/components/trip-hub/TripHubItinerarySection.vue';
 import TripHubPracticalSection from '@/components/trip-hub/TripHubPracticalSection.vue';
+import TripHubTrainTimings from '@/components/trip-hub/TripHubTrainTimings.vue';
 import TripHubUsefulLinks from '@/components/trip-hub/TripHubUsefulLinks.vue';
 import TripWeatherCard from '@/components/TripWeatherCard.vue';
 import { Badge } from '@/components/ui/badge';
@@ -36,11 +41,13 @@ import { edit, index as tripsIndex } from '@/routes/trips';
 import type { Trip } from '@/types/trip';
 import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
 import type { TripWeather } from '@/types/weather';
+import type { TripTrainTimings } from '@/types/train';
 
 const props = defineProps<{
     trip: Trip;
     aiConfigured: boolean;
     weather: TripWeather | null;
+    trainTimings: TripTrainTimings | null;
 }>();
 
 defineOptions({
@@ -91,14 +98,25 @@ function toggleFavorite(): void {
 }
 
 const bannerExpanded = ref(false);
+
+const { waitingForCover } = useTripCoverAutoRefresh();
 </script>
 
 <template>
     <Head :title="trip.title" />
 
     <div class="flex flex-1 flex-col gap-8 p-4 md:p-6">
+        <TripCoverPlaceholder
+            v-if="!trip.cover_image_url"
+            :exhausted="Boolean(trip.cover_image_exhausted)"
+            :pending="waitingForCover"
+            :sync-cover-form="TripController.syncCover.form(trip.id)"
+            :upload-cover-form="TripController.uploadCover.form(trip.id)"
+            class="-mx-4 md:-mx-6"
+        />
+
         <div
-            v-if="trip.cover_image_url"
+            v-else
             class="relative -mx-4 -mt-4 overflow-hidden rounded-b-2xl shadow-lg md:-mx-6 md:-mt-6"
             :class="bannerExpanded ? 'bg-muted/30' : ''"
         >
@@ -113,6 +131,7 @@ const bannerExpanded = ref(false);
                 "
             >
                 <img
+                    :key="`${trip.cover_image_version}-${trip.cover_image_url}`"
                     :src="trip.cover_image_url"
                     :alt="`${trip.title} destination banner`"
                     width="1920"
@@ -129,17 +148,33 @@ const bannerExpanded = ref(false);
                     "
                 />
             </div>
-            <Button
-                type="button"
-                variant="secondary"
-                size="icon"
-                class="absolute top-4 right-4 z-10 size-8 border-border/60 bg-background/85 shadow-sm backdrop-blur-sm"
-                :title="bannerExpanded ? 'Collapse banner' : 'Expand banner'"
-                @click="bannerExpanded = !bannerExpanded"
-            >
-                <Minimize2 v-if="bannerExpanded" class="size-4" />
-                <Maximize2 v-else class="size-4" />
-            </Button>
+            <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
+                <TripCoverRegenerateButton
+                    :form-binding="TripController.syncCover.form(trip.id)"
+                    :has-cover="true"
+                    :exhausted="Boolean(trip.cover_image_exhausted)"
+                    variant="secondary"
+                    size="icon"
+                    class="size-8 border-border/60 bg-background/85 shadow-sm backdrop-blur-sm"
+                />
+                <TripCoverUploadButton
+                    :form-binding="TripController.uploadCover.form(trip.id)"
+                    variant="secondary"
+                    size="icon"
+                    class="size-8 border-border/60 bg-background/85 shadow-sm backdrop-blur-sm"
+                />
+                <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    class="size-8 border-border/60 bg-background/85 shadow-sm backdrop-blur-sm"
+                    :title="bannerExpanded ? 'Collapse banner' : 'Expand banner'"
+                    @click="bannerExpanded = !bannerExpanded"
+                >
+                    <Minimize2 v-if="bannerExpanded" class="size-4" />
+                    <Maximize2 v-else class="size-4" />
+                </Button>
+            </div>
             <div
                 class="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent"
             />
@@ -158,6 +193,12 @@ const bannerExpanded = ref(false);
                                     trip.destination,
                                 )
                             }}
+                        </p>
+                        <p
+                            v-if="trip.cover_image_source_label"
+                            class="mt-1 text-xs text-muted-foreground"
+                        >
+                            Photo: {{ trip.cover_image_source_label }}
                         </p>
                     </div>
                     <Button
@@ -255,7 +296,15 @@ const bannerExpanded = ref(false);
             </template>
         </PageHeader>
 
-        <div v-else class="flex flex-wrap items-center justify-end gap-2">
+        <div v-if="trip.cover_image_url" class="flex flex-wrap items-center justify-end gap-2">
+            <TripCoverRegenerateButton
+                :form-binding="TripController.syncCover.form(trip.id)"
+                :has-cover="true"
+                :exhausted="Boolean(trip.cover_image_exhausted)"
+            />
+            <TripCoverUploadButton
+                :form-binding="TripController.uploadCover.form(trip.id)"
+            />
             <Button
                 variant="outline"
                 size="icon"
@@ -352,7 +401,7 @@ const bannerExpanded = ref(false);
         <div class="grid gap-6 xl:grid-cols-5">
             <div class="space-y-4 xl:col-span-2">
                 <h2 class="section-heading">At a glance</h2>
-                <TripHubAtAGlance :trip="trip" />
+                <TripHubAtAGlance :trip="trip" :train-timings="trainTimings" />
             </div>
 
             <div class="xl:col-span-3">
@@ -361,6 +410,17 @@ const bannerExpanded = ref(false);
         </div>
 
         <TripHubItinerarySection :trip="trip" :ai-configured="aiConfigured" />
+
+        <section
+            v-if="trip.trip_scope === 'domestic' || trainTimings != null"
+            class="space-y-4"
+        >
+            <h2 class="section-heading">Train timings</h2>
+            <TripHubTrainTimings
+                :trip-id="trip.id"
+                :train-timings="trainTimings"
+            />
+        </section>
 
         <section v-if="hasExtras" class="space-y-4">
             <h2 class="section-heading">Notes &amp; budget</h2>

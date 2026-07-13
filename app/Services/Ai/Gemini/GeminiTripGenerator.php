@@ -100,8 +100,10 @@ class GeminiTripGenerator implements TripGenerator
         $lines[] = '- Match the exact number of days requested.';
         $lines[] = '- Include realistic times, activities, and practical notes.';
         $lines[] = '- Respect the travel style, budget, and traveler count.';
+        $lines[] = '- For multi-city trips, group days by city and include inter-city travel on transition days.';
         $lines[] = '- For road trips, factor in driving segments between origin and destination.';
         $lines[] = '- Assign ISO dates (YYYY-MM-DD) to each day when start_date is provided.';
+        $lines[] = '- Include city on each day and activity when the trip visits multiple cities.';
         $lines[] = '- Include budget.currency as INR with numeric INR amounts (no currency symbols in JSON).';
         $lines[] = '- budget.breakdown must include accommodation, food, transport, activities, and miscellaneous.';
         $lines[] = '- budget.estimated_total must be close to the sum of breakdown categories and respect the trip budget when provided.';
@@ -165,6 +167,27 @@ class GeminiTripGenerator implements TripGenerator
             $lines[] = "Destination: {$destinationLabel}";
         }
 
+        if (($routeMode = Arr::get($context, 'route_mode')) === 'multi_city') {
+            $lines[] = 'Route mode: Multi-city';
+
+            if ($routeLabel = Arr::get($context, 'route_summary.route_label')) {
+                $lines[] = "Route: {$routeLabel}";
+            }
+
+            $waypoints = Arr::get($context, 'waypoints', []);
+
+            if (is_array($waypoints) && $waypoints !== []) {
+                $cityLabels = collect($waypoints)
+                    ->map(fn (array $waypoint): ?string => Arr::get($waypoint, 'location.label'))
+                    ->filter()
+                    ->implode(' → ');
+
+                if ($cityLabels !== '') {
+                    $lines[] = "Cities: {$cityLabels}";
+                }
+            }
+        }
+
         if ($startDate = Arr::get($context, 'start_date')) {
             $lines[] = "Start date: {$startDate}";
         }
@@ -214,6 +237,8 @@ class GeminiTripGenerator implements TripGenerator
                             'day' => ['type' => 'integer'],
                             'date' => ['type' => 'string'],
                             'title' => ['type' => 'string'],
+                            'city' => ['type' => 'string'],
+                            'waypoint_sequence' => ['type' => 'integer'],
                             'activities' => [
                                 'type' => 'array',
                                 'items' => [
@@ -222,6 +247,8 @@ class GeminiTripGenerator implements TripGenerator
                                         'time' => ['type' => 'string'],
                                         'title' => ['type' => 'string'],
                                         'notes' => ['type' => 'string'],
+                                        'city' => ['type' => 'string'],
+                                        'kind' => ['type' => 'string'],
                                     ],
                                     'required' => ['title'],
                                 ],
@@ -282,11 +309,17 @@ class GeminiTripGenerator implements TripGenerator
                     'day' => (int) ($day['day'] ?? $index + 1),
                     'date' => isset($day['date']) ? (string) $day['date'] : null,
                     'title' => (string) ($day['title'] ?? 'Day '.($index + 1)),
+                    'city' => isset($day['city']) ? (string) $day['city'] : null,
+                    'waypoint_sequence' => is_numeric($day['waypoint_sequence'] ?? null)
+                        ? (int) $day['waypoint_sequence']
+                        : null,
                     'activities' => collect($activities)
                         ->map(fn (array $activity): array => [
                             'time' => isset($activity['time']) ? (string) $activity['time'] : null,
                             'title' => (string) ($activity['title'] ?? 'Activity'),
                             'notes' => isset($activity['notes']) ? (string) $activity['notes'] : null,
+                            'city' => isset($activity['city']) ? (string) $activity['city'] : null,
+                            'kind' => isset($activity['kind']) ? (string) $activity['kind'] : null,
                         ])
                         ->values()
                         ->all(),

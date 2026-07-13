@@ -16,7 +16,7 @@ class GeminiTripCoverSearchQueryEnhancer
      * @param  array<string, mixed>|null  $destination
      * @return list<string>
      */
-    public function queries(?array $destination, ?string $travelStyle): array
+    public function queries(?array $destination, ?string $searchPlace = null, ?string $travelStyle = null): array
     {
         if (! filled(config('integrations.ai.drivers.gemini.api_key'))) {
             return [];
@@ -26,7 +26,7 @@ class GeminiTripCoverSearchQueryEnhancer
             return [];
         }
 
-        $place = $this->placePhrase->resolve($destination);
+        $place = $searchPlace ?? $this->placePhrase->resolve($destination);
 
         if ($place === 'the destination') {
             return [];
@@ -39,13 +39,13 @@ class GeminiTripCoverSearchQueryEnhancer
                 'contents' => [
                     [
                         'parts' => [
-                            ['text' => $this->instruction($place, $travelStyle)],
+                            ['text' => $this->instruction($place, $destination, $travelStyle)],
                         ],
                     ],
                 ],
                 'generationConfig' => [
                     'temperature' => 0.3,
-                    'maxOutputTokens' => 120,
+                    'maxOutputTokens' => 160,
                 ],
             ],
         );
@@ -85,7 +85,7 @@ class GeminiTripCoverSearchQueryEnhancer
 
             $queries[] = mb_substr($query, 0, 80);
 
-            if (count($queries) >= 4) {
+            if (count($queries) >= 5) {
                 break;
             }
         }
@@ -93,21 +93,38 @@ class GeminiTripCoverSearchQueryEnhancer
         return $queries;
     }
 
-    private function instruction(string $place, ?string $travelStyle): string
+    /**
+     * @param  array<string, mixed>|null  $destination
+     */
+    private function instruction(string $place, ?array $destination, ?string $travelStyle): string
     {
         $style = $travelStyle !== null && $travelStyle !== ''
             ? "Travel style: {$travelStyle}."
             : '';
 
+        $fullLabel = trim((string) ($destination['label'] ?? $place));
+        $alternatePlaces = array_values(array_filter(
+            $this->placePhrase->searchPhrases($destination),
+            static fn (string $phrase): bool => strcasecmp($phrase, $place) !== 0,
+        ));
+        $alternateHint = $alternatePlaces !== []
+            ? 'Broader or nearby place names you may use in queries: '.implode('; ', array_slice($alternatePlaces, 0, 4)).'.'
+            : '';
+
         return <<<PROMPT
-Write exactly 3 short Unsplash photo search queries for a wide travel banner about {$place}.
+Write exactly 4 short Unsplash photo search queries for a wide travel banner about {$place}.
+
+Context: the traveller selected "{$fullLabel}" as the destination.
+{$alternateHint}
 
 Rules:
 - Each line is one query (4–8 words), no numbering, no bullets, no explanation.
-- Focus on what {$place} is FAMOUS FOR: iconic landmarks, temples, beaches, mountains, old towns, or signature landscapes tourists visit.
-- Include the place name or a well-known local landmark name in every query.
-- Prefer scenic/tourism subjects, not traffic, crowds, or generic city streets.
+- Focus on iconic landmarks, architecture, landscapes, or tourism scenes for {$place}.
+- If {$place} is a small town, university campus, or village with few stock photos, include at least one query using the nearest well-known city or district tourists associate with it (for example Shantiniketan → Bolpur or Visva Bharati campus).
+- Prefer scenic subjects. Avoid portraits, headshots, random people, or unrelated celebrities.
+- Include a recognizable place or landmark name in every query.
 - Do not mention other countries or unrelated cities.
+- Never use Bangladesh, Dhaka, Pakistan, or other neighbouring countries when the destination is in India.
 {$style}
 PROMPT;
     }

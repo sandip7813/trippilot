@@ -3,14 +3,21 @@ import { usePage } from '@inertiajs/vue3';
 import { Calendar, MapPin, Train, Users, Wallet } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import TripDestinationMapDialog from '@/components/trip-hub/TripDestinationMapDialog.vue';
+import TripHubRouteStopsList from '@/components/trip-hub/TripHubRouteStopsList.vue';
 import { Button } from '@/components/ui/button';
 import { formatDisplayDateRange } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
+import {
+    shortCityLabel,
+    useTripRouteStops,
+} from '@/composables/useTripRouteStops';
 import type { Trip } from '@/types/trip';
 import { locationHasCoordinates, locationLabel } from '@/types/trip';
+import type { TripTrainTimings } from '@/types/train';
 
 const props = defineProps<{
     trip: Trip;
+    trainTimings?: TripTrainTimings | null;
 }>();
 
 const page = usePage();
@@ -41,8 +48,58 @@ const dateRange = computed(() =>
 );
 
 const transportHint = computed((): string => {
+    if (props.trip.route_mode === 'multi_city') {
+        const legs = props.trainTimings?.leg_count ?? props.trip.route_summary?.leg_count ?? 0;
+        const cities = props.trip.route_summary?.stop_count ?? 0;
+
+        if (cities > 0) {
+            return `${cities} cities · ${legs} travel legs below itinerary`;
+        }
+
+        return 'Multi-city route below itinerary';
+    }
+
     if (props.trip.trip_scope === 'domestic') {
-        return 'Indian rail & road (coming soon)';
+        if (props.trainTimings?.available) {
+            const legCount =
+                props.trainTimings.leg_count ??
+                props.trainTimings.legs?.length ??
+                0;
+            const outboundCount = props.trainTimings.outbound?.count ?? 0;
+            const returnCount = props.trainTimings.return?.count ?? 0;
+            const total =
+                legCount > 0
+                    ? legCount
+                    : outboundCount + returnCount;
+
+            if (total > 0) {
+                if (legCount > 2) {
+                    return `${legCount} train legs below itinerary`;
+                }
+
+                const parts = [];
+
+                if (outboundCount > 0) {
+                    parts.push(
+                        `${outboundCount} outbound train${outboundCount === 1 ? '' : 's'}`,
+                    );
+                }
+
+                if (returnCount > 0) {
+                    parts.push(
+                        `${returnCount} return train${returnCount === 1 ? '' : 's'}`,
+                    );
+                }
+
+                return `${parts.join(' · ')} below itinerary`;
+            }
+        }
+
+        if (props.trainTimings?.message) {
+            return props.trainTimings.message;
+        }
+
+        return 'Indian rail options below itinerary';
     }
 
     if (props.trip.trip_scope === 'international') {
@@ -55,6 +112,13 @@ const transportHint = computed((): string => {
 const canShowMap = computed(() =>
     locationHasCoordinates(props.trip.destination),
 );
+
+const { routeChainLabels, routeStops } = useTripRouteStops({
+    trip: props.trip,
+    routeSummary: props.trip.route_summary,
+});
+
+const showFullRoute = computed(() => routeStops.value.length >= 2);
 </script>
 
 <template>
@@ -164,7 +228,22 @@ const canShowMap = computed(() =>
                         View map
                     </Button>
                 </div>
-                <div class="mt-1 space-y-0.5">
+                <div v-if="showFullRoute" class="mt-2 space-y-2">
+                    <div
+                        v-if="routeChainLabels.length > 0"
+                        class="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[11px] text-muted-foreground"
+                    >
+                        <template
+                            v-for="(label, index) in routeChainLabels"
+                            :key="`route-chain-${index}-${label}`"
+                        >
+                            <span>{{ shortCityLabel(label) }}</span>
+                            <span v-if="index < routeChainLabels.length - 1">→</span>
+                        </template>
+                    </div>
+                    <TripHubRouteStopsList :stops="routeStops" compact />
+                </div>
+                <div v-else class="mt-1 space-y-0.5">
                     <p v-if="locationLabel(trip.origin)">
                         <span class="text-muted-foreground">From</span>
                         {{ locationLabel(trip.origin) }}

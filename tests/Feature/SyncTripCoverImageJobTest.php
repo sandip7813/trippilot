@@ -24,7 +24,6 @@ function fakePollinationsCoverImageForJob(): void
 {
     config([
         'integrations.trip_covers.driver' => 'pollinations',
-        'integrations.trip_covers.enabled' => true,
         'integrations.trip_covers.drivers.pollinations.base_url' => 'https://image.pollinations.ai/prompt',
         'integrations.trip_covers.use_gemini_prompt' => false,
     ]);
@@ -84,7 +83,8 @@ test('trip creation queues destination cover generation', function () {
         ->assertRedirect();
 
     Queue::assertPushed(SyncTripCoverImageJob::class, function (SyncTripCoverImageJob $job): bool {
-        return $job->onlyIfMissing === false;
+        return $job->onlyIfMissing === true
+            && $job->tryNextSource === false;
     });
 });
 
@@ -136,7 +136,8 @@ test('sync trip cover image job stores cover images', function () {
     $trip->refresh();
 
     expect($trip->cover_image_path)->toBeString()->toContain('-banner.jpg')
-        ->and($trip->cover_image_thumb_path)->toBeString()->toContain('-thumb.jpg');
+        ->and($trip->cover_image_thumb_path)->toBeString()->toContain('-thumb.jpg')
+        ->and($trip->cover_image_version)->toBe(1);
 });
 
 test('sync trip cover image job skips when cover already exists and only if missing', function () {
@@ -156,6 +157,64 @@ test('sync trip cover image job skips when cover already exists and only if miss
     expect($trip->cover_image_path)->toBe('trip-covers/existing-banner.jpg');
 
     Http::assertNothingSent();
+});
+
+test('users can request trip cover regeneration from the show page', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create([
+        'cover_image_path' => 'trip-covers/existing-banner.jpg',
+        'cover_image_thumb_path' => 'trip-covers/existing-thumb.jpg',
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('trips.show', $trip))
+        ->post(route('trips.cover', $trip))
+        ->assertRedirect(route('trips.show', $trip));
+
+    Queue::assertPushed(
+        SyncTripCoverImageJob::class,
+        fn (SyncTripCoverImageJob $job): bool => $job->tripId === (string) $trip->id
+            && $job->onlyIfMissing === false
+            && $job->tryNextSource === true,
+    );
+});
+
+test('users cannot regenerate another users trip cover', function () {
+    Queue::fake();
+
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $trip = Trip::factory()->forUser($owner)->create();
+
+    $this->actingAs($other)
+        ->post(route('trips.cover', $trip))
+        ->assertForbidden();
+
+    Queue::assertNothingPushed();
+});
+
+test('users can request road trip cover regeneration from the show page', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->road()->create([
+        'cover_image_path' => 'trip-covers/existing-banner.jpg',
+        'cover_image_thumb_path' => 'trip-covers/existing-thumb.jpg',
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('road-trips.show', $trip))
+        ->post(route('road-trips.cover', $trip))
+        ->assertRedirect(route('road-trips.show', $trip));
+
+    Queue::assertPushed(
+        SyncTripCoverImageJob::class,
+        fn (SyncTripCoverImageJob $job): bool => $job->tripId === (string) $trip->id
+            && $job->onlyIfMissing === false
+            && $job->tryNextSource === true,
+    );
 });
 
 test('updating non-destination fields keeps existing cover paths', function () {

@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { create, index as tripsIndex } from '@/routes/trips';
-import type { TripLocation, TripOption } from '@/types/trip';
+import type { TripLocation, TripOption, TripTemplate } from '@/types/trip';
 
 defineProps<{
     tripTypes: TripOption[];
     tripStatuses: TripOption[];
     travelStyles: TripOption[];
+    tripTemplates: TripTemplate[];
     defaultOrigin: TripLocation | null;
 }>();
 
@@ -50,6 +51,7 @@ defineOptions({
                     <TripFormFields
                         :trip-types="tripTypes"
                         :travel-styles="travelStyles"
+                        :trip-templates="tripTemplates"
                         :default-origin="defaultOrigin"
                         :errors="errors"
                     />

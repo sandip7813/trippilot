@@ -5,14 +5,20 @@ namespace App\Http\Controllers;
 use App\Actions\Trips\GenerateTripItinerary;
 use App\Actions\Trips\SyncTripCoverImage;
 use App\Enums\TravelStyle;
+use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
 use App\Exceptions\AiGenerationException;
 use App\Http\Requests\StoreTripRequest;
 use App\Http\Requests\UpdateTripRequest;
+use App\Http\Requests\UploadTripCoverImageRequest;
 use App\Models\Trip;
+use App\Services\Trains\TripTrainHaltsService;
+use App\Services\Trains\TripTrainService;
+use App\Services\Trips\TripCoverImageService;
 use App\Services\Weather\TripWeatherService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -50,6 +56,7 @@ class TripController extends Controller
             'tripStatuses' => $this->tripStatusOptions(),
             'travelStyles' => $this->travelStyleOptions(),
             'defaultOrigin' => $request->user()->homeCityLocation(),
+            'tripTemplates' => $this->tripTemplateOptions(),
         ]);
     }
 
@@ -73,7 +80,7 @@ class TripController extends Controller
             ],
         ]);
 
-        $syncTripCoverImage($trip);
+        $syncTripCoverImage($trip, onlyIfMissing: true);
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -83,7 +90,7 @@ class TripController extends Controller
         return to_route('trips.show', $trip);
     }
 
-    public function show(Trip $trip, TripWeatherService $tripWeather): Response
+    public function show(Trip $trip, TripWeatherService $tripWeather, TripTrainService $tripTrains): Response
     {
         $this->authorize('view', $trip);
 
@@ -91,7 +98,25 @@ class TripController extends Controller
             'trip' => $trip->toFrontend(),
             'aiConfigured' => filled(config('integrations.ai.drivers.gemini.api_key')),
             'weather' => $tripWeather->forTrip($trip),
+            'trainTimings' => $tripTrains->forTrip($trip),
         ]);
+    }
+
+    public function trainHalts(Trip $trip, string $trainNumber, Request $request, TripTrainHaltsService $tripTrainHalts): JsonResponse
+    {
+        $this->authorize('view', $trip);
+
+        $validated = $request->validate([
+            'from' => ['required', 'string', 'min:2', 'max:6'],
+            'to' => ['required', 'string', 'min:2', 'max:6'],
+            'date' => ['nullable', 'date'],
+            'from_sequence' => ['nullable', 'integer', 'min:1'],
+            'to_sequence' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        return response()->json(
+            $tripTrainHalts->forSegment($trainNumber, $validated),
+        );
     }
 
     public function edit(Trip $trip): Response
@@ -103,6 +128,7 @@ class TripController extends Controller
             'tripTypes' => $this->tripTypeOptions(),
             'tripStatuses' => $this->tripStatusOptions(),
             'travelStyles' => $this->travelStyleOptions(),
+            'tripTemplates' => $this->tripTemplateOptions(),
         ]);
     }
 
@@ -139,7 +165,18 @@ class TripController extends Controller
         $destinationChanged = ($previousDestinationLabel ?? '') !== ($newDestinationLabel ?? '');
 
         if ($destinationChanged) {
-            $syncTripCoverImage($trip->fresh());
+            $trip->update([
+                'cover_image_path' => null,
+                'cover_image_thumb_path' => null,
+                'cover_image_source' => null,
+                'cover_image_source_index' => null,
+                'cover_image_ref' => null,
+                'cover_image_tried_refs' => [],
+                'cover_image_exhausted' => false,
+                'cover_image_attribution' => null,
+            ]);
+
+            $syncTripCoverImage($trip->fresh(), onlyIfMissing: true);
         }
 
         if ($itineraryCleared) {
@@ -171,6 +208,45 @@ class TripController extends Controller
 
         $trip->update([
             'is_favorite' => ! $trip->is_favorite,
+        ]);
+
+        return back();
+    }
+
+    public function syncCover(Trip $trip, SyncTripCoverImage $syncTripCoverImage): RedirectResponse
+    {
+        $this->authorize('update', $trip);
+
+        $syncTripCoverImage($trip, onlyIfMissing: false);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Looking for another photo from a different source.'),
+        ]);
+
+        return back();
+    }
+
+    public function uploadCover(
+        UploadTripCoverImageRequest $request,
+        Trip $trip,
+        TripCoverImageService $coverImageService,
+    ): RedirectResponse {
+        $this->authorize('update', $trip);
+
+        $path = $coverImageService->storeUpload($trip, $request->file('cover'));
+
+        if ($path === null) {
+            return back()->withErrors([
+                'cover' => __('The cover image could not be uploaded.'),
+            ]);
+        }
+
+        $trip->increment('cover_image_version');
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Cover image uploaded.'),
         ]);
 
         return back();
@@ -250,23 +326,78 @@ class TripController extends Controller
     }
 
     /**
-     * @param  array{origin?: array<string, mixed>|null, destination?: array<string, mixed>|null}  $validated
+     * @param  array{origin?: array<string, mixed>|null, destination?: array<string, mixed>|null, waypoints?: list<array<string, mixed>>|null, route_mode?: string|null, returns_to_origin?: bool|null}  $validated
      * @return array{
      *     origin: array<string, mixed>|null,
      *     destination: array<string, mixed>|null,
+     *     waypoints: list<array<string, mixed>>,
+     *     route_mode: TripRouteMode,
+     *     returns_to_origin: bool,
      *     trip_scope: TripScope|null,
      * }
      */
     protected function prepareTripLocations(array $validated): array
     {
         $origin = Trip::normalizeLocation($validated['origin'] ?? null);
-        $destination = Trip::normalizeLocation($validated['destination'] ?? null);
+        $waypoints = Trip::normalizeWaypoints($validated['waypoints'] ?? null);
+        $routeMode = TripRouteMode::tryFrom((string) ($validated['route_mode'] ?? ''))
+            ?? (count($waypoints) >= 2 ? TripRouteMode::MultiCity : TripRouteMode::Simple);
+
+        if ($routeMode === TripRouteMode::MultiCity) {
+            $lastWaypoint = $waypoints[array_key_last($waypoints)] ?? null;
+            $destination = is_array($lastWaypoint)
+                ? ($lastWaypoint['location'] ?? null)
+                : Trip::normalizeLocation($validated['destination'] ?? null);
+        } else {
+            $destination = Trip::normalizeLocation($validated['destination'] ?? null);
+            $waypoints = [];
+            $routeMode = TripRouteMode::Simple;
+        }
+
+        $returnsToOrigin = filter_var(
+            $validated['returns_to_origin'] ?? true,
+            FILTER_VALIDATE_BOOLEAN,
+        );
+
+        $locations = collect([$origin, ...collect($waypoints)->pluck('location')->all(), $destination])
+            ->filter(fn (mixed $item): bool => is_array($item))
+            ->all();
 
         return [
             'origin' => $origin,
             'destination' => $destination,
-            'trip_scope' => Trip::resolveTripScope($origin, $destination),
+            'waypoints' => $waypoints,
+            'route_mode' => $routeMode,
+            'returns_to_origin' => $returnsToOrigin,
+            'trip_scope' => Trip::resolveTripScopeFromLocations($locations),
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function tripTemplateOptions(): array
+    {
+        /** @var array<string, array<string, mixed>> $templates */
+        $templates = config('trip_templates', []);
+
+        return collect($templates)
+            ->map(function (array $template, string $key): array {
+                return [
+                    'key' => $key,
+                    'label' => (string) ($template['label'] ?? $key),
+                    'description' => (string) ($template['description'] ?? ''),
+                    'returns_to_origin' => (bool) ($template['returns_to_origin'] ?? true),
+                    'suggested_nights' => is_array($template['suggested_nights'] ?? null)
+                        ? array_values(array_map(intval(...), $template['suggested_nights']))
+                        : [],
+                    'waypoint_hints' => is_array($template['waypoint_hints'] ?? null)
+                        ? array_values(array_map(strval(...), $template['waypoint_hints']))
+                        : [],
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

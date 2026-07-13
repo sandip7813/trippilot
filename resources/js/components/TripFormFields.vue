@@ -3,16 +3,24 @@ import { computed, ref, watch } from 'vue';
 import DatePickerField from '@/components/DatePickerField.vue';
 import InputError from '@/components/InputError.vue';
 import LocationField from '@/components/LocationField.vue';
+import WaypointListEditor from '@/components/WaypointListEditor.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { isoToday } from '@/lib/dates';
-import type { Trip, TripLocation, TripOption } from '@/types/trip';
+import type {
+    Trip,
+    TripLocation,
+    TripOption,
+    TripTemplate,
+    TripWaypoint,
+} from '@/types/trip';
 
 const props = defineProps<{
     trip?: Trip;
     tripTypes: TripOption[];
     tripStatuses?: TripOption[];
     travelStyles?: TripOption[];
+    tripTemplates?: TripTemplate[];
     defaultOrigin?: TripLocation | null;
     errors: Record<string, string>;
     showStatus?: boolean;
@@ -28,6 +36,30 @@ const destinationLocation = ref<TripLocation | null>(
     props.trip?.destination ?? null,
 );
 const notes = ref(props.trip?.notes ?? '');
+const isMultiCity = ref(
+    props.trip?.route_mode === 'multi_city' ||
+        (props.trip?.waypoints?.length ?? 0) >= 2,
+);
+const returnsToOrigin = ref(props.trip?.returns_to_origin ?? true);
+const waypoints = ref<TripWaypoint[]>(
+    props.trip?.waypoints?.length
+        ? props.trip.waypoints.map((waypoint, index) => ({
+              ...waypoint,
+              sequence: waypoint.sequence ?? index + 1,
+          }))
+        : [
+              {
+                  sequence: 1,
+                  location: { label: null, lat: null, lng: null },
+                  nights: null,
+              },
+              {
+                  sequence: 2,
+                  location: { label: null, lat: null, lng: null },
+                  nights: null,
+              },
+          ],
+);
 
 const today = isoToday();
 
@@ -43,15 +75,93 @@ const minEndDate = computed(
     (): string => startDateIso.value || minStartDate.value,
 );
 
+const routeMode = computed(() =>
+    isMultiCity.value ? 'multi_city' : 'simple',
+);
+
+const syncedDestination = computed(() => {
+    if (!isMultiCity.value) {
+        return destinationLocation.value;
+    }
+
+    const lastWaypoint = waypoints.value[waypoints.value.length - 1];
+
+    return lastWaypoint?.location ?? null;
+});
+
 watch(startDateIso, (nextStart) => {
     if (nextStart && endDateIso.value && endDateIso.value < nextStart) {
         endDateIso.value = nextStart;
     }
 });
+
+watch(isMultiCity, (enabled) => {
+    if (enabled && waypoints.value.length < 2) {
+        waypoints.value = [
+            {
+                sequence: 1,
+                location: destinationLocation.value ?? {
+                    label: null,
+                    lat: null,
+                    lng: null,
+                },
+                nights: null,
+            },
+            {
+                sequence: 2,
+                location: { label: null, lat: null, lng: null },
+                nights: null,
+            },
+        ];
+    }
+});
+
+function applyTemplate(template: TripTemplate): void {
+    isMultiCity.value = true;
+    returnsToOrigin.value = template.returns_to_origin;
+
+    waypoints.value = template.waypoint_hints.map((hint, index) => ({
+        sequence: index + 1,
+        location: {
+            label: hint,
+            lat: null,
+            lng: null,
+        },
+        nights: template.suggested_nights[index] ?? null,
+        notes: null,
+    }));
+}
 </script>
 
 <template>
     <div class="grid gap-6">
+        <div
+            v-if="tripTemplates?.length"
+            class="space-y-3 rounded-xl border border-dashed border-border/70 bg-muted/10 p-4"
+        >
+            <div>
+                <Label>Start from a template</Label>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    Optional — pick a popular route, then confirm each city from
+                    search.
+                </p>
+            </div>
+            <div class="grid gap-2 sm:grid-cols-2">
+                <button
+                    v-for="template in tripTemplates"
+                    :key="template.key"
+                    type="button"
+                    class="rounded-lg border border-border/60 bg-background/80 px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
+                    @click="applyTemplate(template)"
+                >
+                    <p class="font-medium">{{ template.label }}</p>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        {{ template.description }}
+                    </p>
+                </button>
+            </div>
+        </div>
+
         <div class="grid gap-2">
             <Label for="title">Trip title</Label>
             <Input
@@ -115,15 +225,64 @@ watch(startDateIso, (nextStart) => {
             hint="Where your journey begins. Defaults from your profile home city when set."
         />
 
-        <LocationField
-            v-model="destinationLocation"
-            prefix="destination"
-            label="Destination"
-            :errors="errors"
-            required
-            require-selection
-            hint="Where you are headed — main place or final stop."
-        />
+        <div class="space-y-3">
+            <label class="flex items-center gap-2 text-sm font-medium">
+                <input
+                    v-model="isMultiCity"
+                    type="checkbox"
+                    class="size-4 rounded border border-input"
+                />
+                Multi-city trip
+            </label>
+
+            <input type="hidden" name="route_mode" :value="routeMode" />
+
+            <WaypointListEditor
+                v-if="isMultiCity"
+                v-model:waypoints="waypoints"
+                v-model:returns-to-origin="returnsToOrigin"
+                :errors="errors"
+            />
+
+            <LocationField
+                v-else
+                v-model="destinationLocation"
+                prefix="destination"
+                label="Destination"
+                :errors="errors"
+                required
+                require-selection
+                hint="Where you are headed — main place or final stop."
+            />
+
+            <template v-if="isMultiCity && syncedDestination">
+                <input
+                    type="hidden"
+                    name="destination[label]"
+                    :value="syncedDestination.label ?? ''"
+                />
+                <input
+                    type="hidden"
+                    name="destination[lat]"
+                    :value="syncedDestination.lat ?? ''"
+                />
+                <input
+                    type="hidden"
+                    name="destination[lng]"
+                    :value="syncedDestination.lng ?? ''"
+                />
+                <input
+                    type="hidden"
+                    name="destination[place_id]"
+                    :value="syncedDestination.place_id ?? ''"
+                />
+                <input
+                    type="hidden"
+                    name="destination[country_code]"
+                    :value="syncedDestination.country_code ?? ''"
+                />
+            </template>
+        </div>
 
         <div class="grid gap-2">
             <Label for="travelers">Travelers</Label>
