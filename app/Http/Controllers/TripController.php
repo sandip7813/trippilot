@@ -11,7 +11,9 @@ use App\Enums\TripType;
 use App\Exceptions\AiGenerationException;
 use App\Http\Requests\StoreTripRequest;
 use App\Http\Requests\UpdateTripRequest;
+use App\Http\Requests\UploadTripCoverImageRequest;
 use App\Models\Trip;
+use App\Services\Trips\TripCoverImageService;
 use App\Services\Weather\TripWeatherService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,7 +75,7 @@ class TripController extends Controller
             ],
         ]);
 
-        $syncTripCoverImage($trip);
+        $syncTripCoverImage($trip, onlyIfMissing: true);
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -139,7 +141,18 @@ class TripController extends Controller
         $destinationChanged = ($previousDestinationLabel ?? '') !== ($newDestinationLabel ?? '');
 
         if ($destinationChanged) {
-            $syncTripCoverImage($trip->fresh());
+            $trip->update([
+                'cover_image_path' => null,
+                'cover_image_thumb_path' => null,
+                'cover_image_source' => null,
+                'cover_image_source_index' => null,
+                'cover_image_ref' => null,
+                'cover_image_tried_refs' => [],
+                'cover_image_exhausted' => false,
+                'cover_image_attribution' => null,
+            ]);
+
+            $syncTripCoverImage($trip->fresh(), onlyIfMissing: true);
         }
 
         if ($itineraryCleared) {
@@ -171,6 +184,45 @@ class TripController extends Controller
 
         $trip->update([
             'is_favorite' => ! $trip->is_favorite,
+        ]);
+
+        return back();
+    }
+
+    public function syncCover(Trip $trip, SyncTripCoverImage $syncTripCoverImage): RedirectResponse
+    {
+        $this->authorize('update', $trip);
+
+        $syncTripCoverImage($trip, onlyIfMissing: false);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Looking for another photo from a different source.'),
+        ]);
+
+        return back();
+    }
+
+    public function uploadCover(
+        UploadTripCoverImageRequest $request,
+        Trip $trip,
+        TripCoverImageService $coverImageService,
+    ): RedirectResponse {
+        $this->authorize('update', $trip);
+
+        $path = $coverImageService->storeUpload($trip, $request->file('cover'));
+
+        if ($path === null) {
+            return back()->withErrors([
+                'cover' => __('The cover image could not be uploaded.'),
+            ]);
+        }
+
+        $trip->increment('cover_image_version');
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('Cover image uploaded.'),
         ]);
 
         return back();

@@ -73,18 +73,18 @@ return [
     | Trip Cover Images
     |--------------------------------------------------------------------------
     |
-    | Supported drivers: unsplash, pollinations, gemini, none
+    | Supported drivers: rotating, unsplash, pollinations, gemini, none
     |
-    | Unsplash (recommended) returns real destination photography.
-    | Gemini can refine Unsplash search queries to famous landmarks (TRIP_COVER_GEMINI_PROMPT).
-    | Pollinations AI art is experimental and often inaccurate for specific places.
+    | rotating (default) tries Wikipedia, Wikimedia Commons, Unsplash, then Pollinations.
+    | Unsplash remains available as a later step in the rotation ladder.
     |
     */
 
     'trip_covers' => [
-        'driver' => env('TRIP_COVER_DRIVER', 'unsplash'),
+        'driver' => env('TRIP_COVER_DRIVER', 'rotating'),
         'enabled' => filter_var(env('TRIP_COVER_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
         'use_gemini_prompt' => filter_var(env('TRIP_COVER_GEMINI_PROMPT', true), FILTER_VALIDATE_BOOLEAN),
+        'pollinations_fallback' => filter_var(env('TRIP_COVER_POLLINATIONS_FALLBACK', true), FILTER_VALIDATE_BOOLEAN),
 
         'sizes' => [
             'banner' => [
@@ -105,6 +105,10 @@ return [
                 'base_url' => env('POLLINATIONS_IMAGE_URL', 'https://image.pollinations.ai/prompt'),
                 'model' => env('POLLINATIONS_IMAGE_MODEL', 'flux'),
                 'enhance' => filter_var(env('POLLINATIONS_ENHANCE', false), FILTER_VALIDATE_BOOLEAN),
+            ],
+            'wikimedia' => [
+                'user_agent' => env('TRIP_COVER_WIKIMEDIA_USER_AGENT', 'TripPilot/1.0 (trip-cover@trippilot.test)'),
+                'commons_geo_radius_meters' => (int) env('TRIP_COVER_COMMONS_GEO_RADIUS_METERS', 10000),
             ],
         ],
     ],

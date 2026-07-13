@@ -2,6 +2,7 @@
 
 use App\Models\Trip;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @return array<string, mixed>
@@ -240,14 +241,28 @@ test('users cannot update another users trip', function () {
 });
 
 test('users can delete their trip', function () {
+    Storage::fake('public');
+
     $user = User::factory()->create();
     $trip = Trip::factory()->forUser($user)->create();
+    $bannerPath = "trip-covers/{$trip->id}-banner.jpg";
+    $thumbPath = "trip-covers/{$trip->id}-thumb.jpg";
+
+    Storage::disk('public')->put($bannerPath, 'banner-bytes');
+    Storage::disk('public')->put($thumbPath, 'thumb-bytes');
+
+    $trip->update([
+        'cover_image_path' => $bannerPath,
+        'cover_image_thumb_path' => $thumbPath,
+    ]);
 
     $this->actingAs($user)
         ->delete(route('trips.destroy', $trip))
         ->assertRedirect(route('trips.index'));
 
-    expect(Trip::query()->find($trip->id))->toBeNull();
+    expect(Trip::query()->find($trip->id))->toBeNull()
+        ->and(Storage::disk('public')->exists($bannerPath))->toBeFalse()
+        ->and(Storage::disk('public')->exists($thumbPath))->toBeFalse();
 });
 
 test('users can toggle trip favorite', function () {

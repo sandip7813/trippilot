@@ -3,6 +3,7 @@
 namespace App\Services\TripCovers;
 
 use App\Contracts\TripCovers\TripCoverGenerator;
+use App\Data\TripCovers\TripCoverCandidate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -11,73 +12,163 @@ class UnsplashTripCoverGenerator implements TripCoverGenerator
     public function __construct(
         private TripCoverPlacePhrase $placePhrase,
         private GeminiTripCoverSearchQueryEnhancer $searchQueryEnhancer,
+        private TripCoverPhotoValidator $photoValidator,
     ) {}
 
     public function generate(array $destination, ?string $travelStyle, int $width, int $height): ?string
+    {
+        $candidate = $this->candidates($destination, $travelStyle)[0] ?? null;
+
+        if ($candidate === null) {
+            return null;
+        }
+
+        return $this->downloadCandidate($candidate, $destination);
+    }
+
+    /**
+     * @param  array<string, mixed>  $destination
+     * @return list<TripCoverCandidate>
+     */
+    public function candidates(array $destination, ?string $travelStyle): array
     {
         $accessKey = (string) config('integrations.trip_covers.drivers.unsplash.access_key');
 
         if ($accessKey === '') {
             Log::warning('Unsplash trip cover generation skipped because UNSPLASH_ACCESS_KEY is not configured.');
 
-            return null;
+            return [];
         }
 
-        $place = $this->placePhrase->resolve($destination);
+        $places = $this->placePhrase->searchPhrases($destination);
 
-        if ($place === 'the destination') {
-            return null;
+        if ($places === []) {
+            return [];
         }
 
-        foreach ($this->searchQueries($destination, $place, $travelStyle) as $query) {
-            $photo = $this->findPhoto($accessKey, $query);
+        $candidates = [];
+        $seenIds = [];
 
-            if ($photo !== null) {
-                $bytes = $this->downloadPhoto($accessKey, $photo, $destination);
+        foreach ($this->placePhrase->curatedQueries($destination) as $query) {
+            foreach ($this->matchingPhotos($accessKey, $query, $this->placePhrase->resolve($destination), $destination) as $photo) {
+                $candidate = $this->candidateFromPhoto($photo);
 
-                return $bytes !== null && $bytes !== '' ? $bytes : null;
+                if ($candidate === null || isset($seenIds[$candidate->ref])) {
+                    continue;
+                }
+
+                $seenIds[$candidate->ref] = true;
+                $candidates[] = $candidate;
             }
         }
 
-        Log::warning('Unsplash trip cover search returned no photos.', [
-            'destination' => $destination['label'] ?? null,
-        ]);
+        foreach ($places as $place) {
+            foreach ($this->searchQueries($destination, $place, $travelStyle) as $query) {
+                foreach ($this->matchingPhotos($accessKey, $query, $place, $destination) as $photo) {
+                    $candidate = $this->candidateFromPhoto($photo);
 
-        return null;
-    }
+                    if ($candidate === null || isset($seenIds[$candidate->ref])) {
+                        continue;
+                    }
 
-    /**
-     * @param  array<string, mixed>  $destination
-     * @return list<string>
-     */
-    private function searchQueries(array $destination, string $place, ?string $travelStyle): array
-    {
-        $queries = $this->searchQueryEnhancer->queries($destination, $travelStyle);
+                    $seenIds[$candidate->ref] = true;
+                    $candidates[] = $candidate;
+                }
+            }
+        }
 
-        $fallbacks = [
-            "{$place} landmark",
-            "{$place} tourism",
-            $place,
-        ];
+        if ($candidates === []) {
+            Log::warning('Unsplash trip cover search returned no photos.', [
+                'destination' => $destination['label'] ?? null,
+                'places_tried' => $places,
+            ]);
+        }
 
-        return array_values(array_unique(array_filter([...$queries, ...$fallbacks])));
+        return $candidates;
     }
 
     /**
      * @param  array<string, mixed>  $photo
-     * @param  array<string, mixed>  $destination
      */
-    private function downloadPhoto(string $accessKey, array $photo, array $destination): ?string
+    private function candidateFromPhoto(array $photo): ?TripCoverCandidate
     {
-        $this->triggerDownloadTracking($accessKey, $photo);
-
         $imageUrl = $photo['urls']['regular'] ?? $photo['urls']['full'] ?? null;
 
         if (! is_string($imageUrl) || $imageUrl === '') {
             return null;
         }
 
-        $response = Http::timeout(60)->get($imageUrl);
+        $photoId = (string) ($photo['id'] ?? '');
+
+        if ($photoId === '') {
+            $photoId = md5($imageUrl);
+        }
+
+        return new TripCoverCandidate(
+            ref: 'unsplash:'.$photoId,
+            imageUrl: $imageUrl,
+            attribution: [
+                'source' => 'Unsplash',
+                'author' => (string) data_get($photo, 'user.name', ''),
+                'license' => 'Unsplash License',
+                'credit_url' => (string) data_get($photo, 'links.html', ''),
+                'description' => (string) ($photo['description'] ?? $photo['alt_description'] ?? ''),
+            ],
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $destination
+     * @return list<array<string, mixed>>
+     */
+    private function matchingPhotos(string $accessKey, string $query, string $place, array $destination): array
+    {
+        $response = Http::withHeaders([
+            'Authorization' => "Client-ID {$accessKey}",
+            'Accept-Version' => 'v1',
+        ])
+            ->timeout(20)
+            ->get('https://api.unsplash.com/search/photos', [
+                'query' => $query,
+                'orientation' => 'landscape',
+                'content_filter' => 'high',
+                'per_page' => 15,
+            ]);
+
+        if ($response->failed()) {
+            Log::warning('Unsplash trip cover search failed.', [
+                'status' => $response->status(),
+                'query' => $query,
+            ]);
+
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $results */
+        $results = $response->json('results') ?? [];
+
+        if ($results === []) {
+            return [];
+        }
+
+        $terms = $this->significantTerms($place, $query);
+        $matches = [];
+
+        foreach ($results as $photo) {
+            if ($this->photoValidator->matchesDestination($photo, $destination, $terms)) {
+                $matches[] = $photo;
+            }
+        }
+
+        return $matches;
+    }
+
+    /**
+     * @param  array<string, mixed>  $destination
+     */
+    private function downloadCandidate(TripCoverCandidate $candidate, array $destination): ?string
+    {
+        $response = Http::timeout(60)->get($candidate->imageUrl);
 
         if ($response->failed()) {
             Log::warning('Unsplash trip cover download failed.', [
@@ -94,51 +185,51 @@ class UnsplashTripCoverGenerator implements TripCoverGenerator
     }
 
     /**
-     * @return array<string, mixed>|null
+     * @param  array<string, mixed>  $destination
+     * @return list<string>
      */
-    private function findPhoto(string $accessKey, string $query): ?array
+    private function searchQueries(array $destination, string $place, ?string $travelStyle): array
     {
-        $response = Http::withHeaders([
-            'Authorization' => "Client-ID {$accessKey}",
-            'Accept-Version' => 'v1',
-        ])
-            ->timeout(20)
-            ->get('https://api.unsplash.com/search/photos', [
-                'query' => $query,
-                'orientation' => 'landscape',
-                'content_filter' => 'high',
-                'per_page' => 5,
-            ]);
+        $queries = $this->searchQueryEnhancer->queries($destination, $place, $travelStyle);
 
-        if ($response->failed()) {
-            Log::warning('Unsplash trip cover search failed.', [
-                'status' => $response->status(),
-                'query' => $query,
-            ]);
+        $fallbacks = [
+            "{$place} landmark",
+            "{$place} tourism",
+            "{$place} travel",
+            $place,
+        ];
 
-            return null;
-        }
-
-        /** @var list<array<string, mixed>> $results */
-        $results = $response->json('results') ?? [];
-
-        return $results[0] ?? null;
+        return array_values(array_unique(array_filter([...$queries, ...$fallbacks])));
     }
 
     /**
-     * @param  array<string, mixed>  $photo
+     * @return list<string>
      */
-    private function triggerDownloadTracking(string $accessKey, array $photo): void
+    private function significantTerms(string $place, string $query): array
     {
-        $downloadLocation = $photo['links']['download_location'] ?? null;
+        $generic = [
+            'landmark',
+            'tourism',
+            'travel',
+            'india',
+            'photo',
+            'city',
+            'town',
+            'village',
+        ];
 
-        if (! is_string($downloadLocation) || $downloadLocation === '') {
-            return;
+        $terms = [];
+
+        foreach (preg_split('/[\s,]+/', strtolower("{$place} {$query}")) ?: [] as $term) {
+            $term = trim($term);
+
+            if (strlen($term) < 4 || in_array($term, $generic, true)) {
+                continue;
+            }
+
+            $terms[] = $term;
         }
 
-        Http::withHeaders([
-            'Authorization' => "Client-ID {$accessKey}",
-            'Accept-Version' => 'v1',
-        ])->get($downloadLocation);
+        return array_values(array_unique($terms));
     }
 }

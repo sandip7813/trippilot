@@ -62,6 +62,17 @@ export type Trip = {
     notes: string | null;
     cover_image_url?: string | null;
     cover_image_thumb_url?: string | null;
+    cover_image_version?: number;
+    cover_image_source?: string | null;
+    cover_image_source_label?: string | null;
+    cover_image_exhausted?: boolean;
+    cover_image_attribution?: {
+        source?: string | null;
+        author?: string | null;
+        license?: string | null;
+        credit_url?: string | null;
+        description?: string | null;
+    } | null;
     itinerary: TripItinerary;
     created_at: string | null;
     updated_at: string | null;

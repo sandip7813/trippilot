@@ -20,6 +20,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('trips/{trip}/generate', [TripController::class, 'generateItinerary'])
         ->middleware('throttle:5,1')
         ->name('trips.generate');
+    Route::post('trips/{trip}/cover', [TripController::class, 'syncCover'])
+        ->middleware('throttle:5,1')
+        ->name('trips.cover');
+    Route::post('trips/{trip}/cover/upload', [TripController::class, 'uploadCover'])
+        ->middleware('throttle:10,1')
+        ->name('trips.cover.upload');
     Route::resource('trips', TripController::class);
 
     Route::post('road-trips/{trip}/route', [RoadTripController::class, 'computeRoute'])
@@ -33,6 +39,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('road-trips.accept-break');
     Route::delete('road-trips/{trip}/stops', [RoadTripController::class, 'removeStop'])
         ->name('road-trips.remove-stop');
+    Route::post('road-trips/{trip}/cover', [RoadTripController::class, 'syncCover'])
+        ->middleware('throttle:5,1')
+        ->name('road-trips.cover');
+    Route::post('road-trips/{trip}/cover/upload', [RoadTripController::class, 'uploadCover'])
+        ->middleware('throttle:10,1')
+        ->name('road-trips.cover.upload');
     Route::resource('road-trips', RoadTripController::class)->except(['destroy']);
 });
 

@@ -24,16 +24,22 @@ class SyncTripCoverImageJob implements ShouldBeUnique, ShouldQueue
     public function __construct(
         public string $tripId,
         public bool $onlyIfMissing = false,
+        public ?string $regenerationToken = null,
+        public bool $tryNextSource = false,
     ) {}
 
     public function uniqueId(): string
     {
-        return $this->tripId.($this->onlyIfMissing ? '-missing' : '-full');
+        if (! $this->onlyIfMissing) {
+            return $this->tripId.'-regenerate-'.($this->regenerationToken ?? 'manual');
+        }
+
+        return $this->tripId.'-missing';
     }
 
     public function uniqueFor(): int
     {
-        return 300;
+        return $this->onlyIfMissing ? 300 : 60;
     }
 
     public function handle(TripCoverImageService $coverImageService): void
@@ -48,7 +54,11 @@ class SyncTripCoverImageJob implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        $coverImageService->generateForTrip($trip);
+        try {
+            $coverImageService->generateForTrip($trip, $this->tryNextSource);
+        } finally {
+            Trip::query()->find($this->tripId)?->increment('cover_image_version');
+        }
     }
 
     public function failed(?Throwable $exception): void

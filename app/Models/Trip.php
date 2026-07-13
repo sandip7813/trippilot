@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\TravelStyle;
+use App\Enums\TripCoverSource;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
+use App\Services\Trips\TripCoverImageService;
 use Carbon\CarbonInterface;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,6 +33,13 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property string|null $notes
  * @property string|null $cover_image_path
  * @property string|null $cover_image_thumb_path
+ * @property int $cover_image_version
+ * @property string|null $cover_image_source
+ * @property int|null $cover_image_source_index
+ * @property string|null $cover_image_ref
+ * @property list<string>|null $cover_image_tried_refs
+ * @property bool $cover_image_exhausted
+ * @property array<string, string|null>|null $cover_image_attribution
  * @property array<string, mixed>|null $road_profile
  * @property list<array<string, mixed>>|null $stops
  * @property array<string, mixed>|null $route
@@ -68,6 +77,13 @@ class Trip extends Model
         'notes',
         'cover_image_path',
         'cover_image_thumb_path',
+        'cover_image_version',
+        'cover_image_source',
+        'cover_image_source_index',
+        'cover_image_ref',
+        'cover_image_tried_refs',
+        'cover_image_exhausted',
+        'cover_image_attribution',
         'itinerary',
         'road_profile',
         'stops',
@@ -103,7 +119,17 @@ class Trip extends Model
             'budget' => 'float',
             'travelers' => 'integer',
             'is_favorite' => 'boolean',
+            'cover_image_exhausted' => 'boolean',
+            'cover_image_source_index' => 'integer',
+            'cover_image_version' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Trip $trip): void {
+            app(TripCoverImageService::class)->deleteForTrip($trip);
+        });
     }
 
     /**
@@ -333,6 +359,11 @@ class Trip extends Model
             'notes' => $this->notes,
             'cover_image_url' => $this->coverImageUrl(),
             'cover_image_thumb_url' => $this->coverImageThumbUrl(),
+            'cover_image_version' => (int) ($this->cover_image_version ?? 0),
+            'cover_image_source' => $this->cover_image_source,
+            'cover_image_source_label' => $this->coverSourceLabel(),
+            'cover_image_exhausted' => (bool) ($this->cover_image_exhausted ?? false),
+            'cover_image_attribution' => $this->cover_image_attribution,
             'itinerary' => $this->itineraryForFrontend(),
             'road_profile' => $this->isRoadTrip() ? $this->roadProfileForFrontend() : null,
             'stops' => $this->isRoadTrip() ? $this->stopsForFrontend() : [],
@@ -475,15 +506,30 @@ class Trip extends Model
         return $thumbUrl ?? $this->coverImageUrl();
     }
 
+    public function coverSourceLabel(): ?string
+    {
+        if (! is_string($this->cover_image_source) || $this->cover_image_source === '') {
+            return null;
+        }
+
+        return TripCoverSource::tryFrom($this->cover_image_source)?->label();
+    }
+
     private function publicStorageUrl(mixed $path): ?string
     {
         if (! is_string($path) || $path === '') {
             return null;
         }
 
-        $version = $this->updated_at?->getTimestamp() ?? time();
+        $version = (int) ($this->cover_image_version ?? 0);
 
-        return asset('storage/'.$path).'?v='.$version;
+        if ($version > 0) {
+            return asset('storage/'.$path).'?v='.$version;
+        }
+
+        $timestamp = $this->updated_at?->getTimestamp() ?? time();
+
+        return asset('storage/'.$path).'?v='.$timestamp;
     }
 
     /**
