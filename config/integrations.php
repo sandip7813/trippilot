@@ -80,6 +80,116 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Indian Railways (Train Timings)
+    |--------------------------------------------------------------------------
+    |
+    | Supported drivers: railradar
+    |
+    */
+
+    'trains' => [
+        'driver' => env('TRAIN_DRIVER', 'railradar'),
+        'cache_ttl' => (int) env('TRAIN_CACHE_TTL', 43200),
+        'station_lookup_cache_ttl' => (int) env('TRAIN_STATION_LOOKUP_CACHE_TTL', 604800),
+        'max_results' => (int) env('TRAIN_MAX_RESULTS', 12),
+
+        'drivers' => [
+            'railradar' => [
+                'api_key' => env('RAILRADAR_API_KEY'),
+                'base_url' => 'https://api.railradar.in/v1',
+            ],
+        ],
+
+        /*
+         * Map common place names (normalized) to IR station codes when Geoapify
+         * and label matching cannot resolve a station reliably.
+         */
+        'station_aliases' => [
+            'shantiniketan' => 'BHP',
+            'bolpur' => 'BHP',
+            'kolkata' => 'HWH',
+            'calcutta' => 'HWH',
+            'howrah' => 'HWH',
+            'delhi' => 'NDLS',
+            'new delhi' => 'NDLS',
+            'mumbai' => 'BCT',
+            'bombay' => 'BCT',
+            'bengaluru' => 'SBC',
+            'bangalore' => 'SBC',
+            'chennai' => 'MAS',
+            'madras' => 'MAS',
+            'hyderabad' => 'HYB',
+            'pune' => 'PUNE',
+            'goa' => 'MAO',
+            'margao' => 'MAO',
+            'jaipur' => 'JP',
+            'agra' => 'AGC',
+            'varanasi' => 'BSB',
+            'lucknow' => 'LKO',
+            'ahmedabad' => 'ADI',
+            'chandigarh' => 'CDG',
+        ],
+
+        /*
+         * Hill stations and off-network places mapped to their nearest
+         * mainline railhead for fallback train searches.
+         */
+        'nearest_railheads' => [
+            'shimla' => [
+                'code' => 'KLK',
+                'name' => 'Kalka',
+                'last_mile' => 'Kalka to Shimla: toy train, bus, or taxi (~90 km).',
+            ],
+            'manali' => [
+                'code' => 'CDG',
+                'name' => 'Chandigarh',
+                'last_mile' => 'Chandigarh to Manali: bus or taxi (~310 km through the hills).',
+            ],
+            'mussoorie' => [
+                'code' => 'DDN',
+                'name' => 'Dehradun',
+                'last_mile' => 'Dehradun to Mussoorie: bus or taxi (~35 km).',
+            ],
+            'nainital' => [
+                'code' => 'KGM',
+                'name' => 'Kathgodam',
+                'last_mile' => 'Kathgodam to Nainital: bus or taxi (~35 km).',
+            ],
+            'darjeeling' => [
+                'code' => 'NJP',
+                'name' => 'New Jalpaiguri',
+                'last_mile' => 'NJP to Darjeeling: toy train, bus, or taxi (~70 km).',
+            ],
+            'gangtok' => [
+                'code' => 'NJP',
+                'name' => 'New Jalpaiguri',
+                'last_mile' => 'NJP to Gangtok: shared taxi or bus (~120 km).',
+            ],
+            'dharamshala' => [
+                'code' => 'PTA',
+                'name' => 'Pathankot',
+                'last_mile' => 'Pathankot to Dharamshala: bus or taxi (~90 km).',
+            ],
+            'mcleod ganj' => [
+                'code' => 'PTA',
+                'name' => 'Pathankot',
+                'last_mile' => 'Pathankot to McLeod Ganj: bus or taxi (~90 km).',
+            ],
+            'ooty' => [
+                'code' => 'MTM',
+                'name' => 'Mettupalayam',
+                'last_mile' => 'Mettupalayam to Ooty: Nilgiri toy train or bus (~50 km).',
+            ],
+            'munnar' => [
+                'code' => 'ERS',
+                'name' => 'Ernakulam Junction',
+                'last_mile' => 'Ernakulam to Munnar: bus or taxi (~130 km).',
+            ],
+        ],
+    ],
+
     'trip_covers' => [
         'driver' => env('TRIP_COVER_DRIVER', 'rotating'),
         'enabled' => filter_var(env('TRIP_COVER_ENABLED', true), FILTER_VALIDATE_BOOLEAN),

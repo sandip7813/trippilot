@@ -10,7 +10,7 @@ import { search as locationSearch } from '@/routes/locations';
 import type { TripLocation } from '@/types/trip';
 
 const props = defineProps<{
-    prefix: 'origin' | 'destination' | 'home_city';
+    prefix: string;
     label: string;
     errors: Record<string, string>;
     required?: boolean;

@@ -26,6 +26,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('trips/{trip}/cover/upload', [TripController::class, 'uploadCover'])
         ->middleware('throttle:10,1')
         ->name('trips.cover.upload');
+    Route::get('trips/{trip}/trains/{trainNumber}/halts', [TripController::class, 'trainHalts'])
+        ->middleware('throttle:30,1')
+        ->name('trips.trains.halts');
     Route::resource('trips', TripController::class);
 
     Route::post('road-trips/{trip}/route', [RoadTripController::class, 'computeRoute'])

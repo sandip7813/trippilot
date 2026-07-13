@@ -16,6 +16,8 @@ export type TravelStyle =
 
 export type TripScope = 'domestic' | 'international';
 
+export type TripRouteMode = 'simple' | 'multi_city';
+
 export type TripLocation = {
     label: string | null;
     lat: number | null;
@@ -24,15 +26,65 @@ export type TripLocation = {
     country_code?: string | null;
 };
 
+export type TripWaypoint = {
+    sequence: number;
+    location: TripLocation | null;
+    nights?: number | null;
+    notes?: string | null;
+};
+
+export type TripRouteStopKind = 'origin' | 'stay' | 'return';
+
+export type TripRouteStop = {
+    kind: TripRouteStopKind;
+    sequence: number;
+    label?: string | null;
+    nights?: number | null;
+    arrival_date?: string | null;
+    departure_date?: string | null;
+};
+
+export type TripRouteSummary = {
+    route_mode: TripRouteMode;
+    returns_to_origin: boolean;
+    city_count: number;
+    stop_count: number;
+    leg_count: number;
+    route_points: string[];
+    route_display_points?: string[];
+    route_label: string;
+    route_stops?: TripRouteStop[];
+    stay_segments?: Array<{
+        sequence: number;
+        label?: string | null;
+        date_from?: string | null;
+        date_to?: string | null;
+        nights?: number | null;
+    }>;
+};
+
+export type TripTemplate = {
+    key: string;
+    label: string;
+    description: string;
+    returns_to_origin: boolean;
+    suggested_nights: number[];
+    waypoint_hints: string[];
+};
+
 export type TripItinerary = {
     days: Array<{
         day: number;
         date?: string | null;
         title?: string;
+        city?: string | null;
+        waypoint_sequence?: number | null;
         activities?: Array<{
             time?: string | null;
             title: string;
             notes?: string | null;
+            city?: string | null;
+            kind?: string | null;
         }>;
     }>;
     summary?: string;
@@ -50,6 +102,10 @@ export type Trip = {
     title: string;
     origin: TripLocation | null;
     destination: TripLocation | null;
+    route_mode?: TripRouteMode;
+    waypoints?: TripWaypoint[];
+    returns_to_origin?: boolean;
+    route_summary?: TripRouteSummary | null;
     trip_scope: TripScope | null;
     trip_scope_label: string | null;
     start_date: string | null;

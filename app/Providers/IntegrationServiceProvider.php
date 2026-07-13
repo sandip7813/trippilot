@@ -13,8 +13,14 @@ use App\Services\Maps\Geoapify\GeoapifyAutocomplete;
 use App\Services\Maps\Geoapify\GeoapifyClient;
 use App\Services\Maps\Geoapify\GeoapifyPlacesService;
 use App\Services\Maps\Geoapify\GeoapifyRoutingService;
+use App\Services\Trains\NearestRailheadResolver;
+use App\Services\Trains\RailRadarClient;
+use App\Services\Trains\RailwayStationResolver;
+use App\Services\Trains\TripTrainHaltsService;
+use App\Services\Trains\TripTrainService;
 use App\Services\TripCovers\PollinationsTripCoverGenerator;
 use App\Services\TripCovers\UnsplashTripCoverGenerator;
+use App\Services\Trips\TripRouteResolver;
 use App\Services\Weather\OpenMeteo\OpenMeteoClient;
 use App\Services\Weather\OpenWeatherMap\OpenWeatherMapClient;
 use App\Services\Weather\TripWeatherService;
@@ -32,6 +38,12 @@ class IntegrationServiceProvider extends ServiceProvider
         $this->app->singleton(GeminiClient::class);
         $this->app->singleton(OpenMeteoClient::class);
         $this->app->singleton(TripWeatherService::class);
+        $this->app->singleton(RailRadarClient::class);
+        $this->app->singleton(RailwayStationResolver::class);
+        $this->app->singleton(NearestRailheadResolver::class);
+        $this->app->singleton(TripTrainService::class);
+        $this->app->singleton(TripTrainHaltsService::class);
+        $this->app->singleton(TripRouteResolver::class);
         $this->app->singleton(OpenWeatherMapClient::class);
 
         $this->registerMapsServices();

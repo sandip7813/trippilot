@@ -20,6 +20,7 @@ import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import TripHubAtAGlance from '@/components/trip-hub/TripHubAtAGlance.vue';
 import TripHubItinerarySection from '@/components/trip-hub/TripHubItinerarySection.vue';
 import TripHubPracticalSection from '@/components/trip-hub/TripHubPracticalSection.vue';
+import TripHubTrainTimings from '@/components/trip-hub/TripHubTrainTimings.vue';
 import TripHubUsefulLinks from '@/components/trip-hub/TripHubUsefulLinks.vue';
 import TripWeatherCard from '@/components/TripWeatherCard.vue';
 import { Badge } from '@/components/ui/badge';
@@ -40,11 +41,13 @@ import { edit, index as tripsIndex } from '@/routes/trips';
 import type { Trip } from '@/types/trip';
 import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
 import type { TripWeather } from '@/types/weather';
+import type { TripTrainTimings } from '@/types/train';
 
 const props = defineProps<{
     trip: Trip;
     aiConfigured: boolean;
     weather: TripWeather | null;
+    trainTimings: TripTrainTimings | null;
 }>();
 
 defineOptions({
@@ -398,7 +401,7 @@ const { waitingForCover } = useTripCoverAutoRefresh();
         <div class="grid gap-6 xl:grid-cols-5">
             <div class="space-y-4 xl:col-span-2">
                 <h2 class="section-heading">At a glance</h2>
-                <TripHubAtAGlance :trip="trip" />
+                <TripHubAtAGlance :trip="trip" :train-timings="trainTimings" />
             </div>
 
             <div class="xl:col-span-3">
@@ -407,6 +410,17 @@ const { waitingForCover } = useTripCoverAutoRefresh();
         </div>
 
         <TripHubItinerarySection :trip="trip" :ai-configured="aiConfigured" />
+
+        <section
+            v-if="trip.trip_scope === 'domestic' || trainTimings != null"
+            class="space-y-4"
+        >
+            <h2 class="section-heading">Train timings</h2>
+            <TripHubTrainTimings
+                :trip-id="trip.id"
+                :train-timings="trainTimings"
+            />
+        </section>
 
         <section v-if="hasExtras" class="space-y-4">
             <h2 class="section-heading">Notes &amp; budget</h2>

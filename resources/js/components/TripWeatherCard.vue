@@ -1,17 +1,11 @@
 <script setup lang="ts">
-import {
-    CloudFog,
-    CloudLightning,
-    CloudRain,
-    CloudSun,
-    Snowflake,
-    Sun,
-} from '@lucide/vue';
-import { computed } from 'vue';
+import { CloudSun } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
+import TripWeatherSegmentPanel from '@/components/TripWeatherSegmentPanel.vue';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatDisplayDate } from '@/lib/dates';
-import type { TripWeather, TripWeatherDay } from '@/types/weather';
+import { cn } from '@/lib/utils';
+import type { TripWeather, TripWeatherSegment } from '@/types/weather';
 
 const props = defineProps<{
     weather: TripWeather | null;
@@ -21,21 +15,60 @@ const isUnavailable = computed(
     () => props.weather === null || props.weather.available === false,
 );
 
-const forecastDays = computed(
-    () => props.weather?.forecast_days ?? props.weather?.days ?? [],
+const weatherSegments = computed(
+    () => props.weather?.segments ?? [],
 );
 
-function weatherIcon(day: TripWeatherDay) {
-    return (
-        {
-            clear: Sun,
-            cloudy: CloudSun,
-            fog: CloudFog,
-            rain: CloudRain,
-            snow: Snowflake,
-            storm: CloudLightning,
-        }[day.weather_kind] ?? CloudSun
-    );
+const isMultiCityWeather = computed(
+    () => weatherSegments.value.length > 1,
+);
+
+const singleCitySegment = computed((): TripWeatherSegment | null => {
+    if (props.weather === null || isMultiCityWeather.value) {
+        return null;
+    }
+
+    return props.weather as TripWeatherSegment;
+});
+
+const activeTab = ref('1');
+
+const tabs = computed(() =>
+    weatherSegments.value.map((segment, index) => ({
+        id: String(segment.sequence ?? index + 1),
+        label: shortCityLabel(segment.segment_label ?? segment.location_label),
+        segment,
+    })),
+);
+
+const activeSegment = computed(() => {
+    const match = tabs.value.find((tab) => tab.id === activeTab.value);
+
+    return match?.segment ?? tabs.value[0]?.segment ?? null;
+});
+
+watch(
+    () => props.weather,
+    () => {
+        const firstAvailable = weatherSegments.value.find(
+            (segment) => segment.available !== false,
+        );
+
+        activeTab.value = String(
+            firstAvailable?.sequence ?? weatherSegments.value[0]?.sequence ?? 1,
+        );
+    },
+    { immediate: true },
+);
+
+function shortCityLabel(label: string | null | undefined): string {
+    if (!label) {
+        return 'Stop';
+    }
+
+    const primary = label.split(',')[0]?.trim();
+
+    return primary || label;
 }
 </script>
 
@@ -57,10 +90,16 @@ function weatherIcon(day: TripWeatherDay) {
                     Weather
                 </CardTitle>
                 <p
-                    v-if="weather?.location_label"
+                    v-if="weather?.location_label && !isMultiCityWeather"
                     class="mt-1 text-sm text-muted-foreground"
                 >
                     {{ weather.location_label }}
+                </p>
+                <p
+                    v-else-if="isMultiCityWeather"
+                    class="mt-1 text-sm text-muted-foreground"
+                >
+                    Select a stop to see its forecast
                 </p>
             </div>
             <div class="flex flex-wrap gap-2">
@@ -79,155 +118,46 @@ function weatherIcon(day: TripWeatherDay) {
             </p>
 
             <template v-else-if="weather">
-                <p class="text-sm font-medium">
-                    {{ weather.summary }}
-                </p>
-
                 <div
-                    v-if="weather.mode === 'typical'"
-                    class="grid gap-3 sm:grid-cols-3"
+                    v-if="isMultiCityWeather"
+                    class="flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/20 p-1.5"
+                    role="tablist"
                 >
-                    <div
-                        class="rounded-lg border border-border/60 bg-muted/20 p-3"
+                    <button
+                        v-for="tab in tabs"
+                        :key="tab.id"
+                        type="button"
+                        role="tab"
+                        :aria-selected="activeTab === tab.id"
+                        :class="
+                            cn(
+                                'inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors',
+                                activeTab === tab.id
+                                    ? 'bg-background text-foreground shadow-sm'
+                                    : 'text-muted-foreground hover:bg-background/60 hover:text-foreground',
+                            )
+                        "
+                        @click="activeTab = tab.id"
                     >
-                        <p class="text-xs text-muted-foreground">
-                            Typical range
-                        </p>
-                        <p class="mt-1 text-lg font-semibold">
-                            {{ weather.temperature_min }}–{{
-                                weather.temperature_max
-                            }}°C
-                        </p>
-                    </div>
-                    <div
-                        class="rounded-lg border border-border/60 bg-muted/20 p-3"
-                    >
-                        <p class="text-xs text-muted-foreground">
-                            Avg daily rain
-                        </p>
-                        <p class="mt-1 text-lg font-semibold">
-                            {{ weather.avg_daily_precipitation_mm }} mm
-                        </p>
-                    </div>
-                    <div
-                        class="rounded-lg border border-border/60 bg-muted/20 p-3"
-                    >
-                        <p class="text-xs text-muted-foreground">Rainy days</p>
-                        <p class="mt-1 text-lg font-semibold">
-                            ~{{ weather.rainy_day_percent }}%
-                        </p>
-                    </div>
+                        <span class="max-w-[10rem] truncate">{{ tab.label }}</span>
+                    </button>
                 </div>
 
-                <div
-                    v-if="
-                        forecastDays.length &&
-                        (weather.mode === 'forecast' ||
-                            weather.mode === 'mixed')
-                    "
-                    class="space-y-2"
-                >
-                    <p class="text-xs font-medium text-muted-foreground">
-                        Live forecast
-                        <span v-if="weather.forecast_range_label">
-                            · {{ weather.forecast_range_label }}</span
-                        >
-                    </p>
-                    <div class="-mx-1 flex gap-2 overflow-x-auto pb-1">
-                        <div
-                            v-for="day in forecastDays"
-                            :key="day.date"
-                            class="min-w-24 shrink-0 rounded-lg border border-border/60 bg-muted/20 p-3 text-center"
-                        >
-                            <p class="text-xs text-muted-foreground">
-                                {{
-                                    formatDisplayDate(day.date, {
-                                        weekday: true,
-                                    })
-                                }}
-                            </p>
-                            <component
-                                :is="weatherIcon(day)"
-                                class="mx-auto my-2 size-5 text-muted-foreground"
-                            />
-                            <p class="text-sm font-medium">
-                                {{ day.temperature_max }}°
-                            </p>
-                            <p class="text-xs text-muted-foreground">
-                                {{ day.temperature_min }}° ·
-                                {{ day.precipitation_mm }} mm
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <TripWeatherSegmentPanel
+                    v-if="isMultiCityWeather && activeSegment"
+                    :key="`${activeSegment.segment_label}-${activeSegment.date_from}`"
+                    :segment="activeSegment"
+                    compact
+                />
 
-                <div
-                    v-if="
-                        weather.mode === 'mixed' &&
-                        (weather.typical_remainder ||
-                            weather.remainder_period_label)
-                    "
-                    class="space-y-3 rounded-lg border border-dashed border-border/80 bg-muted/10 p-4"
-                >
-                    <p class="text-xs font-medium text-muted-foreground">
-                        Seasonal outlook for the rest of your trip ·
-                        {{
-                            weather.typical_remainder?.period_label ??
-                            weather.remainder_period_label
-                        }}
-                    </p>
-                    <template v-if="weather.typical_remainder">
-                        <p class="text-sm">
-                            {{ weather.typical_remainder.summary }}
-                        </p>
-                        <div class="grid gap-3 sm:grid-cols-3">
-                            <div>
-                                <p class="text-xs text-muted-foreground">
-                                    Typical range
-                                </p>
-                                <p class="font-medium">
-                                    {{
-                                        weather.typical_remainder
-                                            .temperature_min
-                                    }}–{{
-                                        weather.typical_remainder
-                                            .temperature_max
-                                    }}°C
-                                </p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-muted-foreground">
-                                    Avg daily rain
-                                </p>
-                                <p class="font-medium">
-                                    {{
-                                        weather.typical_remainder
-                                            .avg_daily_precipitation_mm
-                                    }}
-                                    mm
-                                </p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-muted-foreground">
-                                    Rainy days
-                                </p>
-                                <p class="font-medium">
-                                    ~{{
-                                        weather.typical_remainder
-                                            .rainy_day_percent
-                                    }}%
-                                </p>
-                            </div>
-                        </div>
-                    </template>
-                    <p v-else class="text-sm text-muted-foreground">
-                        Historical averages for this period are temporarily
-                        unavailable. Refresh the page in a few minutes.
-                    </p>
-                </div>
+                <TripWeatherSegmentPanel
+                    v-else-if="singleCitySegment"
+                    :segment="singleCitySegment"
+                    compact
+                />
 
                 <p
-                    v-if="weather.disclaimer"
+                    v-if="isMultiCityWeather && weather.disclaimer"
                     class="text-xs leading-relaxed text-muted-foreground"
                 >
                     {{ weather.disclaimer }}

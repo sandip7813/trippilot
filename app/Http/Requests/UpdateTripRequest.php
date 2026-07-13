@@ -50,6 +50,8 @@ class UpdateTripRequest extends FormRequest
 
     public function withValidator(Validator $validator): void
     {
+        $this->validateMultiCityTrip($validator);
+
         $validator->after(function (Validator $validator): void {
             if ($validator->errors()->isNotEmpty()) {
                 return;

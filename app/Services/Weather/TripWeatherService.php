@@ -3,6 +3,7 @@
 namespace App\Services\Weather;
 
 use App\Models\Trip;
+use App\Services\Trips\TripRouteResolver;
 use App\Services\Weather\OpenMeteo\OpenMeteoClient;
 use App\Services\Weather\OpenMeteo\WeatherCode;
 use Carbon\CarbonInterface;
@@ -16,7 +17,10 @@ class TripWeatherService
 
     private const int TYPICAL_YEARS = 10;
 
-    public function __construct(private OpenMeteoClient $client) {}
+    public function __construct(
+        private OpenMeteoClient $client,
+        private TripRouteResolver $routeResolver,
+    ) {}
 
     /**
      * @return array<string, mixed>|null
@@ -31,6 +35,20 @@ class TripWeatherService
             ];
         }
 
+        if ($trip->start_date === null) {
+            return [
+                'available' => false,
+                'reason' => 'missing_dates',
+                'message' => 'Add trip dates to see weather for your travel window.',
+            ];
+        }
+
+        $staySegments = $this->routeResolver->staySegments($trip);
+
+        if (count($staySegments) > 1) {
+            return $this->buildMultiCityPayload($staySegments);
+        }
+
         $destination = Trip::normalizeLocation($trip->getAttribute('destination'));
 
         if ($destination === null || $destination['lat'] === null || $destination['lng'] === null) {
@@ -38,14 +56,6 @@ class TripWeatherService
                 'available' => false,
                 'reason' => 'missing_coordinates',
                 'message' => 'Pick a destination from search to enable weather insights.',
-            ];
-        }
-
-        if ($trip->start_date === null) {
-            return [
-                'available' => false,
-                'reason' => 'missing_dates',
-                'message' => 'Add trip dates to see weather for your travel window.',
             ];
         }
 
@@ -510,5 +520,90 @@ class TripWeatherService
         }
 
         return Carbon::create($year, $reference->month, $reference->day)->startOfDay();
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $staySegments
+     * @return array<string, mixed>
+     */
+    private function buildMultiCityPayload(array $staySegments): array
+    {
+        $today = today()->startOfDay();
+        $segments = [];
+
+        foreach ($staySegments as $segment) {
+            /** @var array<string, mixed>|null $location */
+            $location = $segment['location'] ?? null;
+
+            if (! is_array($location) || $location['lat'] === null || $location['lng'] === null) {
+                continue;
+            }
+
+            $startDate = Carbon::parse((string) $segment['date_from'])->startOfDay();
+            $endDate = Carbon::parse((string) $segment['date_to'])->startOfDay();
+            $daysUntilStart = (int) $today->diffInDays($startDate, false);
+            $useForecast = $daysUntilStart <= self::FORECAST_HORIZON_DAYS;
+
+            $payload = $useForecast
+                ? $this->buildForecastPayload($location, $startDate, $endDate, $today, $daysUntilStart)
+                : $this->buildTypicalPayload($location, $startDate, $endDate);
+
+            $segments[] = [
+                ...$payload,
+                'segment_label' => $segment['label'] ?? $location['label'] ?? null,
+                'location_label' => $location['label'] ?? $segment['label'] ?? null,
+                'sequence' => $segment['sequence'] ?? null,
+                'date_from' => $segment['date_from'] ?? null,
+                'date_to' => $segment['date_to'] ?? null,
+                'nights' => $segment['nights'] ?? null,
+            ];
+        }
+
+        if ($segments === []) {
+            return [
+                'available' => false,
+                'reason' => 'missing_coordinates',
+                'message' => 'Pick mapped cities to enable weather insights.',
+            ];
+        }
+
+        $availableSegments = collect($segments)->where('available', true)->values();
+        $primary = $availableSegments->first() ?? $segments[0];
+
+        $summaryParts = $availableSegments
+            ->map(function (array $segment): ?string {
+                $label = $segment['segment_label'] ?? $segment['location_label'] ?? null;
+
+                if (! is_string($label) || $label === '') {
+                    return null;
+                }
+
+                $summary = $segment['summary'] ?? null;
+
+                if (! is_string($summary) || $summary === '') {
+                    return $label;
+                }
+
+                return sprintf('%s: %s', $label, $summary);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        return [
+            ...$primary,
+            'available' => $availableSegments->isNotEmpty(),
+            'mode' => 'multi_city',
+            'mode_label' => 'Multi-city',
+            'location_label' => collect($segments)->pluck('segment_label')->filter()->implode(' · '),
+            'summary' => $summaryParts !== []
+                ? implode(' ', $summaryParts)
+                : ($primary['summary'] ?? null),
+            'segments' => $segments,
+            'disclaimer' => 'Each stop shows its own forecast or seasonal outlook for the dates you spend there.',
+            'message' => $availableSegments->isEmpty()
+                ? 'Weather could not be loaded for these cities right now.'
+                : null,
+        ];
     }
 }
