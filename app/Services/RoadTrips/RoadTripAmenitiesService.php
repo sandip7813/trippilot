@@ -51,10 +51,10 @@ class RoadTripAmenitiesService
         'pharmacy' => 'healthcare.pharmacy',
         'hospitals' => 'healthcare.hospital,healthcare.clinic_or_praxis',
         'mechanics' => 'service.vehicle.repair',
-        'tyres' => 'service.vehicle.tyre',
-        'rest_areas' => 'amenity.rest_area',
-        'emergency' => 'service.public.emergency',
-        'viewpoints' => 'tourism.viewpoint,tourism.attraction',
+        'tyres' => 'commercial.vehicle',
+        'rest_areas' => 'leisure.picnic,highway.motorway.junction',
+        'emergency' => 'emergency,service.police,service.fire_station',
+        'viewpoints' => 'tourism.attraction.viewpoint,tourism.attraction',
         'bike' => 'service.vehicle.bicycle,rental.bicycle',
     ];
 
@@ -306,12 +306,20 @@ class RoadTripAmenitiesService
         int $limit,
         int $radiusMeters,
     ): array {
+        if ($categories === []) {
+            return [];
+        }
+
         $places = [];
 
-        foreach ($categories as $category) {
-            foreach ($this->placesService->searchNearby($latitude, $longitude, $category, $limit, $radiusMeters) as $place) {
-                $places[$this->placeKey($place)] = $place;
-            }
+        foreach ($this->placesService->searchNearby(
+            $latitude,
+            $longitude,
+            implode(',', $categories),
+            $limit,
+            $radiusMeters,
+        ) as $place) {
+            $places[$this->placeKey($place)] = $place;
         }
 
         return array_values($places);

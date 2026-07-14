@@ -8,6 +8,7 @@ use App\Enums\VehicleClass;
 use App\Exceptions\AiGenerationException;
 use App\Models\Trip;
 use App\Services\Ai\Gemini\GeminiClient;
+use App\Services\Trips\TripRouteResolver;
 use App\Support\GeminiResponseErrors;
 use Illuminate\Support\Str;
 use JsonException;
@@ -17,6 +18,7 @@ class RoadTripBreakSuggestionService
     public function __construct(
         private RoadTripAmenitiesService $amenitiesService,
         private GeminiClient $client,
+        private TripRouteResolver $routeResolver,
     ) {}
 
     /**
@@ -206,6 +208,7 @@ class RoadTripBreakSuggestionService
 
         $origin = Trip::normalizeLocation($trip->getAttribute('origin'))['label'] ?? 'Origin';
         $destination = Trip::normalizeLocation($trip->getAttribute('destination'))['label'] ?? 'Destination';
+        $routeLabel = (string) ($this->routeResolver->summary($trip)['route_label'] ?? "{$origin} → {$destination}");
         $route = $trip->routeData() ?? [];
         $distance = (float) ($route['distance_km'] ?? 0);
         $durationHours = round(((int) ($route['duration_seconds'] ?? 0)) / 3600, 1);
@@ -229,7 +232,7 @@ class RoadTripBreakSuggestionService
         return <<<PROMPT
 You are TripPilot, a road trip planner. Suggest practical driving breaks using ONLY the candidate places listed below.
 
-Trip: {$origin} → {$destination}
+Trip: {$routeLabel}
 Distance: {$distance} km, driving time ~{$durationHours} hours
 Vehicle: {$vehicle}, fuel: {$fuel}
 Travelers: {$travelers}

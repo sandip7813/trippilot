@@ -2,7 +2,7 @@
 import { usePage } from '@inertiajs/vue3';
 import { Calendar, MapPin, Train, Users, Wallet } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import TripDestinationMapDialog from '@/components/trip-hub/TripDestinationMapDialog.vue';
+import TripRouteMapDialog from '@/components/trip-hub/TripRouteMapDialog.vue';
 import TripHubRouteStopsList from '@/components/trip-hub/TripHubRouteStopsList.vue';
 import { Button } from '@/components/ui/button';
 import { formatDisplayDateRange } from '@/lib/dates';
@@ -12,7 +12,7 @@ import {
     useTripRouteStops,
 } from '@/composables/useTripRouteStops';
 import type { Trip } from '@/types/trip';
-import { locationHasCoordinates, locationLabel } from '@/types/trip';
+import { locationLabel } from '@/types/trip';
 import type { TripTrainTimings } from '@/types/train';
 
 const props = defineProps<{
@@ -109,16 +109,14 @@ const transportHint = computed((): string => {
     return 'Set a mapped destination';
 });
 
-const canShowMap = computed(() =>
-    locationHasCoordinates(props.trip.destination),
-);
-
-const { routeChainLabels, routeStops } = useTripRouteStops({
+const { routeChainLabels, routeStops, routeMapPoints } = useTripRouteStops({
     trip: props.trip,
     routeSummary: props.trip.route_summary,
 });
 
 const showFullRoute = computed(() => routeStops.value.length >= 2);
+
+const canShowMap = computed(() => routeMapPoints.value.length > 0);
 </script>
 
 <template>
@@ -257,8 +255,5 @@ const showFullRoute = computed(() => routeStops.value.length >= 2);
         </div>
     </div>
 
-    <TripDestinationMapDialog
-        v-model:open="mapOpen"
-        :destination="trip.destination"
-    />
+    <TripRouteMapDialog v-model:open="mapOpen" :trip="trip" />
 </template>

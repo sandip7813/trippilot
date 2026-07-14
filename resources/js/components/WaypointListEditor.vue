@@ -10,7 +10,18 @@ import type { TripLocation, TripWaypoint } from '@/types/trip';
 
 const props = defineProps<{
     errors: Record<string, string>;
+    variant?: 'vacation' | 'road';
+    showNights?: boolean;
 }>();
+
+const variant = computed(() => props.variant ?? 'vacation');
+const showNights = computed(() => props.showNights ?? variant.value === 'vacation');
+
+const description = computed(() =>
+    variant.value === 'road'
+        ? 'Add each stop in driving order. Your route will pass through every city.'
+        : 'Add each city in visit order. We will plan trains, weather, and itinerary by leg.',
+);
 
 const waypoints = defineModel<TripWaypoint[]>('waypoints', { required: true });
 const returnsToOrigin = defineModel<boolean>('returnsToOrigin', { required: true });
@@ -74,8 +85,7 @@ function locationPrefix(index: number): string {
             <div>
                 <Label>Cities on your route</Label>
                 <p class="mt-1 text-xs text-muted-foreground">
-                    Add each city in visit order. We will plan trains, weather,
-                    and itinerary by leg.
+                    {{ description }}
                 </p>
             </div>
             <Button
@@ -152,7 +162,7 @@ function locationPrefix(index: number): string {
                     require-selection
                 />
 
-                <div class="mt-4 grid gap-2 sm:max-w-xs">
+                <div v-if="showNights" class="mt-4 grid gap-2 sm:max-w-xs">
                     <Label :for="`waypoint-nights-${index}`">Nights (optional)</Label>
                     <Input
                         :id="`waypoint-nights-${index}`"

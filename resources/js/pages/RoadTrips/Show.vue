@@ -27,6 +27,7 @@ import TripCoverPlaceholder from '@/components/TripCoverPlaceholder.vue';
 import TripCoverRegenerateButton from '@/components/TripCoverRegenerateButton.vue';
 import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
 import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
+import { useTripRouteStops } from '@/composables/useTripRouteStops';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,11 @@ const errors = computed(
 );
 
 const hasRoute = computed(() => hasCalculatedRoute(props.trip.route));
+
+const { routeChainLabels, routeMapPoints, hasMultiStopRoute } = useTripRouteStops({
+    trip: props.trip,
+    routeSummary: props.trip.route_summary,
+});
 
 const { waitingForCover } = useTripCoverAutoRefresh();
 
@@ -216,8 +222,10 @@ function handleFlash(event: Event): void {
     }
 }
 
+let removeFlashListener: (() => void) | undefined;
+
 onMounted(() => {
-    router.on('flash', handleFlash);
+    removeFlashListener = router.on('flash', handleFlash);
 
     if (!hasRoute.value) {
         activePanel.value = 'tools';
@@ -225,7 +233,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-    router.off('flash', handleFlash);
+    removeFlashListener?.();
 });
 </script>
 
@@ -317,22 +325,44 @@ onUnmounted(() => {
                     <div
                         class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
                     >
-                        <span class="font-medium text-foreground">
-                            {{ locationLabel(trip.origin) || 'Origin' }}
-                        </span>
-                        <span
-                            class="inline-flex items-center gap-1 text-muted-foreground"
-                        >
-                            <span class="h-px w-6 bg-border sm:w-10" />
-                            <Route class="size-3.5 shrink-0 text-teal-600" />
-                            <span class="h-px w-6 bg-border sm:w-10" />
-                        </span>
-                        <span class="font-medium text-foreground">
-                            {{
-                                locationLabel(trip.destination) ||
-                                'Destination'
-                            }}
-                        </span>
+                        <template v-if="hasMultiStopRoute">
+                            <template
+                                v-for="(label, index) in routeChainLabels"
+                                :key="`${label}-${index}`"
+                            >
+                                <span
+                                    v-if="index > 0"
+                                    class="inline-flex items-center gap-1 text-muted-foreground"
+                                >
+                                    <span class="h-px w-4 bg-border sm:w-6" />
+                                    <Route
+                                        class="size-3.5 shrink-0 text-teal-600"
+                                    />
+                                    <span class="h-px w-4 bg-border sm:w-6" />
+                                </span>
+                                <span class="font-medium text-foreground">
+                                    {{ label }}
+                                </span>
+                            </template>
+                        </template>
+                        <template v-else>
+                            <span class="font-medium text-foreground">
+                                {{ locationLabel(trip.origin) || 'Origin' }}
+                            </span>
+                            <span
+                                class="inline-flex items-center gap-1 text-muted-foreground"
+                            >
+                                <span class="h-px w-6 bg-border sm:w-10" />
+                                <Route class="size-3.5 shrink-0 text-teal-600" />
+                                <span class="h-px w-6 bg-border sm:w-10" />
+                            </span>
+                            <span class="font-medium text-foreground">
+                                {{
+                                    locationLabel(trip.destination) ||
+                                    'Destination'
+                                }}
+                            </span>
+                        </template>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2 pt-1">
@@ -482,6 +512,7 @@ onUnmounted(() => {
                     :origin="trip.origin"
                     :destination="trip.destination"
                     :route="trip.route"
+                    :city-points="hasMultiStopRoute ? routeMapPoints : []"
                     :stops="trip.stops"
                     :suggested-breaks="trip.suggested_breaks"
                     :amenity-places="activeAmenityPlaces"

@@ -44,6 +44,14 @@ export type TripRouteStop = {
     departure_date?: string | null;
 };
 
+export type TripRouteMapPoint = {
+    sequence: number;
+    label: string;
+    lat: number;
+    lng: number;
+    kind: TripRouteStopKind;
+};
+
 export type TripRouteSummary = {
     route_mode: TripRouteMode;
     returns_to_origin: boolean;
@@ -161,6 +169,42 @@ export function locationHasCoordinates(
 
 export function openStreetMapUrl(lat: number, lng: number): string {
     return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=12/${lat}/${lng}`;
+}
+
+export function openStreetMapBoundsUrl(
+    points: Array<{ lat: number; lng: number }>,
+): string | null {
+    if (points.length === 0) {
+        return null;
+    }
+
+    if (points.length === 1) {
+        return openStreetMapUrl(points[0].lat, points[0].lng);
+    }
+
+    const lats = points.map((point) => point.lat);
+    const lngs = points.map((point) => point.lng);
+    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    const latSpan = Math.max(...lats) - Math.min(...lats);
+    const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+    const span = Math.max(latSpan, lngSpan);
+
+    let zoom = 6;
+
+    if (span < 0.05) {
+        zoom = 12;
+    } else if (span < 0.2) {
+        zoom = 10;
+    } else if (span < 1) {
+        zoom = 8;
+    } else if (span < 4) {
+        zoom = 6;
+    } else {
+        zoom = 5;
+    }
+
+    return `https://www.openstreetmap.org/#map=${zoom}/${centerLat}/${centerLng}`;
 }
 
 export function locationRouteLabel(

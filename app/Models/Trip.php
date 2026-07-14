@@ -674,10 +674,6 @@ class Trip extends Model
      */
     private function waypointsForFrontend(): array
     {
-        if ($this->isRoadTrip()) {
-            return [];
-        }
-
         return self::normalizeWaypoints($this->getAttribute('waypoints'));
     }
 
@@ -691,10 +687,6 @@ class Trip extends Model
      */
     private function routeSummaryForFrontend(): ?array
     {
-        if ($this->isRoadTrip()) {
-            return null;
-        }
-
         return app(TripRouteResolver::class)->summary($this);
     }
 }

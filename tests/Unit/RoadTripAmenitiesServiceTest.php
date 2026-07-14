@@ -218,3 +218,45 @@ test('hotels are fetched with a wider search radius along the route', function (
     expect($hotels)->not->toBeEmpty()
         ->and($hotels[0]['name'])->toBe('Highway Hotel');
 });
+
+test('road trip amenity layers use supported geoapify categories', function () {
+    expect(RoadTripAmenitiesService::LAYER_CATEGORIES)->toMatchArray([
+        'tyres' => 'commercial.vehicle',
+        'rest_areas' => 'leisure.picnic,highway.motorway.junction',
+        'emergency' => 'emergency,service.police,service.fire_station',
+        'viewpoints' => 'tourism.attraction.viewpoint,tourism.attraction',
+    ]);
+});
+
+test('non-hotel amenity layers batch categories into one places search per sample point', function () {
+    $placesService = Mockery::mock(PlacesService::class);
+    $placesService->shouldReceive('searchNearby')
+        ->twice()
+        ->withArgs(function (float $lat, float $lng, string $categories, int $limit, int $radius): bool {
+            return $categories === 'leisure.picnic,highway.motorway.junction'
+                && $limit === 5
+                && $radius === 2000;
+        })
+        ->andReturn([
+            new PlaceResult(
+                name: 'Highway Rest Stop',
+                category: 'leisure.picnic',
+                latitude: 23.0,
+                longitude: 88.1,
+            ),
+        ]);
+
+    app()->instance(PlacesService::class, $placesService);
+
+    $trip = new Trip([
+        'route' => [
+            'distance_km' => 120,
+            'polyline' => [[22.5726, 88.3639], [23.6611, 87.6962]],
+        ],
+    ]);
+
+    $restAreas = app(RoadTripAmenitiesService::class)->fetchForTrip($trip, 'rest_areas');
+
+    expect($restAreas)->toHaveCount(1)
+        ->and($restAreas[0]['name'])->toBe('Highway Rest Stop');
+});

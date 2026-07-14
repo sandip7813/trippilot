@@ -114,6 +114,101 @@ test('users can create a road trip and calculate the route', function () {
         ->and($trip->routeData()['polyline'] ?? [])->not->toBeEmpty();
 });
 
+test('users can create a multi-stop road trip with waypoints', function () {
+    fakeGeoapifyRouting();
+
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('road-trips.store'), validRoadTripPayload([
+            'route_mode' => 'multi_city',
+            'returns_to_origin' => false,
+            'waypoints' => [
+                [
+                    'sequence' => 1,
+                    'location' => [
+                        'label' => 'Pune, India',
+                        'lat' => 18.5204,
+                        'lng' => 73.8567,
+                        'place_id' => 'test-pune',
+                        'country_code' => 'in',
+                    ],
+                ],
+                [
+                    'sequence' => 2,
+                    'location' => [
+                        'label' => 'Goa, India',
+                        'lat' => 15.2993,
+                        'lng' => 74.124,
+                        'place_id' => 'test-goa',
+                        'country_code' => 'in',
+                    ],
+                ],
+            ],
+            'destination' => [
+                'label' => 'Goa, India',
+                'lat' => 15.2993,
+                'lng' => 74.124,
+                'place_id' => 'test-goa',
+                'country_code' => 'in',
+            ],
+        ]))
+        ->assertRedirect();
+
+    $trip = Trip::query()->where('user_id', $user->id)->first();
+
+    expect($trip)->not->toBeNull()
+        ->and($trip->route_mode?->value)->toBe('multi_city')
+        ->and($trip->getAttribute('waypoints'))->toHaveCount(2)
+        ->and($trip->routeData()['distance_km'] ?? null)->toBe(150.0);
+});
+
+test('road trip show page exposes waypoints and route summary', function () {
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->road()->create([
+        'route_mode' => 'multi_city',
+        'returns_to_origin' => false,
+        'waypoints' => [
+            [
+                'sequence' => 1,
+                'location' => [
+                    'label' => 'Pune, India',
+                    'lat' => 18.5204,
+                    'lng' => 73.8567,
+                ],
+            ],
+            [
+                'sequence' => 2,
+                'location' => [
+                    'label' => 'Goa, India',
+                    'lat' => 15.2993,
+                    'lng' => 74.124,
+                ],
+            ],
+        ],
+        'destination' => [
+            'label' => 'Goa, India',
+            'lat' => 15.2993,
+            'lng' => 74.124,
+        ],
+        'route' => [
+            'distance_km' => 450,
+            'duration_seconds' => 18000,
+            'has_tolls' => false,
+            'polyline' => [[19.076, 72.8777], [18.5204, 73.8567], [15.2993, 74.124]],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('road-trips.show', $trip))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('RoadTrips/Show')
+            ->has('trip.waypoints', 2)
+            ->where('trip.route_mode', 'multi_city')
+            ->has('trip.route_summary.route_stops'));
+});
+
 test('users can view their road trip show page', function () {
     $user = User::factory()->create();
     $trip = Trip::factory()->forUser($user)->road()->create([
