@@ -21,6 +21,7 @@ use App\Services\RoadTrips\RoadTripAmenitiesService;
 use App\Services\RoadTrips\RoadTripBreakSuggestionService;
 use App\Services\RoadTrips\RoadTripRouteService;
 use App\Services\Trips\TripCoverImageService;
+use App\Services\Weather\TripWeatherService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -91,7 +92,7 @@ class RoadTripController extends Controller
         return to_route('road-trips.show', $trip);
     }
 
-    public function show(Trip $road_trip): Response
+    public function show(Trip $road_trip, TripWeatherService $tripWeather): Response
     {
         $this->authorize('view', $road_trip);
         $this->ensureRoadTrip($road_trip);
@@ -102,6 +103,7 @@ class RoadTripController extends Controller
             'mapsConfigured' => filled(config('integrations.maps.drivers.geoapify.api_key')),
             'aiConfigured' => filled(config('integrations.ai.drivers.gemini.api_key')),
             'amenityLayers' => app(RoadTripAmenitiesService::class)->layersForTrip($road_trip),
+            'weather' => $tripWeather->forTrip($road_trip),
         ]);
     }
 

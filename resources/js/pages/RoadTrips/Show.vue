@@ -11,6 +11,8 @@ import {
     EyeOff,
     Map as MapIcon,
     MapPin,
+    Maximize2,
+    Minimize2,
     Navigation,
     Pencil,
     RefreshCw,
@@ -59,6 +61,8 @@ import type {
 } from '@/types/roadTrip';
 import type { TripOption } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
+import TripWeatherCard from '@/components/TripWeatherCard.vue';
+import type { TripWeather } from '@/types/weather';
 
 const RoadTripMap = defineAsyncComponent({
     loader: () => import('@/components/road-trips/RoadTripMap.vue'),
@@ -71,6 +75,7 @@ const props = defineProps<
         mapsConfigured: boolean;
         aiConfigured: boolean;
         amenityLayers: string[];
+        weather: TripWeather | null;
     }
 >();
 
@@ -105,6 +110,8 @@ const { routeChainLabels, routeMapPoints, hasMultiStopRoute } =
     });
 
 const { waitingForCover } = useTripCoverAutoRefresh();
+
+const bannerExpanded = ref(false);
 
 const hasRoutePolyline = computed(
     () => (props.trip.route?.polyline?.length ?? 0) >= 2,
@@ -254,35 +261,67 @@ onUnmounted(() => {
         <div
             v-else
             class="relative -mx-4 overflow-hidden rounded-2xl border border-border/70 shadow-md md:-mx-6"
+            :class="bannerExpanded ? 'bg-muted/30' : ''"
         >
-            <img
-                :key="`${trip.cover_image_version}-${trip.cover_image_url}`"
-                :src="trip.cover_image_url"
-                :alt="`${trip.title} cover`"
-                class="h-36 w-full object-cover md:h-44"
-                width="1920"
-                height="600"
-                fetchpriority="high"
-                decoding="async"
-            />
+            <div
+                :class="
+                    cn(
+                        'w-full overflow-hidden',
+                        bannerExpanded
+                            ? 'aspect-[21/9] min-h-[13rem] sm:min-h-[16rem] lg:min-h-[20rem]'
+                            : 'h-36 md:h-44',
+                    )
+                "
+            >
+                <img
+                    :key="`${trip.cover_image_version}-${trip.cover_image_url}`"
+                    :src="trip.cover_image_url"
+                    :alt="`${trip.title} cover`"
+                    width="1920"
+                    height="900"
+                    fetchpriority="high"
+                    decoding="async"
+                    :class="
+                        cn(
+                            'size-full',
+                            bannerExpanded
+                                ? 'object-contain object-center'
+                                : 'object-cover',
+                        )
+                    "
+                />
+            </div>
             <div
                 class="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent"
             />
-            <div class="absolute top-3 right-3 flex items-center gap-2">
+            <div class="absolute top-3 right-3 z-10 flex items-center gap-2">
                 <TripCoverRegenerateButton
                     :form-binding="RoadTripController.syncCover.form(trip.id)"
                     :has-cover="true"
                     :exhausted="Boolean(trip.cover_image_exhausted)"
                     variant="secondary"
-                    size="sm"
-                    class="border-border/60 bg-background/90 shadow-sm backdrop-blur-sm"
+                    size="icon"
+                    class="size-8 border-border/60 bg-background/90 shadow-sm backdrop-blur-sm"
                 />
                 <TripCoverUploadButton
                     :form-binding="RoadTripController.uploadCover.form(trip.id)"
                     variant="secondary"
-                    size="sm"
-                    class="border-border/60 bg-background/90 shadow-sm backdrop-blur-sm"
+                    size="icon"
+                    class="size-8 border-border/60 bg-background/90 shadow-sm backdrop-blur-sm"
                 />
+                <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    class="size-8 border-border/60 bg-background/90 shadow-sm backdrop-blur-sm"
+                    :title="
+                        bannerExpanded ? 'Collapse banner' : 'Expand banner'
+                    "
+                    @click="bannerExpanded = !bannerExpanded"
+                >
+                    <Minimize2 v-if="bannerExpanded" class="size-4" />
+                    <Maximize2 v-else class="size-4" />
+                </Button>
             </div>
         </div>
 
@@ -559,6 +598,8 @@ onUnmounted(() => {
                 Click <strong>Recalculate</strong> to redraw it.
             </p>
         </div>
+
+        <TripWeatherCard :weather="weather" class="h-auto" />
 
         <div
             class="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm"
