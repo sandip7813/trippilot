@@ -3,9 +3,9 @@ import { computed, ref, watch } from 'vue';
 import DatePickerField from '@/components/DatePickerField.vue';
 import InputError from '@/components/InputError.vue';
 import LocationField from '@/components/LocationField.vue';
-import WaypointListEditor from '@/components/WaypointListEditor.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import WaypointListEditor from '@/components/WaypointListEditor.vue';
 import { isoToday } from '@/lib/dates';
 import type {
     RoadProfile,
@@ -74,9 +74,7 @@ const selectedVehicleClass = ref(profile.value.vehicle_class);
 
 const today = isoToday();
 
-const isBicycleTrip = computed(
-    () => selectedVehicleClass.value === 'bicycle',
-);
+const isBicycleTrip = computed(() => selectedVehicleClass.value === 'bicycle');
 
 const visibleFuelTypes = computed(() =>
     isBicycleTrip.value
@@ -104,9 +102,7 @@ const minEndDate = computed(
     (): string => startDateIso.value || minStartDate.value,
 );
 
-const routeMode = computed(() =>
-    isMultiCity.value ? 'multi_city' : 'simple',
-);
+const routeMode = computed(() => (isMultiCity.value ? 'multi_city' : 'simple'));
 
 const syncedDestination = computed(() => {
     if (!isMultiCity.value) {
@@ -275,10 +271,7 @@ watch(isMultiCity, (enabled) => {
                         {{ option.label }}
                     </option>
                 </select>
-                <p
-                    v-if="isBicycleTrip"
-                    class="text-xs text-muted-foreground"
-                >
+                <p v-if="isBicycleTrip" class="text-xs text-muted-foreground">
                     Fuel and EV layers are hidden for bicycle trips. Use food,
                     hotels, viewpoints, and bike shops along the route instead.
                 </p>

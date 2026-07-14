@@ -140,7 +140,9 @@ export const amenityLayerStyles: Record<string, AmenityLayerStyle> = {
     bike: { color: '#0d9488', glyph: '🚲' },
 };
 
-export function amenityLayerStyle(layer: string | null | undefined): AmenityLayerStyle {
+export function amenityLayerStyle(
+    layer: string | null | undefined,
+): AmenityLayerStyle {
     if (layer && amenityLayerStyles[layer]) {
         return amenityLayerStyles[layer];
     }
@@ -180,10 +182,12 @@ export function breakKindLabel(kind: string): string {
     return labels[kind] ?? kind;
 }
 
-export function breakDisplayReason(reason: string | null | undefined): string | null {
+export function breakDisplayReason(
+    reason: string | null | undefined,
+): string | null {
     const trimmed = reason?.trim();
 
-    if (! trimmed || trimmed === 'Suggested stop along your route.') {
+    if (!trimmed || trimmed === 'Suggested stop along your route.') {
         return null;
     }
 

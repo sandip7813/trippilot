@@ -3,9 +3,9 @@ import { computed, ref, watch } from 'vue';
 import DatePickerField from '@/components/DatePickerField.vue';
 import InputError from '@/components/InputError.vue';
 import LocationField from '@/components/LocationField.vue';
-import WaypointListEditor from '@/components/WaypointListEditor.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import WaypointListEditor from '@/components/WaypointListEditor.vue';
 import { isoToday } from '@/lib/dates';
 import type {
     Trip,
@@ -75,9 +75,7 @@ const minEndDate = computed(
     (): string => startDateIso.value || minStartDate.value,
 );
 
-const routeMode = computed(() =>
-    isMultiCity.value ? 'multi_city' : 'simple',
-);
+const routeMode = computed(() => (isMultiCity.value ? 'multi_city' : 'simple'));
 
 const syncedDestination = computed(() => {
     if (!isMultiCity.value) {

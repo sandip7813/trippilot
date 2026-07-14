@@ -97,7 +97,9 @@ watch(
 
 <template>
     <Dialog v-model:open="open">
-        <DialogContent class="max-h-[85vh] gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <DialogContent
+            class="max-h-[85vh] gap-0 overflow-hidden p-0 sm:max-w-3xl"
+        >
             <DialogHeader class="space-y-1 border-b border-border/60 px-6 py-4">
                 <DialogTitle>{{ title }}</DialogTitle>
                 <DialogDescription>{{ subtitle }}</DialogDescription>
@@ -123,7 +125,10 @@ watch(
                                 (halts.halt_count ?? 0) === 1 ? '' : 's'
                             }}
                         </Badge>
-                        <Badge v-if="train.distance_km != null" variant="secondary">
+                        <Badge
+                            v-if="train.distance_km != null"
+                            variant="secondary"
+                        >
                             {{ train.distance_km.toFixed(1) }} km
                         </Badge>
                         <Badge v-if="train.duration_label" variant="secondary">
@@ -131,19 +136,31 @@ watch(
                         </Badge>
                     </div>
 
-                    <div class="overflow-x-auto rounded-lg border border-border/60">
+                    <div
+                        class="overflow-x-auto rounded-lg border border-border/60"
+                    >
                         <table class="w-full min-w-[32rem] text-sm">
                             <thead>
                                 <tr
                                     class="border-b border-border/60 bg-muted/40 text-left text-xs tracking-wide text-muted-foreground uppercase"
                                 >
                                     <th class="px-3 py-2 font-medium">#</th>
-                                    <th class="px-3 py-2 font-medium">Station</th>
-                                    <th class="px-3 py-2 font-medium">Arrival</th>
-                                    <th class="px-3 py-2 font-medium">Departure</th>
+                                    <th class="px-3 py-2 font-medium">
+                                        Station
+                                    </th>
+                                    <th class="px-3 py-2 font-medium">
+                                        Arrival
+                                    </th>
+                                    <th class="px-3 py-2 font-medium">
+                                        Departure
+                                    </th>
                                     <th class="px-3 py-2 font-medium">Halt</th>
-                                    <th class="px-3 py-2 font-medium">Platform</th>
-                                    <th class="px-3 py-2 font-medium">Distance</th>
+                                    <th class="px-3 py-2 font-medium">
+                                        Platform
+                                    </th>
+                                    <th class="px-3 py-2 font-medium">
+                                        Distance
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -152,17 +169,23 @@ watch(
                                     :key="`${halt.code}-${halt.sequence}`"
                                     class="border-b border-border/40 last:border-b-0"
                                     :class="{
-                                        'bg-orange-500/5': halt.is_boarding || halt.is_alighting,
+                                        'bg-orange-500/5':
+                                            halt.is_boarding ||
+                                            halt.is_alighting,
                                     }"
                                 >
-                                    <td class="px-3 py-2.5 text-muted-foreground">
+                                    <td
+                                        class="px-3 py-2.5 text-muted-foreground"
+                                    >
                                         {{ halt.sequence ?? '—' }}
                                     </td>
                                     <td class="px-3 py-2.5">
                                         <p class="font-medium">
                                             {{ halt.code }}
                                         </p>
-                                        <p class="text-xs text-muted-foreground">
+                                        <p
+                                            class="text-xs text-muted-foreground"
+                                        >
                                             {{ halt.name }}
                                         </p>
                                         <div class="mt-1 flex flex-wrap gap-1">
@@ -188,7 +211,9 @@ watch(
                                     <td class="px-3 py-2.5 font-medium">
                                         {{ halt.departure ?? '—' }}
                                     </td>
-                                    <td class="px-3 py-2.5 text-muted-foreground">
+                                    <td
+                                        class="px-3 py-2.5 text-muted-foreground"
+                                    >
                                         {{
                                             halt.halt_minutes != null
                                                 ? `${halt.halt_minutes}m`
@@ -197,10 +222,14 @@ watch(
                                                   : 'Pass'
                                         }}
                                     </td>
-                                    <td class="px-3 py-2.5 text-muted-foreground">
+                                    <td
+                                        class="px-3 py-2.5 text-muted-foreground"
+                                    >
                                         {{ halt.platform ?? '—' }}
                                     </td>
-                                    <td class="px-3 py-2.5 text-muted-foreground">
+                                    <td
+                                        class="px-3 py-2.5 text-muted-foreground"
+                                    >
                                         {{
                                             halt.distance_km != null
                                                 ? `${halt.distance_km.toFixed(1)} km`
@@ -213,10 +242,7 @@ watch(
                     </div>
                 </div>
 
-                <p
-                    v-else
-                    class="py-6 text-sm text-muted-foreground"
-                >
+                <p v-else class="py-6 text-sm text-muted-foreground">
                     No halt details are available for this train segment.
                 </p>
             </div>

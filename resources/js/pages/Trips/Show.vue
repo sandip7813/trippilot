@@ -13,15 +13,14 @@ import TripController from '@/actions/App/Http/Controllers/TripController';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import LocationCoordinatesAlert from '@/components/LocationCoordinatesAlert.vue';
 import PageHeader from '@/components/PageHeader.vue';
-import TripCoverPlaceholder from '@/components/TripCoverPlaceholder.vue';
-import TripCoverRegenerateButton from '@/components/TripCoverRegenerateButton.vue';
-import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
-import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import TripHubAtAGlance from '@/components/trip-hub/TripHubAtAGlance.vue';
 import TripHubItinerarySection from '@/components/trip-hub/TripHubItinerarySection.vue';
 import TripHubPracticalSection from '@/components/trip-hub/TripHubPracticalSection.vue';
 import TripHubTrainTimings from '@/components/trip-hub/TripHubTrainTimings.vue';
 import TripHubUsefulLinks from '@/components/trip-hub/TripHubUsefulLinks.vue';
+import TripCoverPlaceholder from '@/components/TripCoverPlaceholder.vue';
+import TripCoverRegenerateButton from '@/components/TripCoverRegenerateButton.vue';
+import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
 import TripWeatherCard from '@/components/TripWeatherCard.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,13 +34,14 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import { normalizeBudgetBreakdown } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { edit, index as tripsIndex } from '@/routes/trips';
-import type { Trip } from '@/types/trip';
-import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
-import type { TripWeather } from '@/types/weather';
 import type { TripTrainTimings } from '@/types/train';
+import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
+import type { Trip } from '@/types/trip';
+import type { TripWeather } from '@/types/weather';
 
 const props = defineProps<{
     trip: Trip;
@@ -168,7 +168,9 @@ const { waitingForCover } = useTripCoverAutoRefresh();
                     variant="secondary"
                     size="icon"
                     class="size-8 border-border/60 bg-background/85 shadow-sm backdrop-blur-sm"
-                    :title="bannerExpanded ? 'Collapse banner' : 'Expand banner'"
+                    :title="
+                        bannerExpanded ? 'Collapse banner' : 'Expand banner'
+                    "
                     @click="bannerExpanded = !bannerExpanded"
                 >
                     <Minimize2 v-if="bannerExpanded" class="size-4" />
@@ -296,7 +298,10 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             </template>
         </PageHeader>
 
-        <div v-if="trip.cover_image_url" class="flex flex-wrap items-center justify-end gap-2">
+        <div
+            v-if="trip.cover_image_url"
+            class="flex flex-wrap items-center justify-end gap-2"
+        >
             <TripCoverRegenerateButton
                 :form-binding="TripController.syncCover.form(trip.id)"
                 :has-cover="true"

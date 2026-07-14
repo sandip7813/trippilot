@@ -35,7 +35,11 @@ function markerColor(kind: TripRouteMapPoint['kind']): string {
     return '#6366f1';
 }
 
-function numberedPinIcon(L: LeafletModule, color: string, label: string): DivIcon {
+function numberedPinIcon(
+    L: LeafletModule,
+    color: string,
+    label: string,
+): DivIcon {
     const width = 36;
     const height = 46;
 
@@ -88,19 +92,18 @@ function renderMap(): void {
     for (const point of props.points) {
         const position: LatLngExpression = [point.lat, point.lng];
         const last = linePoints[linePoints.length - 1] as
-            | [number, number]
-            | undefined;
+            [number, number] | undefined;
 
-        if (
-            !last ||
-            last[0] !== point.lat ||
-            last[1] !== point.lng
-        ) {
+        if (!last || last[0] !== point.lat || last[1] !== point.lng) {
             linePoints.push(position);
         }
 
         const marker = L.marker(position, {
-            icon: numberedPinIcon(L, markerColor(point.kind), String(point.sequence)),
+            icon: numberedPinIcon(
+                L,
+                markerColor(point.kind),
+                String(point.sequence),
+            ),
             zIndexOffset: point.kind === 'origin' ? 1000 : 500,
         });
 

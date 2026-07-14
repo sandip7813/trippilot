@@ -1,4 +1,5 @@
-import { computed, type ComputedRef } from 'vue';
+import { computed  } from 'vue';
+import type {ComputedRef} from 'vue';
 import type {
     Trip,
     TripLocation,
@@ -97,9 +98,7 @@ export function useTripRouteStops(
                     label,
                     nights: null,
                     arrival_date:
-                        existing?.arrival_date ??
-                        options.trip.end_date ??
-                        null,
+                        existing?.arrival_date ?? options.trip.end_date ?? null,
                     departure_date: null,
                 });
 
@@ -303,10 +302,7 @@ function locationForRouteStop(
         }
     }
 
-    if (
-        trip.destination &&
-        labelsMatch(trip.destination.label, stop.label)
-    ) {
+    if (trip.destination && labelsMatch(trip.destination.label, stop.label)) {
         return trip.destination;
     }
 

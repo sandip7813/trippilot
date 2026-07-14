@@ -26,8 +26,8 @@ const page = usePage<{
     };
 }>();
 
-const coverImageVersion = computed(
-    () => Number(page.props.trip?.cover_image_version ?? 0),
+const coverImageVersion = computed(() =>
+    Number(page.props.trip?.cover_image_version ?? 0),
 );
 
 const waitingForUpload = ref(false);
@@ -122,7 +122,9 @@ onUnmounted(() => {
                     class="sr-only"
                     :disabled="processing || waitingForUpload"
                     @change="
-                        ($event.target as HTMLInputElement).form?.requestSubmit()
+                        (
+                            $event.target as HTMLInputElement
+                        ).form?.requestSubmit()
                     "
                 />
             </label>

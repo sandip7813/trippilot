@@ -17,9 +17,7 @@ const props = defineProps<{
     compact?: boolean;
 }>();
 
-const isUnavailable = computed(
-    () => props.segment.available === false,
-);
+const isUnavailable = computed(() => props.segment.available === false);
 
 const forecastDays = computed(
     () => props.segment.forecast_days ?? props.segment.days ?? [],
@@ -70,10 +68,7 @@ function nightsLabel(nights: number | null | undefined): string | null {
 <template>
     <div class="space-y-3">
         <div class="flex flex-wrap items-center gap-2">
-            <p
-                v-if="!compact && segment.segment_label"
-                class="font-medium"
-            >
+            <p v-if="!compact && segment.segment_label" class="font-medium">
                 <span
                     v-if="segment.sequence"
                     class="mr-1.5 text-muted-foreground"
@@ -105,8 +100,7 @@ function nightsLabel(nights: number | null | undefined): string | null {
 
         <p v-if="isUnavailable" class="text-sm text-muted-foreground">
             {{
-                segment.message ??
-                'Weather is not available for this stop yet.'
+                segment.message ?? 'Weather is not available for this stop yet.'
             }}
         </p>
 
@@ -115,35 +109,22 @@ function nightsLabel(nights: number | null | undefined): string | null {
                 {{ segment.summary }}
             </p>
 
-            <div
-                v-if="showTypicalStats"
-                class="grid gap-3 sm:grid-cols-3"
-            >
-                <div
-                    class="rounded-lg border border-border/60 bg-muted/20 p-3"
-                >
-                    <p class="text-xs text-muted-foreground">
-                        Typical range
-                    </p>
+            <div v-if="showTypicalStats" class="grid gap-3 sm:grid-cols-3">
+                <div class="rounded-lg border border-border/60 bg-muted/20 p-3">
+                    <p class="text-xs text-muted-foreground">Typical range</p>
                     <p class="mt-1 text-lg font-semibold">
                         {{ segment.temperature_min }}–{{
                             segment.temperature_max
                         }}°C
                     </p>
                 </div>
-                <div
-                    class="rounded-lg border border-border/60 bg-muted/20 p-3"
-                >
-                    <p class="text-xs text-muted-foreground">
-                        Avg daily rain
-                    </p>
+                <div class="rounded-lg border border-border/60 bg-muted/20 p-3">
+                    <p class="text-xs text-muted-foreground">Avg daily rain</p>
                     <p class="mt-1 text-lg font-semibold">
                         {{ segment.avg_daily_precipitation_mm }} mm
                     </p>
                 </div>
-                <div
-                    class="rounded-lg border border-border/60 bg-muted/20 p-3"
-                >
+                <div class="rounded-lg border border-border/60 bg-muted/20 p-3">
                     <p class="text-xs text-muted-foreground">Rainy days</p>
                     <p class="mt-1 text-lg font-semibold">
                         ~{{ segment.rainy_day_percent }}%

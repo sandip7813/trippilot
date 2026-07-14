@@ -11,8 +11,8 @@ import {
     shortCityLabel,
     useTripRouteStops,
 } from '@/composables/useTripRouteStops';
-import { openStreetMapBoundsUrl } from '@/types/trip';
 import type { Trip } from '@/types/trip';
+import { openStreetMapBoundsUrl } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
 const TripRouteMap = defineAsyncComponent(

@@ -15,7 +15,9 @@ const props = defineProps<{
 }>();
 
 const variant = computed(() => props.variant ?? 'vacation');
-const showNights = computed(() => props.showNights ?? variant.value === 'vacation');
+const showNights = computed(
+    () => props.showNights ?? variant.value === 'vacation',
+);
 
 const description = computed(() =>
     variant.value === 'road'
@@ -24,7 +26,9 @@ const description = computed(() =>
 );
 
 const waypoints = defineModel<TripWaypoint[]>('waypoints', { required: true });
-const returnsToOrigin = defineModel<boolean>('returnsToOrigin', { required: true });
+const returnsToOrigin = defineModel<boolean>('returnsToOrigin', {
+    required: true,
+});
 
 const canRemove = computed(() => waypoints.value.length > 2);
 
@@ -163,7 +167,9 @@ function locationPrefix(index: number): string {
                 />
 
                 <div v-if="showNights" class="mt-4 grid gap-2 sm:max-w-xs">
-                    <Label :for="`waypoint-nights-${index}`">Nights (optional)</Label>
+                    <Label :for="`waypoint-nights-${index}`"
+                        >Nights (optional)</Label
+                    >
                     <Input
                         :id="`waypoint-nights-${index}`"
                         :name="`waypoints[${index}][nights]`"
@@ -180,13 +186,19 @@ function locationPrefix(index: number): string {
                                         : Number(value))
                         "
                     />
-                    <InputError :message="errors[`waypoints.${index}.nights`]" />
+                    <InputError
+                        :message="errors[`waypoints.${index}.nights`]"
+                    />
                 </div>
             </div>
         </div>
 
         <label class="flex items-center gap-2 text-sm">
-            <input type="hidden" name="returns_to_origin" :value="returnsToOrigin ? '1' : '0'" />
+            <input
+                type="hidden"
+                name="returns_to_origin"
+                :value="returnsToOrigin ? '1' : '0'"
+            />
             <input
                 v-model="returnsToOrigin"
                 type="checkbox"

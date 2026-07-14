@@ -31,12 +31,10 @@ const page = usePage<{
     };
 }>();
 
-const coverImageUrl = computed(
-    () => page.props.trip?.cover_image_url ?? null,
-);
+const coverImageUrl = computed(() => page.props.trip?.cover_image_url ?? null);
 
-const coverImageVersion = computed(
-    () => Number(page.props.trip?.cover_image_version ?? 0),
+const coverImageVersion = computed(() =>
+    Number(page.props.trip?.cover_image_version ?? 0),
 );
 
 const isExhausted = computed(
@@ -54,9 +52,7 @@ const label = computed(() => {
         return 'No more automatic photos';
     }
 
-    return props.hasCover
-        ? 'Try another photo'
-        : 'Find cover photo';
+    return props.hasCover ? 'Try another photo' : 'Find cover photo';
 });
 
 function clearPolling(): void {
