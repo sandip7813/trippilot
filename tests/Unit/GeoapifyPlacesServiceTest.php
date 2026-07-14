@@ -62,6 +62,28 @@ test('geoapify places search accepts a custom radius', function () {
     });
 });
 
+test('geoapify places searchNearPoint batches categories into one request', function () {
+    config(['integrations.maps.drivers.geoapify.api_key' => 'test-key']);
+
+    Http::fake([
+        'api.geoapify.com/v2/places*' => Http::response(['features' => []]),
+    ]);
+
+    app(GeoapifyPlacesService::class)->searchNearPoint(
+        22.5726459,
+        88.3638953,
+        ['accommodation.hotel', 'accommodation.motel'],
+        10,
+        8000,
+    );
+
+    Http::assertSentCount(1);
+
+    Http::assertSent(function ($request): bool {
+        return str_contains($request->url(), 'categories=accommodation.hotel%2Caccommodation.motel');
+    });
+});
+
 test('geoapify places falls back to requested category when none are returned', function () {
     config(['integrations.maps.drivers.geoapify.api_key' => 'test-key']);
 

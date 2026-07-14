@@ -5,13 +5,14 @@ import InputError from '@/components/InputError.vue';
 import LocationField from '@/components/LocationField.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import WaypointListEditor from '@/components/WaypointListEditor.vue';
 import { isoToday } from '@/lib/dates';
 import type {
     RoadProfile,
     RoadTrip,
     RoadTripFormOptions,
 } from '@/types/roadTrip';
-import type { TripLocation } from '@/types/trip';
+import type { TripLocation, TripWaypoint } from '@/types/trip';
 
 const props = defineProps<
     {
@@ -44,14 +45,36 @@ const destinationLocation = ref<TripLocation | null>(
     props.trip?.destination ?? null,
 );
 const notes = ref(props.trip?.notes ?? '');
+const isMultiCity = ref(
+    props.trip?.route_mode === 'multi_city' ||
+        (props.trip?.waypoints?.length ?? 0) >= 2,
+);
+const returnsToOrigin = ref(props.trip?.returns_to_origin ?? true);
+const waypoints = ref<TripWaypoint[]>(
+    props.trip?.waypoints?.length
+        ? props.trip.waypoints.map((waypoint, index) => ({
+              ...waypoint,
+              sequence: waypoint.sequence ?? index + 1,
+          }))
+        : [
+              {
+                  sequence: 1,
+                  location: { label: null, lat: null, lng: null },
+                  nights: null,
+              },
+              {
+                  sequence: 2,
+                  location: { label: null, lat: null, lng: null },
+                  nights: null,
+              },
+          ],
+);
 const selectedFuelType = ref(profile.value.fuel_type);
 const selectedVehicleClass = ref(profile.value.vehicle_class);
 
 const today = isoToday();
 
-const isBicycleTrip = computed(
-    () => selectedVehicleClass.value === 'bicycle',
-);
+const isBicycleTrip = computed(() => selectedVehicleClass.value === 'bicycle');
 
 const visibleFuelTypes = computed(() =>
     isBicycleTrip.value
@@ -79,6 +102,18 @@ const minEndDate = computed(
     (): string => startDateIso.value || minStartDate.value,
 );
 
+const routeMode = computed(() => (isMultiCity.value ? 'multi_city' : 'simple'));
+
+const syncedDestination = computed(() => {
+    if (!isMultiCity.value) {
+        return destinationLocation.value;
+    }
+
+    const lastWaypoint = waypoints.value[waypoints.value.length - 1];
+
+    return lastWaypoint?.location ?? null;
+});
+
 const showEvRange = computed(
     () =>
         selectedFuelType.value === 'ev' || selectedFuelType.value === 'hybrid',
@@ -87,6 +122,27 @@ const showEvRange = computed(
 watch(startDateIso, (nextStart) => {
     if (nextStart && endDateIso.value && endDateIso.value < nextStart) {
         endDateIso.value = nextStart;
+    }
+});
+
+watch(isMultiCity, (enabled) => {
+    if (enabled && waypoints.value.length < 2) {
+        waypoints.value = [
+            {
+                sequence: 1,
+                location: destinationLocation.value ?? {
+                    label: null,
+                    lat: null,
+                    lng: null,
+                },
+                nights: null,
+            },
+            {
+                sequence: 2,
+                location: { label: null, lat: null, lng: null },
+                nights: null,
+            },
+        ];
     }
 });
 </script>
@@ -115,15 +171,66 @@ watch(startDateIso, (nextStart) => {
             hint="Where your drive begins."
         />
 
-        <LocationField
-            v-model="destinationLocation"
-            prefix="destination"
-            label="Destination"
-            :errors="errors"
-            required
-            require-selection
-            hint="Your final stop on this road trip."
-        />
+        <div class="space-y-3">
+            <label class="flex items-center gap-2 text-sm font-medium">
+                <input
+                    v-model="isMultiCity"
+                    type="checkbox"
+                    class="size-4 rounded border border-input"
+                />
+                Multi-stop route
+            </label>
+
+            <input type="hidden" name="route_mode" :value="routeMode" />
+
+            <WaypointListEditor
+                v-if="isMultiCity"
+                v-model:waypoints="waypoints"
+                v-model:returns-to-origin="returnsToOrigin"
+                variant="road"
+                :show-nights="false"
+                :errors="errors"
+            />
+
+            <LocationField
+                v-else
+                v-model="destinationLocation"
+                prefix="destination"
+                label="Destination"
+                :errors="errors"
+                required
+                require-selection
+                hint="Your final stop on this road trip."
+            />
+
+            <template v-if="isMultiCity && syncedDestination">
+                <input
+                    type="hidden"
+                    name="destination[label]"
+                    :value="syncedDestination.label ?? ''"
+                />
+                <input
+                    type="hidden"
+                    name="destination[lat]"
+                    :value="syncedDestination.lat ?? ''"
+                />
+                <input
+                    type="hidden"
+                    name="destination[lng]"
+                    :value="syncedDestination.lng ?? ''"
+                />
+                <input
+                    type="hidden"
+                    name="destination[place_id]"
+                    :value="syncedDestination.place_id ?? ''"
+                />
+                <input
+                    type="hidden"
+                    name="destination[country_code]"
+                    :value="syncedDestination.country_code ?? ''"
+                />
+            </template>
+        </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
             <div class="grid gap-2">
@@ -164,10 +271,7 @@ watch(startDateIso, (nextStart) => {
                         {{ option.label }}
                     </option>
                 </select>
-                <p
-                    v-if="isBicycleTrip"
-                    class="text-xs text-muted-foreground"
-                >
+                <p v-if="isBicycleTrip" class="text-xs text-muted-foreground">
                     Fuel and EV layers are hidden for bicycle trips. Use food,
                     hotels, viewpoints, and bike shops along the route instead.
                 </p>

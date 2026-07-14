@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge';
+import { nightsLabel, stopKindLabel } from '@/composables/useTripRouteStops';
 import { formatDisplayDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
-import {
-    nightsLabel,
-    stopKindLabel,
-} from '@/composables/useTripRouteStops';
 import type { TripRouteStop } from '@/types/trip';
 
 defineProps<{

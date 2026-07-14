@@ -6,6 +6,7 @@ use App\Concerns\RoadTripValidationRules;
 use App\Concerns\TripValidationRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
+use Illuminate\Validation\Validator;
 
 class StoreRoadTripRequest extends FormRequest
 {
@@ -26,6 +27,11 @@ class StoreRoadTripRequest extends FormRequest
             ...Arr::except($this->tripRules(), ['type']),
             ...$this->roadProfileRules(),
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $this->validateMultiCityTrip($validator);
     }
 
     protected function prepareForValidation(): void

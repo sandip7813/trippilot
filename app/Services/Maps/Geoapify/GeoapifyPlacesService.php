@@ -61,15 +61,23 @@ class GeoapifyPlacesService implements PlacesService
         int $limit = 15,
         int $radiusMeters = 2000,
     ): array {
+        if ($categories === []) {
+            return [];
+        }
+
         $results = [];
 
-        foreach ($categories as $category) {
-            foreach ($this->searchNearby($latitude, $longitude, $category, $limit, $radiusMeters) as $place) {
-                $key = $place->placeId ?? "{$place->latitude},{$place->longitude},{$place->name}";
+        foreach ($this->searchNearby(
+            $latitude,
+            $longitude,
+            implode(',', $categories),
+            $limit,
+            $radiusMeters,
+        ) as $place) {
+            $key = $place->placeId ?? "{$place->latitude},{$place->longitude},{$place->name}";
 
-                if (! isset($results[$key])) {
-                    $results[$key] = $place;
-                }
+            if (! isset($results[$key])) {
+                $results[$key] = $place;
             }
         }
 

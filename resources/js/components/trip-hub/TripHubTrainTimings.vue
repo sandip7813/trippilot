@@ -5,9 +5,9 @@ import TripHubTrainHaltsDialog from '@/components/trip-hub/TripHubTrainHaltsDial
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 import { formatDisplayDate } from '@/lib/dates';
 import { formatTrainLabel } from '@/lib/trains';
+import { cn } from '@/lib/utils';
 import type {
     TripTrainLeg,
     TripTrainOption,
@@ -64,7 +64,7 @@ const activeLeg = computed(() => {
 
 watch(
     () => props.trainTimings,
-    (timings) => {
+    () => {
         const legs = legOptions.value;
         const firstAvailable = legs.find((leg) => leg.available)?.sequence;
 
@@ -110,7 +110,11 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                     Train timings
                 </CardTitle>
                 <p
-                    v-if="trainTimings?.route_label || (trainTimings?.origin_label && trainTimings?.destination_label)"
+                    v-if="
+                        trainTimings?.route_label ||
+                        (trainTimings?.origin_label &&
+                            trainTimings?.destination_label)
+                    "
                     class="mt-1 text-sm text-muted-foreground"
                 >
                     {{
@@ -131,10 +135,7 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
         </CardHeader>
 
         <CardContent class="space-y-4">
-            <p
-                v-if="!hasLegData"
-                class="text-sm text-muted-foreground"
-            >
+            <p v-if="!hasLegData" class="text-sm text-muted-foreground">
                 {{
                     trainTimings?.message ??
                     'Train timings are not available for this trip yet.'
@@ -192,7 +193,9 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                         "
                         @click="activeTab = tab.id"
                     >
-                        <span class="max-w-[12rem] truncate">{{ tab.label }}</span>
+                        <span class="max-w-[12rem] truncate">{{
+                            tab.label
+                        }}</span>
                         <Badge
                             v-if="tab.count > 0"
                             variant="secondary"
@@ -212,7 +215,9 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                                 {{ activeLeg.route_label }}
                             </p>
                             <p
-                                v-if="activeLeg.from_label && activeLeg.to_label"
+                                v-if="
+                                    activeLeg.from_label && activeLeg.to_label
+                                "
                                 class="text-xs text-muted-foreground"
                             >
                                 {{ activeLeg.from_label }} →
@@ -231,7 +236,10 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                     </div>
 
                     <div
-                        v-if="activeLeg.message && (activeLeg.trains?.length ?? 0) > 0"
+                        v-if="
+                            activeLeg.message &&
+                            (activeLeg.trains?.length ?? 0) > 0
+                        "
                         class="rounded-lg border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground"
                     >
                         {{ activeLeg.message }}
@@ -248,7 +256,10 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                     </p>
 
                     <p
-                        v-if="!activeLeg.available || (activeLeg.trains?.length ?? 0) === 0"
+                        v-if="
+                            !activeLeg.available ||
+                            (activeLeg.trains?.length ?? 0) === 0
+                        "
                         class="rounded-lg border border-dashed border-border/70 px-4 py-3 text-sm text-muted-foreground"
                     >
                         {{
@@ -267,10 +278,18 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                                     class="border-b border-border/60 bg-muted/40 text-left text-xs tracking-wide text-muted-foreground uppercase"
                                 >
                                     <th class="px-3 py-2 font-medium">Train</th>
-                                    <th class="px-3 py-2 font-medium">Departs</th>
-                                    <th class="px-3 py-2 font-medium">Arrives</th>
-                                    <th class="px-3 py-2 font-medium">Duration</th>
-                                    <th class="px-3 py-2 font-medium">Distance</th>
+                                    <th class="px-3 py-2 font-medium">
+                                        Departs
+                                    </th>
+                                    <th class="px-3 py-2 font-medium">
+                                        Arrives
+                                    </th>
+                                    <th class="px-3 py-2 font-medium">
+                                        Duration
+                                    </th>
+                                    <th class="px-3 py-2 font-medium">
+                                        Distance
+                                    </th>
                                     <th class="px-3 py-2 font-medium">Halts</th>
                                     <th class="px-3 py-2 font-medium">Runs</th>
                                     <th class="px-3 py-2 font-medium" />
@@ -283,7 +302,9 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                                     class="border-b border-border/40 last:border-b-0"
                                 >
                                     <td class="px-3 py-2.5 align-top">
-                                        <p class="max-w-[14rem] font-medium leading-snug">
+                                        <p
+                                            class="max-w-[14rem] leading-snug font-medium"
+                                        >
                                             {{ formatTrainLabel(train) }}
                                         </p>
                                         <div class="mt-1 flex flex-wrap gap-1">
@@ -313,7 +334,8 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                                                     train.live.delay_minutes > 0
                                                 "
                                             >
-                                                · {{ train.live.delay_minutes }}m
+                                                ·
+                                                {{ train.live.delay_minutes }}m
                                                 delay
                                             </span>
                                         </p>
@@ -323,7 +345,10 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                                             {{ train.departure ?? '—' }}
                                         </p>
                                         <p
-                                            v-if="train.departure_day && train.departure_day > 1"
+                                            v-if="
+                                                train.departure_day &&
+                                                train.departure_day > 1
+                                            "
                                             class="text-[11px] text-muted-foreground"
                                         >
                                             Day {{ train.departure_day }}
@@ -334,25 +359,36 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                                             {{ train.arrival ?? '—' }}
                                         </p>
                                         <p
-                                            v-if="train.day_offset && train.day_offset > 0"
+                                            v-if="
+                                                train.day_offset &&
+                                                train.day_offset > 0
+                                            "
                                             class="text-[11px] text-amber-700 dark:text-amber-300"
                                         >
                                             +{{ train.day_offset }} day{{
-                                                train.day_offset === 1 ? '' : 's'
+                                                train.day_offset === 1
+                                                    ? ''
+                                                    : 's'
                                             }}
                                         </p>
                                     </td>
-                                    <td class="px-3 py-2.5 align-top text-muted-foreground">
+                                    <td
+                                        class="px-3 py-2.5 align-top text-muted-foreground"
+                                    >
                                         {{ train.duration_label ?? '—' }}
                                     </td>
-                                    <td class="px-3 py-2.5 align-top text-muted-foreground">
+                                    <td
+                                        class="px-3 py-2.5 align-top text-muted-foreground"
+                                    >
                                         {{
                                             train.distance_km != null
                                                 ? `${train.distance_km.toFixed(1)} km`
                                                 : '—'
                                         }}
                                     </td>
-                                    <td class="px-3 py-2.5 align-top text-muted-foreground">
+                                    <td
+                                        class="px-3 py-2.5 align-top text-muted-foreground"
+                                    >
                                         {{
                                             train.total_halts_between != null
                                                 ? train.total_halts_between
@@ -366,7 +402,10 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                                         >
                                             Daily
                                         </span>
-                                        <div v-else class="flex flex-wrap gap-1">
+                                        <div
+                                            v-else
+                                            class="flex flex-wrap gap-1"
+                                        >
                                             <Badge
                                                 v-for="day in train.run_days"
                                                 :key="day"
@@ -382,7 +421,7 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            class="h-7 whitespace-nowrap px-2.5 text-xs"
+                                            class="h-7 px-2.5 text-xs whitespace-nowrap"
                                             @click="openHalts(activeLeg, train)"
                                         >
                                             <ListTree class="mr-1.5 size-3.5" />

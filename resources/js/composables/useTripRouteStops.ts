@@ -1,5 +1,13 @@
-import { computed, type ComputedRef } from 'vue';
-import type { Trip, TripRouteStop, TripRouteSummary } from '@/types/trip';
+import { computed  } from 'vue';
+import type {ComputedRef} from 'vue';
+import type {
+    Trip,
+    TripLocation,
+    TripRouteMapPoint,
+    TripRouteStop,
+    TripRouteSummary,
+} from '@/types/trip';
+import { locationHasCoordinates } from '@/types/trip';
 
 type UseTripRouteStopsOptions = {
     trip: Trip;
@@ -11,6 +19,7 @@ type UseTripRouteStopsReturn = {
     originLabel: ComputedRef<string | null>;
     routeChainLabels: ComputedRef<string[]>;
     routeStops: ComputedRef<TripRouteStop[]>;
+    routeMapPoints: ComputedRef<TripRouteMapPoint[]>;
     hasMultiStopRoute: ComputedRef<boolean>;
 };
 
@@ -89,9 +98,7 @@ export function useTripRouteStops(
                     label,
                     nights: null,
                     arrival_date:
-                        existing?.arrival_date ??
-                        options.trip.end_date ??
-                        null,
+                        existing?.arrival_date ?? options.trip.end_date ?? null,
                     departure_date: null,
                 });
 
@@ -121,10 +128,15 @@ export function useTripRouteStops(
             routeStops.value.length > 2,
     );
 
+    const routeMapPoints = computed((): TripRouteMapPoint[] =>
+        resolveRouteMapPoints(options.trip, routeStops.value),
+    );
+
     return {
         originLabel,
         routeChainLabels,
         routeStops,
+        routeMapPoints,
         hasMultiStopRoute,
     };
 }
@@ -224,4 +236,86 @@ export function shortCityLabel(label: string | null | undefined): string {
     }
 
     return label.split(',')[0]?.trim() || label;
+}
+
+export function resolveRouteMapPoints(
+    trip: Trip,
+    routeStops: TripRouteStop[],
+): TripRouteMapPoint[] {
+    const points: TripRouteMapPoint[] = [];
+    let stayIndex = 0;
+
+    for (const stop of routeStops) {
+        const location = locationForRouteStop(trip, stop, stayIndex);
+
+        if (stop.kind === 'stay') {
+            stayIndex++;
+        }
+
+        if (
+            !location ||
+            location.lat == null ||
+            location.lng == null ||
+            !locationHasCoordinates(location)
+        ) {
+            continue;
+        }
+
+        points.push({
+            sequence: stop.sequence,
+            label: stop.label ?? 'Stop',
+            lat: location.lat,
+            lng: location.lng,
+            kind: stop.kind,
+        });
+    }
+
+    return points;
+}
+
+function locationForRouteStop(
+    trip: Trip,
+    stop: TripRouteStop,
+    stayIndex: number,
+): TripLocation | null {
+    if (stop.kind === 'origin' || stop.kind === 'return') {
+        return trip.origin ?? null;
+    }
+
+    const waypoint = trip.waypoints?.[stayIndex]?.location ?? null;
+
+    if (waypoint && locationHasCoordinates(waypoint)) {
+        return waypoint;
+    }
+
+    if (
+        stop.label &&
+        labelsMatch(waypoint?.label ?? null, stop.label) &&
+        waypoint
+    ) {
+        return waypoint;
+    }
+
+    for (const entry of trip.waypoints ?? []) {
+        if (entry.location && labelsMatch(entry.location.label, stop.label)) {
+            return entry.location;
+        }
+    }
+
+    if (trip.destination && labelsMatch(trip.destination.label, stop.label)) {
+        return trip.destination;
+    }
+
+    return waypoint ?? trip.destination ?? null;
+}
+
+function labelsMatch(
+    left: string | null | undefined,
+    right: string | null | undefined,
+): boolean {
+    if (!left || !right) {
+        return false;
+    }
+
+    return normalizeLabel(left) === normalizeLabel(right);
 }

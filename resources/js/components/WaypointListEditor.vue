@@ -10,10 +10,25 @@ import type { TripLocation, TripWaypoint } from '@/types/trip';
 
 const props = defineProps<{
     errors: Record<string, string>;
+    variant?: 'vacation' | 'road';
+    showNights?: boolean;
 }>();
 
+const variant = computed(() => props.variant ?? 'vacation');
+const showNights = computed(
+    () => props.showNights ?? variant.value === 'vacation',
+);
+
+const description = computed(() =>
+    variant.value === 'road'
+        ? 'Add each stop in driving order. Your route will pass through every city.'
+        : 'Add each city in visit order. We will plan trains, weather, and itinerary by leg.',
+);
+
 const waypoints = defineModel<TripWaypoint[]>('waypoints', { required: true });
-const returnsToOrigin = defineModel<boolean>('returnsToOrigin', { required: true });
+const returnsToOrigin = defineModel<boolean>('returnsToOrigin', {
+    required: true,
+});
 
 const canRemove = computed(() => waypoints.value.length > 2);
 
@@ -74,8 +89,7 @@ function locationPrefix(index: number): string {
             <div>
                 <Label>Cities on your route</Label>
                 <p class="mt-1 text-xs text-muted-foreground">
-                    Add each city in visit order. We will plan trains, weather,
-                    and itinerary by leg.
+                    {{ description }}
                 </p>
             </div>
             <Button
@@ -152,8 +166,10 @@ function locationPrefix(index: number): string {
                     require-selection
                 />
 
-                <div class="mt-4 grid gap-2 sm:max-w-xs">
-                    <Label :for="`waypoint-nights-${index}`">Nights (optional)</Label>
+                <div v-if="showNights" class="mt-4 grid gap-2 sm:max-w-xs">
+                    <Label :for="`waypoint-nights-${index}`"
+                        >Nights (optional)</Label
+                    >
                     <Input
                         :id="`waypoint-nights-${index}`"
                         :name="`waypoints[${index}][nights]`"
@@ -170,13 +186,19 @@ function locationPrefix(index: number): string {
                                         : Number(value))
                         "
                     />
-                    <InputError :message="errors[`waypoints.${index}.nights`]" />
+                    <InputError
+                        :message="errors[`waypoints.${index}.nights`]"
+                    />
                 </div>
             </div>
         </div>
 
         <label class="flex items-center gap-2 text-sm">
-            <input type="hidden" name="returns_to_origin" :value="returnsToOrigin ? '1' : '0'" />
+            <input
+                type="hidden"
+                name="returns_to_origin"
+                :value="returnsToOrigin ? '1' : '0'"
+            />
             <input
                 v-model="returnsToOrigin"
                 type="checkbox"

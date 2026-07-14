@@ -15,13 +15,9 @@ const isUnavailable = computed(
     () => props.weather === null || props.weather.available === false,
 );
 
-const weatherSegments = computed(
-    () => props.weather?.segments ?? [],
-);
+const weatherSegments = computed(() => props.weather?.segments ?? []);
 
-const isMultiCityWeather = computed(
-    () => weatherSegments.value.length > 1,
-);
+const isMultiCityWeather = computed(() => weatherSegments.value.length > 1);
 
 const singleCitySegment = computed((): TripWeatherSegment | null => {
     if (props.weather === null || isMultiCityWeather.value) {
@@ -139,7 +135,9 @@ function shortCityLabel(label: string | null | undefined): string {
                         "
                         @click="activeTab = tab.id"
                     >
-                        <span class="max-w-[10rem] truncate">{{ tab.label }}</span>
+                        <span class="max-w-[10rem] truncate">{{
+                            tab.label
+                        }}</span>
                     </button>
                 </div>
 

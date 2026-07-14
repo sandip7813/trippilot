@@ -19,18 +19,25 @@ import {
     Trash2,
     Zap,
 } from '@lucide/vue';
-import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue';
+import {
+    computed,
+    defineAsyncComponent,
+    onMounted,
+    onUnmounted,
+    ref,
+} from 'vue';
 import RoadTripController from '@/actions/App/Http/Controllers/RoadTripController';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import InputError from '@/components/InputError.vue';
 import TripCoverPlaceholder from '@/components/TripCoverPlaceholder.vue';
 import TripCoverRegenerateButton from '@/components/TripCoverRegenerateButton.vue';
 import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
-import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
+import { useTripRouteStops } from '@/composables/useTripRouteStops';
 import { cn } from '@/lib/utils';
 import { edit, index as roadTripsIndex } from '@/routes/road-trips';
 import {
@@ -91,6 +98,12 @@ const errors = computed(
 
 const hasRoute = computed(() => hasCalculatedRoute(props.trip.route));
 
+const { routeChainLabels, routeMapPoints, hasMultiStopRoute } =
+    useTripRouteStops({
+        trip: props.trip,
+        routeSummary: props.trip.route_summary,
+    });
+
 const { waitingForCover } = useTripCoverAutoRefresh();
 
 const hasRoutePolyline = computed(
@@ -150,14 +163,9 @@ const panelTabs = computed(() => {
     return tabs;
 });
 
-function optionLabel(
-    options: TripOption[],
-    value: string | undefined,
-): string {
+function optionLabel(options: TripOption[], value: string | undefined): string {
     return (
-        options.find((option) => option.value === value)?.label ??
-        value ??
-        '—'
+        options.find((option) => option.value === value)?.label ?? value ?? '—'
     );
 }
 
@@ -205,8 +213,7 @@ function selectPanel(tab: PanelTab): void {
 
 function handleFlash(event: Event): void {
     const flash = (event as CustomEvent).detail?.flash as
-        | { amenityLayer?: string }
-        | undefined;
+        { amenityLayer?: string } | undefined;
     const layer = flash?.amenityLayer;
 
     if (typeof layer === 'string' && layer !== '') {
@@ -216,8 +223,10 @@ function handleFlash(event: Event): void {
     }
 }
 
+let removeFlashListener: (() => void) | undefined;
+
 onMounted(() => {
-    router.on('flash', handleFlash);
+    removeFlashListener = router.on('flash', handleFlash);
 
     if (!hasRoute.value) {
         activePanel.value = 'tools';
@@ -225,7 +234,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-    router.off('flash', handleFlash);
+    removeFlashListener?.();
 });
 </script>
 
@@ -261,9 +270,7 @@ onUnmounted(() => {
             />
             <div class="absolute top-3 right-3 flex items-center gap-2">
                 <TripCoverRegenerateButton
-                    :form-binding="
-                        RoadTripController.syncCover.form(trip.id)
-                    "
+                    :form-binding="RoadTripController.syncCover.form(trip.id)"
                     :has-cover="true"
                     :exhausted="Boolean(trip.cover_image_exhausted)"
                     variant="secondary"
@@ -271,9 +278,7 @@ onUnmounted(() => {
                     class="border-border/60 bg-background/90 shadow-sm backdrop-blur-sm"
                 />
                 <TripCoverUploadButton
-                    :form-binding="
-                        RoadTripController.uploadCover.form(trip.id)
-                    "
+                    :form-binding="RoadTripController.uploadCover.form(trip.id)"
                     variant="secondary"
                     size="sm"
                     class="border-border/60 bg-background/90 shadow-sm backdrop-blur-sm"
@@ -308,31 +313,55 @@ onUnmounted(() => {
                 class="grid grid-cols-1 items-start gap-x-8 gap-y-3 md:grid-cols-[minmax(0,1fr)_auto]"
             >
                 <div class="min-w-0 space-y-1">
-                    <h1
-                        class="text-2xl font-bold tracking-tight md:text-3xl"
-                    >
-                        <span class="brand-gradient-text">{{ trip.title }}</span>
+                    <h1 class="text-2xl font-bold tracking-tight md:text-3xl">
+                        <span class="brand-gradient-text">{{
+                            trip.title
+                        }}</span>
                     </h1>
 
                     <div
                         class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
                     >
-                        <span class="font-medium text-foreground">
-                            {{ locationLabel(trip.origin) || 'Origin' }}
-                        </span>
-                        <span
-                            class="inline-flex items-center gap-1 text-muted-foreground"
-                        >
-                            <span class="h-px w-6 bg-border sm:w-10" />
-                            <Route class="size-3.5 shrink-0 text-teal-600" />
-                            <span class="h-px w-6 bg-border sm:w-10" />
-                        </span>
-                        <span class="font-medium text-foreground">
-                            {{
-                                locationLabel(trip.destination) ||
-                                'Destination'
-                            }}
-                        </span>
+                        <template v-if="hasMultiStopRoute">
+                            <template
+                                v-for="(label, index) in routeChainLabels"
+                                :key="`${label}-${index}`"
+                            >
+                                <span
+                                    v-if="index > 0"
+                                    class="inline-flex items-center gap-1 text-muted-foreground"
+                                >
+                                    <span class="h-px w-4 bg-border sm:w-6" />
+                                    <Route
+                                        class="size-3.5 shrink-0 text-teal-600"
+                                    />
+                                    <span class="h-px w-4 bg-border sm:w-6" />
+                                </span>
+                                <span class="font-medium text-foreground">
+                                    {{ label }}
+                                </span>
+                            </template>
+                        </template>
+                        <template v-else>
+                            <span class="font-medium text-foreground">
+                                {{ locationLabel(trip.origin) || 'Origin' }}
+                            </span>
+                            <span
+                                class="inline-flex items-center gap-1 text-muted-foreground"
+                            >
+                                <span class="h-px w-6 bg-border sm:w-10" />
+                                <Route
+                                    class="size-3.5 shrink-0 text-teal-600"
+                                />
+                                <span class="h-px w-6 bg-border sm:w-10" />
+                            </span>
+                            <span class="font-medium text-foreground">
+                                {{
+                                    locationLabel(trip.destination) ||
+                                    'Destination'
+                                }}
+                            </span>
+                        </template>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2 pt-1">
@@ -471,7 +500,6 @@ onUnmounted(() => {
             </AlertDescription>
         </Alert>
 
-        
         <div
             class="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xl shadow-teal-500/5"
         >
@@ -482,6 +510,7 @@ onUnmounted(() => {
                     :origin="trip.origin"
                     :destination="trip.destination"
                     :route="trip.route"
+                    :city-points="hasMultiStopRoute ? routeMapPoints : []"
                     :stops="trip.stops"
                     :suggested-breaks="trip.suggested_breaks"
                     :amenity-places="activeAmenityPlaces"
@@ -496,9 +525,8 @@ onUnmounted(() => {
                     <span
                         class="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-xs text-white"
                         :style="{
-                            backgroundColor: amenityLayerStyle(
-                                activeAmenityLayer,
-                            ).color,
+                            backgroundColor:
+                                amenityLayerStyle(activeAmenityLayer).color,
                         }"
                     >
                         {{ amenityLayerStyle(activeAmenityLayer).glyph }}
@@ -532,7 +560,9 @@ onUnmounted(() => {
             </p>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+        <div
+            class="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm"
+        >
             <div
                 class="flex gap-1 overflow-x-auto border-b border-border/60 bg-muted/20 p-1.5"
                 role="tablist"
@@ -569,15 +599,13 @@ onUnmounted(() => {
                     <div>
                         <h2 class="text-base font-semibold">Route tools</h2>
                         <p class="mt-1 text-sm text-muted-foreground">
-                            Recalculate your route after changing stops, or
-                            let AI suggest fuel, food, and rest breaks along
-                            the way.
+                            Recalculate your route after changing stops, or let
+                            AI suggest fuel, food, and rest breaks along the
+                            way.
                         </p>
                     </div>
 
-                    <div
-                        class="grid gap-3 sm:grid-cols-2"
-                    >
+                    <div class="grid gap-3 sm:grid-cols-2">
                         <Form
                             v-bind="
                                 RoadTripController.computeRoute.form(trip.id)
@@ -597,10 +625,7 @@ onUnmounted(() => {
                                 <span
                                     class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-teal-500/15 text-teal-600"
                                 >
-                                    <Spinner
-                                        v-if="processing"
-                                        class="size-5"
-                                    />
+                                    <Spinner v-if="processing" class="size-5" />
                                     <RefreshCw v-else class="size-5" />
                                 </span>
                                 <span>
@@ -637,10 +662,7 @@ onUnmounted(() => {
                                 <span
                                     class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 text-violet-600"
                                 >
-                                    <Spinner
-                                        v-if="processing"
-                                        class="size-5"
-                                    />
+                                    <Spinner v-if="processing" class="size-5" />
                                     <Sparkles v-else class="size-5" />
                                 </span>
                                 <span>
@@ -665,9 +687,9 @@ onUnmounted(() => {
                             Amenities along route
                         </h2>
                         <p class="mt-1 text-sm text-muted-foreground">
-                            Choose a category on the left, then browse places
-                            on the right. Use the map icon to highlight a place
-                            on the map above.
+                            Choose a category on the left, then browse places on
+                            the right. Use the map icon to highlight a place on
+                            the map above.
                             <span v-if="isBicycleTrip">
                                 Bicycle trips hide fuel, EV, and parking.
                             </span>
@@ -705,13 +727,11 @@ onUnmounted(() => {
                                                 amenityLayerStyle(layer).color,
                                         }"
                                     >
-                                        {{
-                                            amenityLayerStyle(layer).glyph
-                                        }}
+                                        {{ amenityLayerStyle(layer).glyph }}
                                     </span>
                                     <span class="min-w-0 flex-1">
                                         <span
-                                            class="block truncate text-xs font-medium leading-tight"
+                                            class="block truncate text-xs leading-tight font-medium"
                                         >
                                             {{
                                                 amenityLayerLabels[layer] ??
@@ -758,10 +778,7 @@ onUnmounted(() => {
                                             v-if="processing"
                                             class="size-3.5"
                                         />
-                                        <RefreshCw
-                                            v-else
-                                            class="size-3.5"
-                                        />
+                                        <RefreshCw v-else class="size-3.5" />
                                     </Button>
                                 </Form>
                             </div>
@@ -788,10 +805,7 @@ onUnmounted(() => {
                                         ({{ activeAmenityPlaces.length }})
                                     </span>
                                 </p>
-                                <p
-                                    v-else
-                                    class="text-sm text-muted-foreground"
-                                >
+                                <p v-else class="text-sm text-muted-foreground">
                                     Select an amenity category
                                 </p>
                             </div>
@@ -808,8 +822,8 @@ onUnmounted(() => {
                                 v-else-if="activeAmenityPlaces.length === 0"
                                 class="px-4 py-10 text-center text-sm text-muted-foreground"
                             >
-                                No places loaded yet. Click the refresh
-                                button next to
+                                No places loaded yet. Click the refresh button
+                                next to
                                 {{
                                     amenityLayerLabels[activeAmenityLayer] ??
                                     activeAmenityLayer
@@ -953,9 +967,7 @@ onUnmounted(() => {
 
                             <Form
                                 v-bind="
-                                    RoadTripController.acceptBreak.form(
-                                        trip.id,
-                                    )
+                                    RoadTripController.acceptBreak.form(trip.id)
                                 "
                                 v-slot="{ processing }"
                                 class="mt-4"
@@ -989,7 +1001,9 @@ onUnmounted(() => {
                         </p>
                     </div>
 
-                    <ol class="space-y-0 divide-y divide-border/60 rounded-xl border border-border/60">
+                    <ol
+                        class="space-y-0 divide-y divide-border/60 rounded-xl border border-border/60"
+                    >
                         <li
                             v-for="(stop, index) in trip.stops"
                             :key="`${stop.label}-${index}`"
@@ -1039,10 +1053,7 @@ onUnmounted(() => {
                                     title="Remove stop"
                                     :disabled="processing"
                                 >
-                                    <Spinner
-                                        v-if="processing"
-                                        class="size-4"
-                                    />
+                                    <Spinner v-if="processing" class="size-4" />
                                     <Trash2 v-else class="size-4" />
                                 </Button>
                             </Form>

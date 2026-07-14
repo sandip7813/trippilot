@@ -6,6 +6,7 @@ use App\Actions\Trips\SyncTripCoverImage;
 use App\Enums\DrivingPace;
 use App\Enums\FoodPreference;
 use App\Enums\FuelType;
+use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
@@ -115,21 +116,30 @@ class RoadTripController extends Controller
         ]);
     }
 
-    public function update(UpdateRoadTripRequest $request, Trip $road_trip, SyncTripCoverImage $syncTripCoverImage): RedirectResponse
-    {
+    public function update(
+        UpdateRoadTripRequest $request,
+        Trip $road_trip,
+        SyncTripCoverImage $syncTripCoverImage,
+        RoadTripRouteService $routeService,
+    ): RedirectResponse {
         $this->authorize('update', $road_trip);
         $this->ensureRoadTrip($road_trip);
 
         $validated = $request->validated();
         $previousDestinationLabel = Trip::normalizeLocation($road_trip->getAttribute('destination'))['label'] ?? null;
+        $shouldRecomputeRoute = $road_trip->materialAttributesDiffer($validated);
 
-        if (array_key_exists('origin', $validated) || array_key_exists('destination', $validated)) {
+        if ($this->hasLocationInputs($validated)) {
             $locations = $this->prepareTripLocations([
                 'origin' => $validated['origin'] ?? Trip::normalizeLocation($road_trip->getAttribute('origin')),
                 'destination' => $validated['destination'] ?? Trip::normalizeLocation($road_trip->getAttribute('destination')),
+                'waypoints' => $validated['waypoints'] ?? $road_trip->getAttribute('waypoints'),
+                'route_mode' => $validated['route_mode'] ?? $road_trip->route_mode?->value,
+                'returns_to_origin' => $validated['returns_to_origin'] ?? $road_trip->returns_to_origin,
             ]);
 
             $validated = [...$validated, ...$locations];
+            $shouldRecomputeRoute = $road_trip->materialAttributesDiffer($validated);
         }
 
         $road_trip->update($validated);
@@ -149,6 +159,19 @@ class RoadTripController extends Controller
             ]);
 
             $syncTripCoverImage($road_trip->fresh(), onlyIfMissing: true);
+        }
+
+        if ($shouldRecomputeRoute) {
+            $road_trip->update([
+                'amenities_cache' => [],
+                'suggested_breaks' => [],
+            ]);
+
+            try {
+                $routeService->computeAndStore($road_trip->fresh());
+            } catch (RoadTripException) {
+                $road_trip->update(['route' => null]);
+            }
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Road trip updated.')]);
@@ -362,19 +385,65 @@ class RoadTripController extends Controller
     }
 
     /**
-     * @param  array{origin?: array<string, mixed>|null, destination?: array<string, mixed>|null}  $validated
-     * @return array{origin: array<string, mixed>|null, destination: array<string, mixed>|null, trip_scope: TripScope|null}
+     * @param  array{origin?: array<string, mixed>|null, destination?: array<string, mixed>|null, waypoints?: list<array<string, mixed>>|null, route_mode?: string|null, returns_to_origin?: bool|null}  $validated
+     * @return array{
+     *     origin: array<string, mixed>|null,
+     *     destination: array<string, mixed>|null,
+     *     waypoints: list<array<string, mixed>>,
+     *     route_mode: TripRouteMode,
+     *     returns_to_origin: bool,
+     *     trip_scope: TripScope|null,
+     * }
      */
     private function prepareTripLocations(array $validated): array
     {
         $origin = Trip::normalizeLocation($validated['origin'] ?? null);
-        $destination = Trip::normalizeLocation($validated['destination'] ?? null);
+        $waypoints = Trip::normalizeWaypoints($validated['waypoints'] ?? null);
+        $routeMode = TripRouteMode::tryFrom((string) ($validated['route_mode'] ?? ''))
+            ?? (count($waypoints) >= 2 ? TripRouteMode::MultiCity : TripRouteMode::Simple);
+
+        if ($routeMode === TripRouteMode::MultiCity) {
+            $lastWaypoint = $waypoints[array_key_last($waypoints)] ?? null;
+            $destination = is_array($lastWaypoint)
+                ? ($lastWaypoint['location'] ?? null)
+                : Trip::normalizeLocation($validated['destination'] ?? null);
+        } else {
+            $destination = Trip::normalizeLocation($validated['destination'] ?? null);
+            $waypoints = [];
+            $routeMode = TripRouteMode::Simple;
+        }
+
+        $returnsToOrigin = filter_var(
+            $validated['returns_to_origin'] ?? true,
+            FILTER_VALIDATE_BOOLEAN,
+        );
+
+        $locations = collect([$origin, ...collect($waypoints)->pluck('location')->all(), $destination])
+            ->filter(fn (mixed $item): bool => is_array($item))
+            ->all();
 
         return [
             'origin' => $origin,
             'destination' => $destination,
-            'trip_scope' => Trip::resolveTripScope($origin, $destination),
+            'waypoints' => $waypoints,
+            'route_mode' => $routeMode,
+            'returns_to_origin' => $returnsToOrigin,
+            'trip_scope' => Trip::resolveTripScopeFromLocations($locations),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function hasLocationInputs(array $validated): bool
+    {
+        foreach (['origin', 'destination', 'waypoints', 'route_mode', 'returns_to_origin'] as $key) {
+            if (array_key_exists($key, $validated)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function ensureRoadTrip(Trip $trip): void

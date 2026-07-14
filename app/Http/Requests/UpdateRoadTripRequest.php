@@ -6,6 +6,7 @@ use App\Concerns\RoadTripValidationRules;
 use App\Concerns\TripValidationRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Arr;
+use Illuminate\Validation\Validator;
 
 class UpdateRoadTripRequest extends FormRequest
 {
@@ -32,6 +33,11 @@ class UpdateRoadTripRequest extends FormRequest
             'suggested_breaks.*.lat' => ['required', 'numeric'],
             'suggested_breaks.*.lng' => ['required', 'numeric'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $this->validateMultiCityTrip($validator);
     }
 
     protected function prepareForValidation(): void

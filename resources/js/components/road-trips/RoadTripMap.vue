@@ -24,7 +24,7 @@ import type {
     RoadTripRoute,
     RoadTripStop,
 } from '@/types/roadTrip';
-import type { TripLocation } from '@/types/trip';
+import type { TripLocation, TripRouteMapPoint } from '@/types/trip';
 
 type LeafletModule = typeof LeafletTypes;
 
@@ -32,6 +32,7 @@ const props = defineProps<{
     origin: TripLocation | null;
     destination: TripLocation | null;
     route: RoadTripRoute | null;
+    cityPoints?: TripRouteMapPoint[];
     stops?: RoadTripStop[];
     suggestedBreaks?: RoadTripBreak[];
     amenityPlaces?: RoadTripPlace[];
@@ -59,7 +60,7 @@ function escapeHtml(value: string): string {
 function displayMetaLabel(meta?: string | null): string | null {
     const trimmed = meta?.trim();
 
-    if (! trimmed || trimmed === 'Suggested stop along your route.') {
+    if (!trimmed || trimmed === 'Suggested stop along your route.') {
         return null;
     }
 
@@ -126,7 +127,7 @@ function bindMarkerInfo(
     marker.on('tooltipopen', () => {
         const element = marker.getTooltip()?.getElement();
 
-        if (! element) {
+        if (!element) {
             return;
         }
 
@@ -146,17 +147,44 @@ function bindMarkerInfo(
     });
 }
 
-function circleIcon(
-    L: LeafletModule,
-    color: string,
-    size = 12,
-): DivIcon {
+function circleIcon(L: LeafletModule, color: string, size = 12): DivIcon {
     return L.divIcon({
         className: '',
         html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.35)"></span>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
     });
+}
+
+function numberedPinIcon(
+    L: LeafletModule,
+    color: string,
+    label: string,
+): DivIcon {
+    const width = 36;
+    const height = 46;
+
+    return L.divIcon({
+        className: '',
+        html: `<div style="position:relative;width:${width}px;height:${height}px;filter:drop-shadow(0 4px 10px rgba(15,23,42,.35));">
+            <div style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:32px;height:32px;border-radius:50%;background:${color};border:3px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font:700 13px/1 system-ui,sans-serif;">${label}</div>
+            <div style="position:absolute;left:50%;top:28px;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:12px solid ${color};"></div>
+        </div>`,
+        iconSize: [width, height],
+        iconAnchor: [width / 2, height],
+    });
+}
+
+function cityMarkerColor(kind: TripRouteMapPoint['kind']): string {
+    if (kind === 'origin') {
+        return '#0d9488';
+    }
+
+    if (kind === 'return') {
+        return '#059669';
+    }
+
+    return '#6366f1';
 }
 
 function endpointPinIcon(
@@ -238,39 +266,63 @@ function renderMap(): void {
     const bounds: LatLngExpression[] = [];
     const amenityStyle = amenityLayerStyle(props.activeAmenityLayer);
     const amenityMarkers = new Map<string, Marker>();
+    const cityPoints = props.cityPoints ?? [];
 
-    const origin = locationCoordinates(props.origin);
-    const destination = locationCoordinates(props.destination);
+    if (cityPoints.length > 0) {
+        cityPoints.forEach((point, index) => {
+            if (!Number.isFinite(point.lat) || !Number.isFinite(point.lng)) {
+                return;
+            }
 
-    if (origin) {
-        const originMarker = L.marker(origin, {
-            icon: endpointPinIcon(L, '#0d9488', 'A'),
-            zIndexOffset: 1000,
+            const markerPoint: LatLngExpression = [point.lat, point.lng];
+            const cityMarker = L.marker(markerPoint, {
+                icon: numberedPinIcon(
+                    L,
+                    cityMarkerColor(point.kind),
+                    String(index + 1),
+                ),
+                zIndexOffset: 1000,
+            });
+            bindMarkerInfo(cityMarker, markerInfoHtml(point.label));
+            cityMarker.addTo(layerGroup);
+            bounds.push(markerPoint);
         });
-        bindMarkerInfo(
-            originMarker,
-            markerInfoHtml(props.origin?.label ?? 'Origin'),
-        );
-        originMarker.addTo(layerGroup);
-        bounds.push(origin);
-    }
+    } else {
+        const origin = locationCoordinates(props.origin);
+        const destination = locationCoordinates(props.destination);
 
-    if (destination) {
-        const destinationMarker = L.marker(destination, {
-            icon: endpointPinIcon(L, '#dc2626', 'B'),
-            zIndexOffset: 1000,
-        });
-        bindMarkerInfo(
-            destinationMarker,
-            markerInfoHtml(props.destination?.label ?? 'Destination'),
-        );
-        destinationMarker.addTo(layerGroup);
-        bounds.push(destination);
+        if (origin) {
+            const originMarker = L.marker(origin, {
+                icon: endpointPinIcon(L, '#0d9488', 'A'),
+                zIndexOffset: 1000,
+            });
+            bindMarkerInfo(
+                originMarker,
+                markerInfoHtml(props.origin?.label ?? 'Origin'),
+            );
+            originMarker.addTo(layerGroup);
+            bounds.push(origin);
+        }
+
+        if (destination) {
+            const destinationMarker = L.marker(destination, {
+                icon: endpointPinIcon(L, '#dc2626', 'B'),
+                zIndexOffset: 1000,
+            });
+            bindMarkerInfo(
+                destinationMarker,
+                markerInfoHtml(props.destination?.label ?? 'Destination'),
+            );
+            destinationMarker.addTo(layerGroup);
+            bounds.push(destination);
+        }
     }
 
     for (const stop of props.stops ?? []) {
         const point: LatLngExpression = [stop.lat, stop.lng];
-        const stopMarker = L.marker(point, { icon: circleIcon(L, '#2563eb', 14) });
+        const stopMarker = L.marker(point, {
+            icon: circleIcon(L, '#2563eb', 14),
+        });
         bindMarkerInfo(
             stopMarker,
             markerInfoHtml(stop.label, stopDisplayAddress(stop), stop.notes),
@@ -397,6 +449,7 @@ watch(
     () => [
         props.origin,
         props.destination,
+        props.cityPoints,
         props.route,
         props.stops,
         props.suggestedBreaks,

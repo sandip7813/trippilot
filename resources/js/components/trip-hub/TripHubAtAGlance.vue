@@ -2,18 +2,18 @@
 import { usePage } from '@inertiajs/vue3';
 import { Calendar, MapPin, Train, Users, Wallet } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import TripDestinationMapDialog from '@/components/trip-hub/TripDestinationMapDialog.vue';
 import TripHubRouteStopsList from '@/components/trip-hub/TripHubRouteStopsList.vue';
+import TripRouteMapDialog from '@/components/trip-hub/TripRouteMapDialog.vue';
 import { Button } from '@/components/ui/button';
-import { formatDisplayDateRange } from '@/lib/dates';
-import { formatMoney } from '@/lib/money';
 import {
     shortCityLabel,
     useTripRouteStops,
 } from '@/composables/useTripRouteStops';
-import type { Trip } from '@/types/trip';
-import { locationHasCoordinates, locationLabel } from '@/types/trip';
+import { formatDisplayDateRange } from '@/lib/dates';
+import { formatMoney } from '@/lib/money';
 import type { TripTrainTimings } from '@/types/train';
+import type { Trip } from '@/types/trip';
+import { locationLabel } from '@/types/trip';
 
 const props = defineProps<{
     trip: Trip;
@@ -49,7 +49,10 @@ const dateRange = computed(() =>
 
 const transportHint = computed((): string => {
     if (props.trip.route_mode === 'multi_city') {
-        const legs = props.trainTimings?.leg_count ?? props.trip.route_summary?.leg_count ?? 0;
+        const legs =
+            props.trainTimings?.leg_count ??
+            props.trip.route_summary?.leg_count ??
+            0;
         const cities = props.trip.route_summary?.stop_count ?? 0;
 
         if (cities > 0) {
@@ -67,10 +70,7 @@ const transportHint = computed((): string => {
                 0;
             const outboundCount = props.trainTimings.outbound?.count ?? 0;
             const returnCount = props.trainTimings.return?.count ?? 0;
-            const total =
-                legCount > 0
-                    ? legCount
-                    : outboundCount + returnCount;
+            const total = legCount > 0 ? legCount : outboundCount + returnCount;
 
             if (total > 0) {
                 if (legCount > 2) {
@@ -109,16 +109,14 @@ const transportHint = computed((): string => {
     return 'Set a mapped destination';
 });
 
-const canShowMap = computed(() =>
-    locationHasCoordinates(props.trip.destination),
-);
-
-const { routeChainLabels, routeStops } = useTripRouteStops({
+const { routeChainLabels, routeStops, routeMapPoints } = useTripRouteStops({
     trip: props.trip,
     routeSummary: props.trip.route_summary,
 });
 
 const showFullRoute = computed(() => routeStops.value.length >= 2);
+
+const canShowMap = computed(() => routeMapPoints.value.length > 0);
 </script>
 
 <template>
@@ -238,7 +236,9 @@ const showFullRoute = computed(() => routeStops.value.length >= 2);
                             :key="`route-chain-${index}-${label}`"
                         >
                             <span>{{ shortCityLabel(label) }}</span>
-                            <span v-if="index < routeChainLabels.length - 1">→</span>
+                            <span v-if="index < routeChainLabels.length - 1"
+                                >→</span
+                            >
                         </template>
                     </div>
                     <TripHubRouteStopsList :stops="routeStops" compact />
@@ -257,8 +257,5 @@ const showFullRoute = computed(() => routeStops.value.length >= 2);
         </div>
     </div>
 
-    <TripDestinationMapDialog
-        v-model:open="mapOpen"
-        :destination="trip.destination"
-    />
+    <TripRouteMapDialog v-model:open="mapOpen" :trip="trip" />
 </template>
