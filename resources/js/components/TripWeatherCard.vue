@@ -7,12 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { TripWeather, TripWeatherSegment } from '@/types/weather';
 
-const props = defineProps<{
-    weather: TripWeather | null;
-}>();
+const props = withDefaults(
+    defineProps<{
+        weather: TripWeather | null;
+        class?: string;
+    }>(),
+    {
+        class: undefined,
+    },
+);
 
 const isUnavailable = computed(
-    () => props.weather === null || props.weather.available === false,
+    () => props.weather == null || props.weather.available === false,
 );
 
 const weatherSegments = computed(() => props.weather?.segments ?? []);
@@ -20,7 +26,7 @@ const weatherSegments = computed(() => props.weather?.segments ?? []);
 const isMultiCityWeather = computed(() => weatherSegments.value.length > 1);
 
 const singleCitySegment = computed((): TripWeatherSegment | null => {
-    if (props.weather === null || isMultiCityWeather.value) {
+    if (props.weather == null || isMultiCityWeather.value) {
         return null;
     }
 
@@ -69,7 +75,11 @@ function shortCityLabel(label: string | null | undefined): string {
 </script>
 
 <template>
-    <Card class="card-vibrant h-full overflow-hidden">
+    <Card
+        :class="
+            cn('card-vibrant overflow-hidden', props.class ?? 'h-full')
+        "
+    >
         <div
             class="h-1.5 bg-gradient-to-r from-sky-400 via-cyan-500 to-indigo-500"
         />

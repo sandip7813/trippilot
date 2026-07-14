@@ -226,7 +226,8 @@ test('users can view their road trip show page', function () {
         ->assertInertia(fn ($page) => $page
             ->component('RoadTrips/Show')
             ->where('trip.id', (string) $trip->id)
-            ->has('amenityLayers'));
+            ->has('amenityLayers')
+            ->has('weather'));
 });
 
 test('vacation trips cannot be viewed as road trips', function () {
