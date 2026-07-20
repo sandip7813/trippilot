@@ -62,6 +62,7 @@ import type {
 import type { TripOption } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 import TripWeatherCard from '@/components/TripWeatherCard.vue';
+import TripChatPanel from '@/components/trip-hub/TripChatPanel.vue';
 import type { TripWeather } from '@/types/weather';
 
 const RoadTripMap = defineAsyncComponent({
@@ -1103,5 +1104,12 @@ onUnmounted(() => {
                 </div>
             </div>
         </div>
+
+        <TripChatPanel
+            v-if="aiConfigured"
+            :trip="trip"
+            :ai-configured="aiConfigured"
+            variant="road"
+        />
     </div>
 </template>

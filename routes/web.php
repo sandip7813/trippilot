@@ -20,6 +20,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('trips/{trip}/generate', [TripController::class, 'generateItinerary'])
         ->middleware('throttle:5,1')
         ->name('trips.generate');
+    Route::post('trips/{trip}/chat', [TripController::class, 'chat'])
+        ->middleware('throttle:10,1')
+        ->name('trips.chat');
     Route::post('trips/{trip}/cover', [TripController::class, 'syncCover'])
         ->middleware('throttle:5,1')
         ->name('trips.cover');

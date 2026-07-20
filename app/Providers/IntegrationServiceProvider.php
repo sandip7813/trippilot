@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Contracts\Ai\ChatAssistant;
 use App\Contracts\Ai\TripGenerator;
 use App\Contracts\Maps\PlacesService;
 use App\Contracts\Maps\RoutingService;
 use App\Contracts\TripCovers\TripCoverGenerator;
+use App\Services\Ai\Gemini\GeminiChatAssistant;
 use App\Services\Ai\Gemini\GeminiClient;
 use App\Services\Ai\Gemini\GeminiTripCoverGenerator;
 use App\Services\Ai\Gemini\GeminiTripGenerator;
@@ -92,7 +94,7 @@ class IntegrationServiceProvider extends ServiceProvider
         $implementations = [
             'gemini' => [
                 TripGenerator::class => GeminiTripGenerator::class,
-                // ChatAssistant::class => GeminiChatAssistant::class,
+                ChatAssistant::class => GeminiChatAssistant::class,
                 // EmbeddingService::class => GeminiEmbeddingService::class,
             ],
         ];

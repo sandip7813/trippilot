@@ -50,6 +50,7 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property array<string, mixed>|null $route
  * @property list<array<string, mixed>>|null $suggested_breaks
  * @property array<string, mixed>|null $amenities_cache
+ * @property list<array<string, mixed>>|null $chat_messages
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -98,6 +99,7 @@ class Trip extends Model
         'route',
         'suggested_breaks',
         'amenities_cache',
+        'chat_messages',
     ];
 
     /**
@@ -419,6 +421,7 @@ class Trip extends Model
             'cover_image_exhausted' => (bool) ($this->cover_image_exhausted ?? false),
             'cover_image_attribution' => $this->cover_image_attribution,
             'itinerary' => $this->itineraryForFrontend(),
+            'chat_messages' => $this->chatMessagesForFrontend(),
             'road_profile' => $this->isRoadTrip() ? $this->roadProfileForFrontend() : null,
             'stops' => $this->isRoadTrip() ? $this->stopsForFrontend() : [],
             'route' => $this->isRoadTrip() ? $this->routeForFrontend() : null,
@@ -450,6 +453,50 @@ class Trip extends Model
             'packing_list' => [],
             'budget_breakdown' => [],
         ];
+    }
+
+    /**
+     * @return list<array{id: string, role: string, content: string, created_at: string, patch_applied?: bool}>
+     */
+    public static function normalizeChatMessages(mixed $messages): array
+    {
+        if (! is_array($messages)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($messages as $message) {
+            if (! is_array($message)) {
+                continue;
+            }
+
+            $role = (string) ($message['role'] ?? '');
+            $content = trim((string) ($message['content'] ?? ''));
+
+            if (! in_array($role, ['user', 'assistant'], true) || $content === '') {
+                continue;
+            }
+
+            $entry = [
+                'id' => (string) ($message['id'] ?? ''),
+                'role' => $role,
+                'content' => $content,
+                'created_at' => (string) ($message['created_at'] ?? now()->toIso8601String()),
+            ];
+
+            if ($role === 'assistant' && isset($message['patch_applied'])) {
+                $entry['patch_applied'] = (bool) $message['patch_applied'];
+            }
+
+            if ($entry['id'] === '') {
+                continue;
+            }
+
+            $normalized[] = $entry;
+        }
+
+        return $normalized;
     }
 
     public function hasGeneratedItinerary(): bool
@@ -552,6 +599,14 @@ class Trip extends Model
                 ? $itinerary['budget_breakdown']
                 : [],
         ];
+    }
+
+    /**
+     * @return list<array{id: string, role: string, content: string, created_at: string, patch_applied?: bool}>
+     */
+    private function chatMessagesForFrontend(): array
+    {
+        return self::normalizeChatMessages($this->getAttribute('chat_messages'));
     }
 
     public function coverImageUrl(): ?string

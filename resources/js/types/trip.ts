@@ -71,13 +71,12 @@ export type TripRouteSummary = {
     }>;
 };
 
-export type TripTemplate = {
-    key: string;
-    label: string;
-    description: string;
-    returns_to_origin: boolean;
-    suggested_nights: number[];
-    waypoint_hints: string[];
+export type TripChatMessage = {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    created_at: string;
+    patch_applied?: boolean;
 };
 
 export type TripItinerary = {
@@ -138,6 +137,7 @@ export type Trip = {
         description?: string | null;
     } | null;
     itinerary: TripItinerary;
+    chat_messages?: TripChatMessage[];
     created_at: string | null;
     updated_at: string | null;
 };
