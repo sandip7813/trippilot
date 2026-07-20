@@ -109,14 +109,3 @@ test('trip show includes multi city route data', function () {
             ->where('trip.waypoints', fn ($waypoints) => count($waypoints) === 3)
             ->where('trip.route_summary.leg_count', 4));
 });
-
-test('create trip page includes route templates', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->get(route('trips.create'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->has('tripTemplates', 3)
-            ->where('tripTemplates.0.key', 'golden_triangle'));
-});

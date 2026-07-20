@@ -37,6 +37,11 @@ class TripPolicy
         return $this->ownsTrip($user, $trip);
     }
 
+    public function chat(User $user, Trip $trip): bool
+    {
+        return $this->ownsTrip($user, $trip);
+    }
+
     protected function ownsTrip(User $user, Trip $trip): bool
     {
         return (int) $trip->user_id === $user->id;

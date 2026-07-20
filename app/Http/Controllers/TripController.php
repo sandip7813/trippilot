@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Trips\GenerateTripItinerary;
+use App\Actions\Trips\SendTripChatMessage;
 use App\Actions\Trips\SyncTripCoverImage;
 use App\Enums\TravelStyle;
 use App\Enums\TripRouteMode;
@@ -10,6 +11,7 @@ use App\Enums\TripScope;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
 use App\Exceptions\AiGenerationException;
+use App\Http\Requests\ChatTripRequest;
 use App\Http\Requests\StoreTripRequest;
 use App\Http\Requests\UpdateTripRequest;
 use App\Http\Requests\UploadTripCoverImageRequest;
@@ -56,7 +58,6 @@ class TripController extends Controller
             'tripStatuses' => $this->tripStatusOptions(),
             'travelStyles' => $this->travelStyleOptions(),
             'defaultOrigin' => $request->user()->homeCityLocation(),
-            'tripTemplates' => $this->tripTemplateOptions(),
         ]);
     }
 
@@ -128,7 +129,6 @@ class TripController extends Controller
             'tripTypes' => $this->tripTypeOptions(),
             'tripStatuses' => $this->tripStatusOptions(),
             'travelStyles' => $this->travelStyleOptions(),
-            'tripTemplates' => $this->tripTemplateOptions(),
         ]);
     }
 
@@ -283,6 +283,34 @@ class TripController extends Controller
         return to_route('trips.show', $trip);
     }
 
+    public function chat(ChatTripRequest $request, Trip $trip, SendTripChatMessage $sendTripChatMessage): RedirectResponse
+    {
+        $this->authorize('chat', $trip);
+
+        if (! filled(config('integrations.ai.drivers.gemini.api_key'))) {
+            return back()->withErrors([
+                'ai' => __('AI chat is not configured. Add GEMINI_API_KEY to your environment.'),
+            ]);
+        }
+
+        try {
+            $result = $sendTripChatMessage($trip, $request->validated('message'));
+        } catch (AiGenerationException $exception) {
+            return back()->withErrors([
+                'chat' => $exception->getMessage(),
+            ]);
+        }
+
+        if ($result['patch_applied']) {
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => __('Trip updated based on your request.'),
+            ]);
+        }
+
+        return back();
+    }
+
     /**
      * @return list<array{value: string, label: string}>
      */
@@ -371,33 +399,6 @@ class TripController extends Controller
             'returns_to_origin' => $returnsToOrigin,
             'trip_scope' => Trip::resolveTripScopeFromLocations($locations),
         ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    protected function tripTemplateOptions(): array
-    {
-        /** @var array<string, array<string, mixed>> $templates */
-        $templates = config('trip_templates', []);
-
-        return collect($templates)
-            ->map(function (array $template, string $key): array {
-                return [
-                    'key' => $key,
-                    'label' => (string) ($template['label'] ?? $key),
-                    'description' => (string) ($template['description'] ?? ''),
-                    'returns_to_origin' => (bool) ($template['returns_to_origin'] ?? true),
-                    'suggested_nights' => is_array($template['suggested_nights'] ?? null)
-                        ? array_values(array_map(intval(...), $template['suggested_nights']))
-                        : [],
-                    'waypoint_hints' => is_array($template['waypoint_hints'] ?? null)
-                        ? array_values(array_map(strval(...), $template['waypoint_hints']))
-                        : [],
-                ];
-            })
-            ->values()
-            ->all();
     }
 
     /**

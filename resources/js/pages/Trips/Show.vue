@@ -15,6 +15,7 @@ import LocationCoordinatesAlert from '@/components/LocationCoordinatesAlert.vue'
 import PageHeader from '@/components/PageHeader.vue';
 import TripHubAtAGlance from '@/components/trip-hub/TripHubAtAGlance.vue';
 import TripHubItinerarySection from '@/components/trip-hub/TripHubItinerarySection.vue';
+import TripChatPanel from '@/components/trip-hub/TripChatPanel.vue';
 import TripHubPracticalSection from '@/components/trip-hub/TripHubPracticalSection.vue';
 import TripHubTrainTimings from '@/components/trip-hub/TripHubTrainTimings.vue';
 import TripHubUsefulLinks from '@/components/trip-hub/TripHubUsefulLinks.vue';
@@ -415,6 +416,12 @@ const { waitingForCover } = useTripCoverAutoRefresh();
         </div>
 
         <TripHubItinerarySection :trip="trip" :ai-configured="aiConfigured" />
+
+        <TripChatPanel
+            v-if="aiConfigured"
+            :trip="trip"
+            :ai-configured="aiConfigured"
+        />
 
         <section
             v-if="trip.trip_scope === 'domestic' || trainTimings != null"

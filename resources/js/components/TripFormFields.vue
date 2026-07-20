@@ -11,7 +11,6 @@ import type {
     Trip,
     TripLocation,
     TripOption,
-    TripTemplate,
     TripWaypoint,
 } from '@/types/trip';
 
@@ -20,7 +19,6 @@ const props = defineProps<{
     tripTypes: TripOption[];
     tripStatuses?: TripOption[];
     travelStyles?: TripOption[];
-    tripTemplates?: TripTemplate[];
     defaultOrigin?: TripLocation | null;
     errors: Record<string, string>;
     showStatus?: boolean;
@@ -113,53 +111,10 @@ watch(isMultiCity, (enabled) => {
         ];
     }
 });
-
-function applyTemplate(template: TripTemplate): void {
-    isMultiCity.value = true;
-    returnsToOrigin.value = template.returns_to_origin;
-
-    waypoints.value = template.waypoint_hints.map((hint, index) => ({
-        sequence: index + 1,
-        location: {
-            label: hint,
-            lat: null,
-            lng: null,
-        },
-        nights: template.suggested_nights[index] ?? null,
-        notes: null,
-    }));
-}
 </script>
 
 <template>
     <div class="grid gap-6">
-        <div
-            v-if="tripTemplates?.length"
-            class="space-y-3 rounded-xl border border-dashed border-border/70 bg-muted/10 p-4"
-        >
-            <div>
-                <Label>Start from a template</Label>
-                <p class="mt-1 text-xs text-muted-foreground">
-                    Optional — pick a popular route, then confirm each city from
-                    search.
-                </p>
-            </div>
-            <div class="grid gap-2 sm:grid-cols-2">
-                <button
-                    v-for="template in tripTemplates"
-                    :key="template.key"
-                    type="button"
-                    class="rounded-lg border border-border/60 bg-background/80 px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/5"
-                    @click="applyTemplate(template)"
-                >
-                    <p class="font-medium">{{ template.label }}</p>
-                    <p class="mt-1 text-xs text-muted-foreground">
-                        {{ template.description }}
-                    </p>
-                </button>
-            </div>
-        </div>
-
         <div class="grid gap-2">
             <Label for="title">Trip title</Label>
             <Input

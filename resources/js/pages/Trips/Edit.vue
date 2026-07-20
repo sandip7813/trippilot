@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { index as tripsIndex, show } from '@/routes/trips';
-import type { Trip, TripOption, TripTemplate } from '@/types/trip';
+import type { Trip, TripOption } from '@/types/trip';
 import { locationHasCoordinates } from '@/types/trip';
 
 const { trip } = defineProps<{
@@ -19,7 +19,6 @@ const { trip } = defineProps<{
     tripTypes: TripOption[];
     tripStatuses: TripOption[];
     travelStyles: TripOption[];
-    tripTemplates: TripTemplate[];
 }>();
 
 const hasItinerary = computed(() => (trip.itinerary?.days?.length ?? 0) > 0);
@@ -89,7 +88,6 @@ defineOptions({
                         :trip-types="tripTypes"
                         :trip-statuses="tripStatuses"
                         :travel-styles="travelStyles"
-                        :trip-templates="tripTemplates"
                         :errors="errors"
                         show-status
                     />
