@@ -73,6 +73,227 @@ Monsoon greenery is spectacular but houseboat schedules can shift with heavy rai
 Food: appam with stew, Kerala fish curry, and banana chips. Respect temple dress codes when visiting historic sites.
 TEXT,
             ],
+            [
+                'title' => 'Ladakh and Leh high-altitude guide',
+                'destinations' => 'ladakh, leh, nubra, pangong, kargil',
+                'content' => <<<'TEXT'
+Ladakh is high desert—days are sunny and nights cold even in summer. Pack layers, lip balm, sunscreen, and a warm jacket.
+
+Altitude acclimatization: rest in Leh for 24–48 hours before Pangong or Nubra. Drink plenty of water; avoid heavy alcohol on arrival. Headaches and breathlessness are common—descend if symptoms worsen.
+
+Inner Line Permit is required for Nubra Valley, Pangong Lake, and several border areas—arrange through a registered agent or your hotel in Leh.
+
+Best season: June–September for road access; winter is harsh with limited connectivity. Khardung La and Chang La can be snow-affected—check conditions.
+
+Respect local Buddhist culture: walk clockwise around stupas, ask before photographing monks, and dress modestly at monasteries (Hemis, Thiksey, Diskit).
+
+Food: thukpa, momos, and butter tea. ATMs exist in Leh but carry cash for remote valleys.
+TEXT,
+            ],
+            [
+                'title' => 'Varanasi ghats and spiritual etiquette',
+                'destinations' => 'varanasi, banaras, kashi, uttar pradesh',
+                'content' => <<<'TEXT'
+Varanasi unfolds along the Ganges ghats—Dasaswamedh and Assi are central. Sunrise boat rides offer the calmest views of morning rituals.
+
+Evening Ganga Aarti at Dashashwamedh Ghat draws large crowds—arrive early for a good spot or book a boat view.
+
+Etiquette: cremation ghats (Manikarnika, Harishchandra) are active sacred sites—observe quietly, no flash photography, and follow guide instructions.
+
+Food: try kachori sabzi, malaiyyo (seasonal), and lassi in the old city lanes. Stick to bottled water and busy, freshly cooked stalls.
+
+Navigation: the old city lanes are narrow and easy to get lost in—use offline maps and fixed landmarks. Footwear is removed at many temples.
+
+Best months: October–March for comfortable weather; summers are very hot. Sarnath (Buddhist site) pairs well as a half-day trip from Varanasi.
+TEXT,
+            ],
+            [
+                'title' => 'Mumbai local travel and neighborhoods',
+                'destinations' => 'mumbai, maharashtra, bombay, colaba, bandra',
+                'content' => <<<'TEXT'
+Mumbai is spread out—plan by neighborhood rather than trying to cross the city at peak hours. Local trains are fast but extremely crowded at rush hour; avoid 8–10 AM and 6–8 PM if possible.
+
+Colaba and Fort: Gateway of India, Chhatrapati Shivaji Terminus, and museums. Bandra–Worli Sea Link area for cafes and coastal walks.
+
+Food essentials: vada pav, pav bhaji, bhelpuri at Chowpatty/Juhu, and Irani café breakfast. Seafood is excellent in coastal suburbs—confirm freshness.
+
+Monsoon (June–September): carry umbrella and expect local train delays. Marine Drive and promenades are dramatic in rain but surfaces get slick.
+
+Elephanta Caves ferry from Gateway—check last return boat times. Book Bollywood studio tours or Dhobi Ghat visits through reputable operators only.
+
+Cashless payments are widely accepted, but keep small change for local trains and street food.
+TEXT,
+            ],
+            [
+                'title' => 'Darjeeling tea hills and toy train',
+                'destinations' => 'darjeeling, west bengal, kalimpong, ghoom',
+                'content' => <<<'TEXT'
+Darjeeling sits at altitude with cool misty mornings—pack warm layers year-round. Tiger Hill sunrise over Kanchenjunga requires a very early start (around 4 AM)—pre-book transport.
+
+Darjeeling Himalayan Railway toy train to Ghoom is a heritage experience—tickets sell out in peak season.
+
+Tea gardens: visit established estates with guided factory tours; buy orthodox tea directly when possible. Avoid unlicensed “garden” shops in town.
+
+Food: momos, thukpa, and local bakery buns. Tibetan and Nepali influences are strong.
+
+Roads from Siliguri/New Jalpaiguri (NJP) are winding—allow 3–4 hours and consider motion sickness tablets. NJP is the main railhead.
+
+Combine with Kalimpong or Sikkim entry (permits required for many Sikkim areas) if you have extra days. Monsoon can trigger landslides—check road status.
+TEXT,
+            ],
+            [
+                'title' => 'Hampi boulder ruins and Karnataka heritage',
+                'destinations' => 'hampi, karnataka, hospet, badami, bijapur',
+                'content' => <<<'TEXT'
+Hampi’s Vijayanagara ruins sprawl across a boulder-strenched landscape—hire a local guide or use a mapped circuit over 2–3 days.
+
+Start early to avoid midday heat; hat, sunscreen, and sturdy shoes are essential. Many sites involve uneven stone paths.
+
+Key clusters: Virupaksha Temple, Vittala Temple (stone chariot), Royal Enclosure, and Hemakuta Hill sunset viewpoints. Coracle rides on the Tungabhadra are seasonal.
+
+Base in Hampi village (boulder-side) or Hosapete (Hospet) for better connectivity. Hospet junction has trains from Bangalore and Goa.
+
+Combine with Badami cave temples or Pattadakal (UNESCO) if touring north Karnataka. Limited nightlife—plan relaxed evenings.
+
+Best season: October–February. Summer is harsh. Carry cash; ATMs can be limited in the village.
+TEXT,
+            ],
+            [
+                'title' => 'Andaman Islands beaches and permits',
+                'destinations' => 'andaman, port blair, havelock, neil island, swaraj dweep',
+                'content' => <<<'TEXT'
+Port Blair is the gateway—Cellular Jail and light-and-sound show provide historical context. Ferries connect to Havelock (Swaraj Dweep) and Neil (Shaheed Dweep); book tickets ahead in peak season.
+
+Radhanagar Beach on Havelock is the headline beach—snorkelling and diving seasons depend on sea conditions; check operator safety credentials.
+
+Restricted area permits: Indian nationals need permits for some islands; foreign nationals have additional rules—verify current requirements before travel.
+
+Connectivity: mobile data can be patchy outside Port Blair. Carry cash for smaller islands; card acceptance varies.
+
+Best weather: November–April. Monsoon brings rough seas and ferry cancellations. Plastic restrictions are strict—avoid carrying single-use plastics to beaches.
+
+Respect marine life: do not touch coral, feed fish, or leave litter. Bioluminescence tours are weather-dependent—manage expectations.
+TEXT,
+            ],
+            [
+                'title' => 'Rishikesh yoga, rafting, and Ganga etiquette',
+                'destinations' => 'rishikesh, haridwar, uttarakhand, yoga, rafting',
+                'content' => <<<'TEXT'
+Rishikesh splits into Tapovan (cafes, yoga schools) and Lakshman Jhula/Ram Jhula areas—pick stay location based on noise tolerance.
+
+White-water rafting runs seasonally (typically until mid-summer depending on water levels)—use licensed operators with life jackets and safety briefings.
+
+Yoga and wellness: research school credentials; drop-in classes differ widely in quality. Silent hours and vegetarian culture are common in ashram areas.
+
+Ganga Aarti at Parmarth or Triveni ghats is moving but crowded—secure belongings. Alcohol and non-vegetarian food are restricted in much of Rishikesh.
+
+Haridwar is 45–60 minutes away for a day trip—distinct pilgrimage atmosphere, especially during Kumbh periods when crowds surge.
+
+Trekking gateways to smaller Himalayan trails exist—do not hike alone without local guidance. Monkeys near jhulas can snatch food and bags.
+TEXT,
+            ],
+            [
+                'title' => 'Amritsar Golden Temple and Punjab food',
+                'destinations' => 'amritsar, punjab, golden temple, wagah',
+                'content' => <<<'TEXT'
+Sri Harmandir Sahib (Golden Temple) is open nearly 24 hours—visit at dawn or late evening for calmer reflection. Cover head, wash feet, and no smoking/alcohol on the complex.
+
+Langar (community kitchen) serves free meals—volunteer briefly if you wish; sit on the floor per custom. Shoes are deposited at counters before entry.
+
+Wagah border ceremony (India–Pakistan) is popular—arrive early for seating; expect strict security and no large bags.
+
+Food: Amritsari kulcha, chole, lassi, and pinni sweets. Old city lanes near the temple have legendary dhabas—prioritize busy kitchens.
+
+Partition Museum offers sobering historical context—allow 1–2 hours. Jallianwala Bagh is adjacent to the Golden Temple complex.
+
+Best weather: October–March. Summers are intense. Auto-rickshaws and app cabs are easy; parking near the temple is limited.
+TEXT,
+            ],
+            [
+                'title' => 'Meghalaya living root bridges and rain',
+                'destinations' => 'meghalaya, shillong, cherrapunji, sohra, mawlynnong',
+                'content' => <<<'TEXT'
+Meghalaya is one of India’s wettest regions—pack rain gear and quick-dry clothing year-round, especially May–September.
+
+Shillong is the capital hub—Police Bazaar for stays and food. Cherrapunji (Sohra) and Mawlynnong offer root bridges and village walks.
+
+Double-decker living root bridge at Nongriat requires a steep trek (~3,000+ steps down and back)—start early, carry water, and assess fitness honestly.
+
+Roads are scenic but slow; allow full days for transfers. Shared sumos and private cabs are common—fix rates or use reputable drivers.
+
+Food: jadoh, pork with bamboo shoot (try only if you eat pork), and tea from local stalls. Northeast cuisine differs from mainland Indian norms.
+
+Inner Line Permit is not required for Indian citizens for main tourist areas; verify if venturing to restricted zones. Mobile connectivity can be weak in valleys.
+TEXT,
+            ],
+            [
+                'title' => 'Tamil Nadu temples and Pondicherry coast',
+                'destinations' => 'tamil nadu, chennai, madurai, pondicherry, mahabalipuram, rameswaram',
+                'content' => <<<'TEXT'
+Tamil Nadu blends towering temples with coastal heritage. Chennai: Kapaleeshwarar, Government Museum, and Marina promenade—humid most of the year.
+
+Madurai Meenakshi Amman Temple is best early morning or evening—dress modestly (shoulders/knees covered), no leather items in some shrines.
+
+Mahabalipuram (Mamallapuram): Shore Temple and rock-cut sculptures—easy day trip from Chennai. Pondicherry offers French-quarter walks and quieter beaches.
+
+Food: idli-dosa-sambhar breakfasts, Chettinad spice if you tolerate heat, filter coffee, and meals on banana leaf. Chennai and Madurai have strong vegetarian traditions.
+
+Rameswaram and Kanyakumari extend the southern circuit—long drives; check rail options from Madurai.
+
+Best season: November–February for lower humidity. Summer is sweltering inland. Temple queues swell on festival days—check lunar calendar.
+TEXT,
+            ],
+            [
+                'title' => 'Kolkata culture, food, and colonial lanes',
+                'destinations' => 'kolkata, west bengal, calcutta, darjeeling',
+                'content' => <<<'TEXT'
+Kolkata rewards slow exploration—colonial architecture in BBD Bagh, Victoria Memorial, and Kumartuli idol workshops (especially before Durga Puja).
+
+Trams and metro help avoid traffic; app cabs are reliable. Howrah Bridge and Princep Ghat are best at sunset.
+
+Food is a primary attraction: machher jhol, kosha mangsho (if you eat meat), kathi rolls, puchkas, and mishti doi. Park Street and College Street cafés have literary history.
+
+Durga Puja (Sep/Oct) transforms the city—book hotels months ahead. Summers are humid; carry cotton clothing and electrolytes.
+
+Day trips: Chandernagore French heritage, Sunderbans tiger reserve (multi-day boat tours with licensed operators), or Shantiniketan for Tagore legacy.
+
+Respect queue culture at popular sweet shops—many have separate lines for takeaway vs dine-in.
+TEXT,
+            ],
+            [
+                'title' => 'Manali and Rohtang pass mountain trips',
+                'destinations' => 'manali, kullu, rohtang, solang, himachal pradesh',
+                'content' => <<<'TEXT'
+Manali sits in the Kullu Valley with Old Manali (cafés, guesthouses) and Mall Road (busier, commercial). Pick base by noise and budget.
+
+Rohtang Pass and Atal Tunnel access high mountain scenery—permits and weather govern same-day trips; snow activities at Solang Valley are seasonal.
+
+Altitude and cold: even in summer, high passes need jackets. Sunglasses and sunscreen matter at snow points.
+
+Adventure: paragliding and zorbing at Solang—verify operator safety records. River rafting on the Beas runs in safer seasons only.
+
+Hidimba Temple and Vashisht hot springs are easy half-day sights. Kasol–Manikaran and Spiti routes are longer extensions—check road status.
+
+Monsoon landslide risk on Himalayan highways—confirm bus or cab schedules. Winter brings snow in town occasionally; carry grip footwear.
+TEXT,
+            ],
+            [
+                'title' => 'Hyderabad biryani and Nizami heritage',
+                'destinations' => 'hyderabad, telangana, charminar, secunderabad',
+                'content' => <<<'TEXT'
+Hyderabad pairs Deccan history with modern tech corridors. Charminar and Old City bazaars (Laad Bazaar for bangles) are best in morning before heat peaks.
+
+Golconda Fort sound-and-light show or sunset visit rewards climbers—fort steps are steep; carry water.
+
+Food: Hyderabadi biryani (Paradise, Shah Ghouse, and local debates abound), haleem in Ramadan season, irani chai and Osmania biscuits.
+
+Ramoji Film City is a full-day outing east of the city—book tickets online. Hussain Sagar lake boating is mild sightseeing.
+
+New city (HITEC City/Gachibowli) has malls and global dining if staying in business districts.
+
+Best months: October–February. April–June is very hot. Metro and app cabs ease Old City parking pain.
+TEXT,
+            ],
         ];
     }
 

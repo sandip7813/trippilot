@@ -203,7 +203,7 @@ class RailwayStationResolver
         $places = $this->placesService->searchNearPoint(
             $location['lat'],
             $location['lng'],
-            ['public_transport.train', 'railway.rail'],
+            ['public_transport.train'],
             limit: 8,
             radiusMeters: 25000,
         );

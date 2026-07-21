@@ -62,6 +62,53 @@ test('station resolver matches station names from location labels', function () 
     ]);
 });
 
+test('station resolver falls back to geoapify nearby train stations with valid categories', function () {
+    config([
+        'integrations.maps.drivers.geoapify.api_key' => 'geo_test_key',
+    ]);
+
+    Http::fake([
+        'api.railradar.in/v1/lookup/stations' => Http::response([
+            'success' => true,
+            'data' => [
+                'NDLS' => 'New Delhi',
+            ],
+        ]),
+        'api.geoapify.com/v2/places*' => Http::response([
+            'features' => [[
+                'geometry' => [
+                    'coordinates' => [77.2167, 28.6315],
+                ],
+                'properties' => [
+                    'name' => 'New Delhi',
+                    'place_id' => 'ndls-station',
+                    'categories' => ['public_transport.train'],
+                ],
+            ]],
+        ]),
+    ]);
+
+    $station = app(RailwayStationResolver::class)->resolve([
+        'label' => 'Connaught Place, New Delhi, India',
+        'lat' => 28.6315,
+        'lng' => 77.2167,
+    ]);
+
+    expect($station)->toMatchArray([
+        'code' => 'NDLS',
+        'name' => 'New Delhi',
+    ]);
+
+    Http::assertSent(function ($request): bool {
+        if (! str_contains($request->url(), 'api.geoapify.com/v2/places')) {
+            return false;
+        }
+
+        return str_contains($request->url(), 'categories=public_transport.train')
+            && ! str_contains($request->url(), 'railway.rail');
+    });
+});
+
 test('station resolver returns null when coordinates are missing', function () {
     Http::fake();
 
