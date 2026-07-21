@@ -18,12 +18,12 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as knowledgeIndex } from '@/routes/admin/knowledge';
 import type {
     KnowledgeDocument,
     KnowledgeDocumentOption,
 } from '@/types/knowledge';
-import { dashboard as adminDashboard } from '@/routes/admin';
 
 defineProps<{
     document: KnowledgeDocument;
