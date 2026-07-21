@@ -61,7 +61,7 @@ import type {
     RoadTripFormOptions,
     RoadTripPlace,
 } from '@/types/roadTrip';
-import type { TripOption } from '@/types/trip';
+import type { RagCoverage, TripOption } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 import type { TripWeather } from '@/types/weather';
 
@@ -75,6 +75,7 @@ const props = defineProps<
         trip: RoadTrip;
         mapsConfigured: boolean;
         aiConfigured: boolean;
+        ragCoverage: RagCoverage;
         amenityLayers: string[];
         weather: TripWeather | null;
     }
@@ -1109,6 +1110,7 @@ onUnmounted(() => {
             v-if="aiConfigured"
             :trip="trip"
             :ai-configured="aiConfigured"
+            :rag-coverage="ragCoverage"
             variant="road"
         />
     </div>

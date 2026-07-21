@@ -294,6 +294,101 @@ New city (HITEC City/Gachibowli) has malls and global dining if staying in busin
 Best months: October–February. April–June is very hot. Metro and app cabs ease Old City parking pain.
 TEXT,
             ],
+            [
+                'title' => 'Sikkim monasteries, permits, and mountain roads',
+                'destinations' => 'sikkim, gangtok, pelling, lachung, lachen, nathula',
+                'content' => <<<'TEXT'
+Sikkim requires Inner Line Permits for many areas—Indian citizens can obtain these in Gangtok or online depending on current rules; foreign nationals need Restricted Area Permits through registered agents.
+
+Gangtok is the main hub with MG Marg pedestrian zone, Rumtek Monastery, and views of Kanchenjunga on clear mornings. Enchey and Do Drul Chorten are easy city sights.
+
+North Sikkim (Lachung, Lachen, Yumthang Valley, Gurudongmar Lake) needs overnight stays and permits—roads are narrow; travel only with registered operators in season (typically March–May and October–December).
+
+Pelling offers Pemayangtse Monastery and Khecheopalri Lake. Shared jeeps and private cabs are the norm; self-drive requires confidence on mountain roads.
+
+Altitude and weather change quickly—pack layers, rain gear, and sunglasses. Plastic is restricted in many parts of the state.
+
+Food: momos, thukpa, gundruk soup, and churpi. Many homestays serve simple local meals—confirm dietary needs ahead.
+
+Respect Buddhist customs: remove shoes at monasteries, walk clockwise around chortens, and ask before photographing rituals.
+TEXT,
+            ],
+            [
+                'title' => 'Gujarat heritage, Rann, and wildlife circuit',
+                'destinations' => 'gujarat, ahmedabad, kutch, rann of kutch, dwarka, somnath, gir',
+                'content' => <<<'TEXT'
+Ahmedabad blends old pol houses with Sabarmati Ashram and the Calico Museum—hot and dry most of the year; plan outdoor sights for morning and evening.
+
+Rann of Kutch white desert is best during Rann Utsav (winter)—book tented stays early. Full moon nights are popular for photography; carry warm layers for chilly evenings.
+
+Dwarka and Somnath form a coastal pilgrimage circuit—modest dress at temples, early darshan queues on weekends.
+
+Gir National Park is the last home of Asiatic lions—safari slots are limited and must be booked in advance through official channels. Closed mid-June to mid-October typically.
+
+Food: dhokla, thepla, undhiyu, Gujarati thali (often vegetarian), and street snacks like khandvi. Jain and vegetarian norms are strong in many cities.
+
+Statue of Unity (Kevadia) pairs with Sardar Sarovar viewpoints—allow a full day from Vadodara or Ahmedabad. Roads are good but summer heat is intense March–June.
+
+Best season: October–March for most regions; Kutch and Gir timings vary—verify park and festival dates before booking.
+TEXT,
+            ],
+            [
+                'title' => 'Kashmir valleys, houseboats, and seasonal access',
+                'destinations' => 'kashmir, srinagar, gulmarg, pahalgam, sonamarg, dal lake',
+                'content' => <<<'TEXT'
+Srinagar Dal and Nigeen lakes are famous for houseboats—inspect boats in daylight, agree meals and heating, and book through reputable houseboat owners' associations when possible.
+
+Shikara rides at sunrise are quieter; negotiate duration and price before boarding. Old city markets ( spices, papier-mâché) involve narrow lanes—use licensed guides if unfamiliar.
+
+Gulmarg gondola runs seasonally depending on snow and maintenance—check same-day status. Pahalgam and Sonamarg are bases for day hikes and pony rides; dress in layers.
+
+Security and road conditions can change—follow local advisories, carry ID, and register at hotels as required. Mobile data may be limited during restrictions; download offline maps.
+
+Best season: April–June and September–November for most sightseeing; winter for snow in Gulmarg. Ramadan and Eid periods affect restaurant hours.
+
+Food: wazwan feasts (meat-heavy), kahwa tea, and bakery breads. Vegetarian options exist but meat-centric cuisine dominates celebrations.
+
+Permits may be required for some border-adjacent areas—verify Ladakh/Kargil onward travel separately if combining regions.
+TEXT,
+            ],
+            [
+                'title' => 'Odisha temples, coast, and Konark heritage',
+                'destinations' => 'odisha, bhubaneswar, puri, konark, chilika, cuttack',
+                'content' => <<<'TEXT'
+Bhubaneswar is the temple city—Lingaraj, Mukteshwar, and old town lanes reward early starts before heat and crowds. Many shrines restrict non-Hindus from inner sanctums—observe signage respectfully.
+
+Puri Jagannath Temple has strict entry rules and heavy festival crowds during Rath Yatra—plan lodging months ahead if visiting during the festival.
+
+Konark Sun Temple (UNESCO) and Chandrabhaga beach pair well as a day trip from Puri or Bhubaneswar—sunrise light on the stone chariot is memorable.
+
+Chilika Lake offers dolphin-watching boat trips (Satapada)—seasonal and weather-dependent; use life jackets and licensed boats only.
+
+Coastal humidity is high year-round; monsoon (June–September) brings heavy rain. Cotton clothing, umbrella, and electrolytes help.
+
+Food: mahaprasad in Puri, dalma, pakhala (fermented rice, seasonal), and fresh seafood on the coast—choose busy kitchens for hygiene.
+
+Bhitarkanika mangroves and Similipal tiger reserve are longer extensions—check permit and season windows. Roads improve steadily but allow buffer time between cities.
+TEXT,
+            ],
+            [
+                'title' => 'Assam tea, Kaziranga rhinos, and Brahmaputra culture',
+                'destinations' => 'assam, guwahati, kaziranga, tezpur, majuli, dibrugarh',
+                'content' => <<<'TEXT'
+Guwahati is the gateway—Kamakhya Temple on Nilachal Hill draws pilgrims year-round; expect queues during Ambubachi Mela. Umananda island peacock island ferry is a short Brahmaputra outing.
+
+Kaziranga National Park protects one-horned rhinos—book jeep or elephant safari slots through official park channels; park zones (Kohora, Bagori, Agaratoli) differ in landscape.
+
+Tea estate stays near Dibrugarh or Jorhat offer factory tours during plucking seasons (typically March–November)—book heritage bungalows ahead.
+
+Majuli river island (world's largest river island) shrinks seasonally—ferry timings from Jorhat/Nimati ghat vary with Brahmaputra flow; verify same-day return options.
+
+Monsoon floods affect lowland roads June–September; winter (November–February) is pleasant for wildlife. Carry insect repellent near wetlands.
+
+Food: Assamese thali with fish tenga (sour fish curry), pitha during Bihu festivals, and tea-tasting sessions at estates. Many communities eat pork and duck—confirm if you have dietary restrictions.
+
+Respect tribal and tea-community customs in upper Assam; photography in sensitive border areas may require permits.
+TEXT,
+            ],
         ];
     }
 

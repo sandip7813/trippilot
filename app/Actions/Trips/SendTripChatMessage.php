@@ -26,6 +26,22 @@ class SendTripChatMessage
 
         $response = $this->chatAssistant->chat($message, $history, $tripContext);
 
+        $ragSources = is_array($tripContext['rag_sources'] ?? null)
+            ? array_values(array_map(
+                fn (array $source): array => [
+                    'document_id' => (string) ($source['document_id'] ?? ''),
+                    'title' => (string) ($source['title'] ?? ''),
+                    'score' => isset($source['score']) ? (float) $source['score'] : null,
+                ],
+                $tripContext['rag_sources'],
+            ))
+            : [];
+
+        $ragSources = array_values(array_filter(
+            $ragSources,
+            fn (array $source): bool => $source['document_id'] !== '' && $source['title'] !== '',
+        ));
+
         $userMessage = [
             'id' => (string) Str::uuid(),
             'role' => 'user',
@@ -57,6 +73,10 @@ class SendTripChatMessage
             'patch_applied' => $patchApplied,
             'created_at' => now()->toIso8601String(),
         ];
+
+        if ($ragSources !== []) {
+            $assistantMessage['rag_sources'] = $ragSources;
+        }
 
         $updates['chat_messages'] = [
             ...$history,

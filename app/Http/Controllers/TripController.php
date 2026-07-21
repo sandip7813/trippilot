@@ -18,6 +18,7 @@ use App\Http\Requests\UploadTripCoverImageRequest;
 use App\Models\Trip;
 use App\Services\Trains\TripTrainHaltsService;
 use App\Services\Trains\TripTrainService;
+use App\Services\Trips\TripAiContextBuilder;
 use App\Services\Trips\TripCoverImageService;
 use App\Services\Weather\TripWeatherService;
 use Illuminate\Http\JsonResponse;
@@ -91,13 +92,14 @@ class TripController extends Controller
         return to_route('trips.show', $trip);
     }
 
-    public function show(Trip $trip, TripWeatherService $tripWeather, TripTrainService $tripTrains): Response
+    public function show(Trip $trip, TripWeatherService $tripWeather, TripTrainService $tripTrains, TripAiContextBuilder $tripAiContext): Response
     {
         $this->authorize('view', $trip);
 
         return Inertia::render('Trips/Show', [
             'trip' => $trip->toFrontend(),
             'aiConfigured' => filled(config('integrations.ai.drivers.gemini.api_key')),
+            'ragCoverage' => $tripAiContext->ragCoverage($trip),
             'weather' => $tripWeather->forTrip($trip),
             'trainTimings' => $tripTrains->forTrip($trip),
         ]);

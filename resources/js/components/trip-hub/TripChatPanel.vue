@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, usePage } from '@inertiajs/vue3';
-import { MessageCircle, Send, Sparkles } from '@lucide/vue';
+import { BookOpen, MessageCircle, Send, Sparkles } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
@@ -10,11 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
-import type { Trip, TripChatMessage } from '@/types/trip';
+import type { RagCoverage, Trip, TripChatMessage } from '@/types/trip';
 
 const props = defineProps<{
     trip: Trip;
     aiConfigured: boolean;
+    ragCoverage?: RagCoverage;
     variant?: 'vacation' | 'road';
 }>();
 
@@ -25,6 +26,25 @@ const messagesContainer = ref<HTMLElement | null>(null);
 const messages = computed(() => props.trip.chat_messages ?? []);
 const canChat = computed(() => props.aiConfigured);
 const isRoadTrip = computed(() => props.variant === 'road');
+
+const showCoverageHint = computed(
+    () =>
+        props.aiConfigured &&
+        props.ragCoverage !== undefined &&
+        !props.ragCoverage.has_guides,
+);
+
+const coverageHint = computed((): string => {
+    if (!props.ragCoverage) {
+        return '';
+    }
+
+    if (props.ragCoverage.destination_tags.length === 0) {
+        return 'Add a destination to your trip to match TripPilot travel guides.';
+    }
+
+    return 'No guides for this destination yet — answers will use general AI knowledge only.';
+});
 
 const chatHint = computed((): string => {
     if (!props.aiConfigured) {
@@ -92,6 +112,28 @@ function messageClasses(message: TripChatMessage): string {
                 <p class="text-sm text-muted-foreground">
                     {{ chatHint }}
                 </p>
+                <div
+                    v-if="showCoverageHint"
+                    class="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100"
+                >
+                    <BookOpen class="mt-0.5 size-3.5 shrink-0" />
+                    <p>{{ coverageHint }}</p>
+                </div>
+                <div
+                    v-else-if="ragCoverage?.has_guides"
+                    class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+                >
+                    <BookOpen class="size-3.5" />
+                    <span>Matched guides:</span>
+                    <Badge
+                        v-for="guide in ragCoverage.matching_guides"
+                        :key="guide.document_id"
+                        variant="outline"
+                        class="text-[10px]"
+                    >
+                        {{ guide.title }}
+                    </Badge>
+                </div>
             </div>
         </CardHeader>
 
@@ -131,7 +173,7 @@ function messageClasses(message: TripChatMessage): string {
                         <p class="whitespace-pre-wrap">{{ message.content }}</p>
                     </div>
                     <div
-                        class="flex items-center gap-2 px-1 text-[11px] text-muted-foreground"
+                        class="flex flex-wrap items-center gap-2 px-1 text-[11px] text-muted-foreground"
                     >
                         <span>{{
                             message.role === 'user' ? 'You' : 'TripPilot'
@@ -143,6 +185,22 @@ function messageClasses(message: TripChatMessage): string {
                         >
                             Trip updated
                         </Badge>
+                        <template
+                            v-if="
+                                message.role === 'assistant' &&
+                                message.rag_sources?.length
+                            "
+                        >
+                            <Badge
+                                v-for="source in message.rag_sources"
+                                :key="`${message.id}-${source.document_id}`"
+                                variant="outline"
+                                class="gap-1 text-[10px] text-violet-700 dark:text-violet-300"
+                            >
+                                <BookOpen class="size-3" />
+                                {{ source.title }}
+                            </Badge>
+                        </template>
                     </div>
                 </div>
             </div>

@@ -105,6 +105,50 @@ class RagService
     }
 
     /**
+     * @param  list<string>  $destinationTags
+     * @return array{
+     *     has_guides: bool,
+     *     destination_tags: list<string>,
+     *     matching_guides: list<array{document_id: string, title: string}>
+     * }
+     */
+    public function destinationCoverage(array $destinationTags): array
+    {
+        $destinationTags = KnowledgeDocument::normalizeDestinations($destinationTags);
+
+        if ($destinationTags === []) {
+            return [
+                'has_guides' => false,
+                'destination_tags' => [],
+                'matching_guides' => [],
+            ];
+        }
+
+        $matchingGuides = [];
+
+        foreach (KnowledgeDocument::query()->published()->get(['title', 'destinations']) as $document) {
+            $documentDestinations = is_array($document->destinations)
+                ? KnowledgeDocument::normalizeDestinations($document->destinations)
+                : [];
+
+            if (array_intersect($destinationTags, $documentDestinations) === []) {
+                continue;
+            }
+
+            $matchingGuides[(string) $document->id] = [
+                'document_id' => (string) $document->id,
+                'title' => (string) $document->title,
+            ];
+        }
+
+        return [
+            'has_guides' => $matchingGuides !== [],
+            'destination_tags' => $destinationTags,
+            'matching_guides' => array_values($matchingGuides),
+        ];
+    }
+
+    /**
      * @param  list<RetrievedChunk>  $chunks
      * @return array{
      *     context: string,

@@ -117,3 +117,52 @@ test('trip context builder includes rag context when knowledge exists', function
     expect($context['rag_context'])->toContain('fish thali')
         ->and($context['rag_sources'])->not->toBeEmpty();
 });
+
+test('rag service reports destination guide coverage', function () {
+    KnowledgeDocument::factory()->create([
+        'title' => 'Goa guide',
+        'destinations' => ['goa', 'panaji'],
+        'status' => KnowledgeDocumentStatus::Published,
+    ]);
+
+    KnowledgeDocument::factory()->create([
+        'title' => 'Delhi guide',
+        'destinations' => ['delhi'],
+        'status' => KnowledgeDocumentStatus::Published,
+    ]);
+
+    $coverage = app(RagService::class)->destinationCoverage(['goa', 'india']);
+
+    expect($coverage['has_guides'])->toBeTrue()
+        ->and($coverage['destination_tags'])->toContain('goa')
+        ->and($coverage['matching_guides'])->toHaveCount(1)
+        ->and($coverage['matching_guides'][0]['title'])->toBe('Goa guide');
+
+    $missing = app(RagService::class)->destinationCoverage(['tokyo']);
+
+    expect($missing['has_guides'])->toBeFalse()
+        ->and($missing['matching_guides'])->toBe([]);
+});
+
+test('trip context builder exposes rag coverage for trips', function () {
+    KnowledgeDocument::factory()->create([
+        'title' => 'Sikkim guide',
+        'destinations' => ['sikkim', 'gangtok'],
+        'status' => KnowledgeDocumentStatus::Published,
+    ]);
+
+    $trip = new Trip([
+        'type' => TripType::Vacation,
+        'title' => 'Gangtok escape',
+        'destination' => [
+            'label' => 'Gangtok, Sikkim, India',
+            'lat' => null,
+            'lng' => null,
+        ],
+    ]);
+
+    $coverage = app(TripAiContextBuilder::class)->ragCoverage($trip);
+
+    expect($coverage['has_guides'])->toBeTrue()
+        ->and($coverage['matching_guides'][0]['title'])->toBe('Sikkim guide');
+});
