@@ -31,9 +31,11 @@ import {
 import RoadTripController from '@/actions/App/Http/Controllers/RoadTripController';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import InputError from '@/components/InputError.vue';
+import TripChatPanel from '@/components/trip-hub/TripChatPanel.vue';
 import TripCoverPlaceholder from '@/components/TripCoverPlaceholder.vue';
 import TripCoverRegenerateButton from '@/components/TripCoverRegenerateButton.vue';
 import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
+import TripWeatherCard from '@/components/TripWeatherCard.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -61,8 +63,6 @@ import type {
 } from '@/types/roadTrip';
 import type { TripOption } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
-import TripWeatherCard from '@/components/TripWeatherCard.vue';
-import TripChatPanel from '@/components/trip-hub/TripChatPanel.vue';
 import type { TripWeather } from '@/types/weather';
 
 const RoadTripMap = defineAsyncComponent({

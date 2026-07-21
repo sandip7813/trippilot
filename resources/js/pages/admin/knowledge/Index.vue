@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { Form, Head, Link } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, BookOpen, Plus } from '@lucide/vue';
 import KnowledgeDocumentController from '@/actions/App/Http/Controllers/Admin/KnowledgeDocumentController';
 import PageHeader from '@/components/PageHeader.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { dashboard as adminDashboard } from '@/routes/admin';
 import { create, index as knowledgeIndex } from '@/routes/admin/knowledge';
 import type { KnowledgeDocument } from '@/types/knowledge';
-import { dashboard as adminDashboard } from '@/routes/admin';
 
 defineProps<{
     documents: KnowledgeDocument[];

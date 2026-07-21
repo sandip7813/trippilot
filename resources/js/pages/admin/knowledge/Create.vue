@@ -8,9 +8,9 @@ import PageHeader from '@/components/PageHeader.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as knowledgeIndex } from '@/routes/admin/knowledge';
 import type { KnowledgeDocumentOption } from '@/types/knowledge';
-import { dashboard as adminDashboard } from '@/routes/admin';
 
 defineProps<{
     statuses: KnowledgeDocumentOption[];
