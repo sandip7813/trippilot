@@ -61,7 +61,7 @@ return [
                 'api_key' => env('GEMINI_API_KEY'),
                 'base_url' => 'https://generativelanguage.googleapis.com/v1beta',
                 'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
-                'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'text-embedding-004'),
+                'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'gemini-embedding-001'),
                 'image_model' => env('GEMINI_IMAGE_MODEL', 'gemini-2.5-flash-image'),
                 'image_enabled' => filter_var(env('GEMINI_IMAGE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
             ],

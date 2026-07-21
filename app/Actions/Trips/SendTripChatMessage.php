@@ -22,7 +22,7 @@ class SendTripChatMessage
     public function __invoke(Trip $trip, string $message): array
     {
         $history = Trip::normalizeChatMessages($trip->getAttribute('chat_messages'));
-        $tripContext = $this->contextBuilder->build($trip);
+        $tripContext = $this->contextBuilder->build($trip, $message);
 
         $response = $this->chatAssistant->chat($message, $history, $tripContext);
 

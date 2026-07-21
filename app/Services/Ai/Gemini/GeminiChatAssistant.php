@@ -120,6 +120,12 @@ class GeminiChatAssistant implements ChatAssistant
             $lines[] = '- Focus on pacing, safety, packing, food preferences, and practical driving advice.';
         }
 
+        if (($ragContext = trim((string) ($tripContext['rag_context'] ?? ''))) !== '') {
+            $lines[] = '';
+            $lines[] = $ragContext;
+            $lines[] = 'Use retrieved travel knowledge when relevant and prefer it over generic assumptions.';
+        }
+
         return implode("\n", $lines);
     }
 

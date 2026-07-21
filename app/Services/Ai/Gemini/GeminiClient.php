@@ -47,4 +47,19 @@ class GeminiClient
     {
         return (string) config('integrations.ai.drivers.gemini.embedding_model');
     }
+
+    public function embedContent(string $text): Response
+    {
+        return $this->post(
+            $this->embeddingModel(),
+            'embedContent',
+            [
+                'content' => [
+                    'parts' => [
+                        ['text' => $text],
+                    ],
+                ],
+            ],
+        );
+    }
 }

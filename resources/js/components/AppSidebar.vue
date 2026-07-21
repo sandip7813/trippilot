@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, Map, MapPinned, Shield, ShieldCheck } from '@lucide/vue';
+import { LayoutGrid, BookOpen, Map, MapPinned, Shield, ShieldCheck } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
+import { index as knowledgeIndex } from '@/routes/admin/knowledge';
 import { settings as superSettings } from '@/routes/admin/super';
 import { index as roadTripsIndex } from '@/routes/road-trips';
 import { index as tripsIndex } from '@/routes/trips';
@@ -53,6 +54,11 @@ const adminNavItems = computed<NavItem[]>(() => {
             title: 'Admin',
             href: adminDashboard(),
             icon: Shield,
+        },
+        {
+            title: 'Knowledge Base',
+            href: knowledgeIndex(),
+            icon: BookOpen,
         },
     ];
 

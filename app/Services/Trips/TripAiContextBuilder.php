@@ -3,15 +3,19 @@
 namespace App\Services\Trips;
 
 use App\Models\Trip;
+use App\Services\Knowledge\RagService;
 
 class TripAiContextBuilder
 {
-    public function __construct(private TripRouteResolver $routeResolver) {}
+    public function __construct(
+        private TripRouteResolver $routeResolver,
+        private RagService $ragService,
+    ) {}
 
     /**
      * @return array<string, mixed>
      */
-    public function build(Trip $trip): array
+    public function build(Trip $trip, ?string $ragQuery = null): array
     {
         $itinerary = Trip::coerceStructuredArray($trip->getAttribute('itinerary')) ?? Trip::emptyItinerary();
 
@@ -46,6 +50,10 @@ class TripAiContextBuilder
             $context['has_route'] = is_array($context['route'] ?? null)
                 && ($context['route']['distance_km'] ?? null) !== null;
         }
+
+        $retrieval = $this->ragService->retrieveForTripContext($context, $ragQuery ?? '');
+        $context['rag_context'] = $retrieval['context'];
+        $context['rag_sources'] = $retrieval['sources'];
 
         return $context;
     }
