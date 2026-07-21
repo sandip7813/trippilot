@@ -2,6 +2,8 @@
 
 use App\Contracts\Ai\TripGenerator;
 use App\Data\Ai\GeneratedItinerary;
+use App\Models\KnowledgeChunk;
+use App\Models\KnowledgeDocument;
 use App\Models\Trip;
 use App\Models\User;
 
@@ -59,6 +61,8 @@ beforeEach(function () {
     }
 
     Trip::query()->whereNotNull('_id')->delete();
+    KnowledgeChunk::query()->whereNotNull('_id')->delete();
+    KnowledgeDocument::query()->whereNotNull('_id')->delete();
 });
 
 test('users can generate an itinerary for their trip', function () {

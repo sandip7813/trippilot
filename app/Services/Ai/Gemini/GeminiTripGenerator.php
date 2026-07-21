@@ -90,6 +90,12 @@ class GeminiTripGenerator implements TripGenerator
             $lines[] = "- {$line}";
         }
 
+        if (($ragContext = trim((string) ($context['rag_context'] ?? ''))) !== '') {
+            $lines[] = '';
+            $lines[] = $ragContext;
+            $lines[] = 'Use retrieved travel knowledge when relevant and prefer it over generic assumptions.';
+        }
+
         if ($prompt !== '') {
             $lines[] = '';
             $lines[] = "Additional instructions: {$prompt}";
