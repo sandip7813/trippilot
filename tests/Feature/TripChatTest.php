@@ -4,6 +4,7 @@ use App\Contracts\Ai\ChatAssistant;
 use App\Data\Ai\ChatResponse;
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\Trips\TripAiContextBuilder;
 
 beforeEach(function () {
     if (! extension_loaded('mongodb')) {
@@ -55,6 +56,69 @@ test('users can chat about their trip and store messages', function () {
         ->and($trip->chat_messages[0]['content'])->toBe('Any ideas for Day 2?')
         ->and($trip->chat_messages[1]['role'])->toBe('assistant')
         ->and($trip->chat_messages[1]['content'])->toContain('Day 2');
+});
+
+test('chat stores rag source citations on assistant messages', function () {
+    config(['integrations.ai.drivers.gemini.api_key' => 'test-key']);
+
+    $this->mock(TripAiContextBuilder::class, function ($mock): void {
+        $mock->shouldReceive('build')
+            ->once()
+            ->andReturn([
+                'title' => 'Goa getaway',
+                'rag_context' => 'Retrieved travel knowledge:',
+                'rag_sources' => [
+                    [
+                        'document_id' => 'goa-doc',
+                        'title' => 'Goa monsoon and beach guide',
+                        'score' => 0.91,
+                    ],
+                ],
+            ]);
+    });
+
+    $this->mock(ChatAssistant::class, function ($mock): void {
+        $mock->shouldReceive('chat')
+            ->once()
+            ->andReturn(new ChatResponse(
+                message: 'Try a quieter south Goa beach on Day 2.',
+            ));
+    });
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create();
+
+    $this->actingAs($user)
+        ->post(route('trips.chat', $trip), [
+            'message' => 'Any monsoon tips?',
+        ])
+        ->assertRedirect();
+
+    $trip->refresh();
+
+    expect($trip->chat_messages[1]['rag_sources'] ?? [])->toHaveCount(1)
+        ->and($trip->chat_messages[1]['rag_sources'][0]['title'])
+        ->toBe('Goa monsoon and beach guide');
+});
+
+test('trip show includes rag coverage props', function () {
+    config(['integrations.ai.drivers.gemini.api_key' => 'test-key']);
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create([
+        'destination' => [
+            'label' => 'Tokyo, Japan',
+            'lat' => null,
+            'lng' => null,
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('trips.show', $trip))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('ragCoverage')
+            ->where('ragCoverage.has_guides', false));
 });
 
 test('chat applies itinerary patches from assistant responses', function () {

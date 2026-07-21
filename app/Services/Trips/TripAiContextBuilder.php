@@ -59,6 +59,27 @@ class TripAiContextBuilder
     }
 
     /**
+     * @return array{
+     *     has_guides: bool,
+     *     destination_tags: list<string>,
+     *     matching_guides: list<array{document_id: string, title: string}>
+     * }
+     */
+    public function ragCoverage(Trip $trip): array
+    {
+        $context = [
+            'destination' => Trip::normalizeLocation($trip->getAttribute('destination')),
+            'origin' => Trip::normalizeLocation($trip->getAttribute('origin')),
+            'waypoints' => $this->routeResolver->normalizedWaypoints($trip),
+            'route_summary' => $this->routeResolver->summary($trip),
+        ];
+
+        return $this->ragService->destinationCoverage(
+            $this->ragService->destinationsFromTripContext($context),
+        );
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     private function roadProfileContext(Trip $trip): ?array

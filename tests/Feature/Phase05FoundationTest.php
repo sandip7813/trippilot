@@ -17,6 +17,8 @@ test('admin middleware blocks regular users from admin panel', function () {
 });
 
 test('admin users can access admin dashboard', function () {
+    skipUnlessMongoDbAvailable();
+
     $user = User::factory()->admin()->create();
     $this->actingAs($user);
 
@@ -24,6 +26,8 @@ test('admin users can access admin dashboard', function () {
 });
 
 test('super admin users can access admin dashboard', function () {
+    skipUnlessMongoDbAvailable();
+
     $user = User::factory()->superAdmin()->create();
     $this->actingAs($user);
 

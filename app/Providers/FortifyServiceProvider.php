@@ -67,8 +67,16 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/Register', [
+        Fortify::registerView(fn (Request $request) => Inertia::render('auth/Register', [
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            'recaptcha' => [
+                'enabled' => (bool) config('recaptcha.enabled') && filled(config('recaptcha.site_key')),
+                'siteKey' => config('recaptcha.site_key'),
+            ],
+            'otpStatus' => [
+                'sent' => (bool) $request->session()->get('otp_sent', false),
+                'email' => $request->session()->get('otp_email'),
+            ],
         ]));
 
     }
@@ -85,5 +93,13 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($throttleKey);
         });
 
+        RateLimiter::for('registration-otp', function (Request $request) {
+            $email = Str::lower((string) $request->input('email'));
+
+            return [
+                Limit::perMinute(1)->by($email),
+                Limit::perHour(5)->by($request->ip()),
+            ];
+        });
     }
 }

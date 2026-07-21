@@ -14,7 +14,7 @@ class TripPolicy
 
     public function view(User $user, Trip $trip): bool
     {
-        return $this->ownsTrip($user, $trip);
+        return $this->ownsTrip($user, $trip) || $user->isAdmin();
     }
 
     public function create(User $user): bool
@@ -29,7 +29,12 @@ class TripPolicy
 
     public function delete(User $user, Trip $trip): bool
     {
-        return $this->ownsTrip($user, $trip);
+        return $this->ownsTrip($user, $trip) || $user->isAdmin();
+    }
+
+    public function moderate(User $user): bool
+    {
+        return $user->isAdmin();
     }
 
     public function generateItinerary(User $user, Trip $trip): bool

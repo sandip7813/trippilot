@@ -5,6 +5,9 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
+use App\Rules\Recaptcha;
+use App\Rules\ValidRegistrationOtp;
+use App\Services\Auth\RegistrationOtpService;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
@@ -22,12 +25,28 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
+            'otp' => [
+                'required',
+                'string',
+                'digits:6',
+                new ValidRegistrationOtp($input['email'] ?? ''),
+            ],
+            'g-recaptcha-response' => [
+                config('recaptcha.enabled') ? 'required' : 'nullable',
+                new Recaptcha,
+            ],
         ])->validate();
 
-        return User::create([
+        $user = User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
         ]);
+
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        app(RegistrationOtpService::class)->forget($input['email']);
+
+        return $user;
     }
 }

@@ -41,12 +41,13 @@ import { cn } from '@/lib/utils';
 import { edit, index as tripsIndex } from '@/routes/trips';
 import type { TripTrainTimings } from '@/types/train';
 import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
-import type { Trip } from '@/types/trip';
+import type { RagCoverage, Trip } from '@/types/trip';
 import type { TripWeather } from '@/types/weather';
 
 const props = defineProps<{
     trip: Trip;
     aiConfigured: boolean;
+    ragCoverage: RagCoverage;
     weather: TripWeather | null;
     trainTimings: TripTrainTimings | null;
 }>();
@@ -421,6 +422,7 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             v-if="aiConfigured"
             :trip="trip"
             :ai-configured="aiConfigured"
+            :rag-coverage="ragCoverage"
         />
 
         <section

@@ -456,7 +456,7 @@ class Trip extends Model
     }
 
     /**
-     * @return list<array{id: string, role: string, content: string, created_at: string, patch_applied?: bool}>
+     * @return list<array{id: string, role: string, content: string, created_at: string, patch_applied?: bool, rag_sources?: list<array{document_id: string, title: string, score?: float|null}>}>
      */
     public static function normalizeChatMessages(mixed $messages): array
     {
@@ -487,6 +487,35 @@ class Trip extends Model
 
             if ($role === 'assistant' && isset($message['patch_applied'])) {
                 $entry['patch_applied'] = (bool) $message['patch_applied'];
+            }
+
+            if ($role === 'assistant' && is_array($message['rag_sources'] ?? null)) {
+                $entry['rag_sources'] = array_values(array_filter(array_map(
+                    function (mixed $source): ?array {
+                        if (! is_array($source)) {
+                            return null;
+                        }
+
+                        $documentId = (string) ($source['document_id'] ?? '');
+                        $title = (string) ($source['title'] ?? '');
+
+                        if ($documentId === '' || $title === '') {
+                            return null;
+                        }
+
+                        $normalized = [
+                            'document_id' => $documentId,
+                            'title' => $title,
+                        ];
+
+                        if (isset($source['score']) && is_numeric($source['score'])) {
+                            $normalized['score'] = (float) $source['score'];
+                        }
+
+                        return $normalized;
+                    },
+                    $message['rag_sources'],
+                )));
             }
 
             if ($entry['id'] === '') {
@@ -602,7 +631,7 @@ class Trip extends Model
     }
 
     /**
-     * @return list<array{id: string, role: string, content: string, created_at: string, patch_applied?: bool}>
+     * @return list<array{id: string, role: string, content: string, created_at: string, patch_applied?: bool, rag_sources?: list<array{document_id: string, title: string, score?: float|null}>}>
      */
     private function chatMessagesForFrontend(): array
     {

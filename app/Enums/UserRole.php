@@ -26,4 +26,20 @@ enum UserRole: string
             self::SuperAdmin => 'Super Admin',
         };
     }
+
+    /**
+     * @return list<self>
+     */
+    public static function assignableBy(UserRole $actorRole, UserRole $targetRole): array
+    {
+        if ($actorRole === self::SuperAdmin) {
+            return self::cases();
+        }
+
+        if ($actorRole === self::Admin && ! $targetRole->isSuperAdmin()) {
+            return [self::User, self::Admin];
+        }
+
+        return [];
+    }
 }

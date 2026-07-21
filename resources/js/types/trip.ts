@@ -71,12 +71,28 @@ export type TripRouteSummary = {
     }>;
 };
 
+export type TripChatRagSource = {
+    document_id: string;
+    title: string;
+    score?: number | null;
+};
+
 export type TripChatMessage = {
     id: string;
     role: 'user' | 'assistant';
     content: string;
     created_at: string;
     patch_applied?: boolean;
+    rag_sources?: TripChatRagSource[];
+};
+
+export type RagCoverage = {
+    has_guides: boolean;
+    destination_tags: string[];
+    matching_guides: Array<{
+        document_id: string;
+        title: string;
+    }>;
 };
 
 export type TripItinerary = {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\SendRegistrationOtpController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocationSearchController;
 use App\Http\Controllers\RoadTripController;
@@ -7,6 +8,12 @@ use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
+
+Route::middleware('guest')->group(function () {
+    Route::post('register/otp', SendRegistrationOtpController::class)
+        ->middleware('throttle:registration-otp')
+        ->name('register.otp');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
