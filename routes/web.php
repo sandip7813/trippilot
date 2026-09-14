@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Assistant\AssistantConversationController;
 use App\Http\Controllers\Auth\SendRegistrationOtpController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocationSearchController;
@@ -59,6 +60,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('throttle:10,1')
         ->name('road-trips.cover.upload');
     Route::resource('road-trips', RoadTripController::class)->except(['destroy']);
+
+    Route::prefix('assistant')->name('assistant.')->group(function () {
+        Route::get('/', [AssistantConversationController::class, 'index'])->name('index');
+        Route::post('conversations', [AssistantConversationController::class, 'store'])->name('conversations.store');
+        Route::get('conversations/{conversation}', [AssistantConversationController::class, 'show'])->name('show');
+        Route::post('conversations/{conversation}/messages', [AssistantConversationController::class, 'storeMessage'])
+            ->middleware('throttle:15,1')
+            ->name('conversations.messages.store');
+        Route::delete('conversations/{conversation}', [AssistantConversationController::class, 'destroy'])->name('conversations.destroy');
+    });
 });
 
 require __DIR__.'/settings.php';

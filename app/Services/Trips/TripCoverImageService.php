@@ -26,14 +26,13 @@ class TripCoverImageService
             return null;
         }
 
-        $destination = Trip::normalizeLocation($trip->getAttribute('destination'));
-        $destinationLabel = $destination['label'] ?? null;
+        $destinationCandidates = $trip->coverDestinationCandidates();
 
-        if ($destinationLabel === null || $destinationLabel === '') {
+        if ($destinationCandidates === []) {
             return null;
         }
 
-        $result = $this->resolveCover($trip, $destination, $tryNextSource);
+        $result = $this->resolveCover($trip, $destinationCandidates, $tryNextSource);
 
         if ($result === null) {
             $this->markExhausted($trip);
@@ -102,9 +101,9 @@ class TripCoverImageService
     }
 
     /**
-     * @param  array<string, mixed>  $destination
+     * @param  list<array<string, mixed>>  $destinationCandidates
      */
-    private function resolveCover(Trip $trip, array $destination, bool $tryNextSource): ?TripCoverGenerationResult
+    private function resolveCover(Trip $trip, array $destinationCandidates, bool $tryNextSource): ?TripCoverGenerationResult
     {
         $driver = (string) config('integrations.trip_covers.driver', 'rotating');
 
@@ -113,7 +112,7 @@ class TripCoverImageService
 
             return $this->rotationService->resolve(
                 $trip,
-                $destination,
+                $destinationCandidates,
                 $trip->travel_style?->label(),
                 (int) ($bannerSize['width'] ?? 1920),
                 (int) ($bannerSize['height'] ?? 900),
@@ -122,7 +121,7 @@ class TripCoverImageService
         }
 
         $bytes = $this->coverGenerator->generate(
-            $destination,
+            $destinationCandidates[0],
             $trip->travel_style?->label(),
             (int) config('integrations.trip_covers.sizes.banner.width', 1920),
             (int) config('integrations.trip_covers.sizes.banner.height', 900),

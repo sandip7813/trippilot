@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\Ai\ChatAssistant;
 use App\Contracts\Ai\EmbeddingService;
+use App\Contracts\Ai\TravelAssistant;
 use App\Contracts\Ai\TripGenerator;
 use App\Contracts\Maps\PlacesService;
 use App\Contracts\Maps\RoutingService;
@@ -11,6 +12,7 @@ use App\Contracts\TripCovers\TripCoverGenerator;
 use App\Services\Ai\Gemini\GeminiChatAssistant;
 use App\Services\Ai\Gemini\GeminiClient;
 use App\Services\Ai\Gemini\GeminiEmbeddingService;
+use App\Services\Ai\Gemini\GeminiTravelAssistant;
 use App\Services\Ai\Gemini\GeminiTripCoverGenerator;
 use App\Services\Ai\Gemini\GeminiTripGenerator;
 use App\Services\Maps\Geoapify\GeoapifyAutocomplete;
@@ -97,6 +99,7 @@ class IntegrationServiceProvider extends ServiceProvider
             'gemini' => [
                 TripGenerator::class => GeminiTripGenerator::class,
                 ChatAssistant::class => GeminiChatAssistant::class,
+                TravelAssistant::class => GeminiTravelAssistant::class,
                 EmbeddingService::class => GeminiEmbeddingService::class,
             ],
         ];

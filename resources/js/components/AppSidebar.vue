@@ -6,6 +6,7 @@ import {
     ListChecks,
     Map,
     MapPinned,
+    MessageCircle,
     Shield,
     ShieldCheck,
     Users,
@@ -23,6 +24,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { index as assistantIndex } from '@/routes/assistant';
 import { dashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as knowledgeIndex } from '@/routes/admin/knowledge';
@@ -50,6 +52,11 @@ const mainNavItems: NavItem[] = [
         title: 'Road Trips',
         href: roadTripsIndex(),
         icon: MapPinned,
+    },
+    {
+        title: 'Travel assistant',
+        href: assistantIndex(),
+        icon: MessageCircle,
     },
 ];
 

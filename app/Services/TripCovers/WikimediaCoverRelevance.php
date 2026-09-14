@@ -23,6 +23,12 @@ class WikimediaCoverRelevance
             }
         }
 
+        foreach ($this->transportTerms() as $term) {
+            if (str_contains($text, $term)) {
+                return false;
+            }
+        }
+
         $terms = $this->significantTerms($destination);
 
         if ($terms === []) {
@@ -92,6 +98,33 @@ class WikimediaCoverRelevance
         }
 
         return array_values(array_unique($terms));
+    }
+
+    /**
+     * Terms that mark a photo as being about transport infrastructure (trains, stations,
+     * airports) rather than the destination itself. Geo-radius searches around a city's
+     * coordinates frequently surface the nearest railway station or airport, which makes
+     * a misleading trip cover.
+     *
+     * @return list<string>
+     */
+    private function transportTerms(): array
+    {
+        return [
+            'train',
+            'express',
+            'railway',
+            'rail station',
+            'metro station',
+            'subway',
+            'locomotive',
+            'airport',
+            'runway',
+            'aircraft',
+            'airline',
+            'bus terminal',
+            'bus depot',
+        ];
     }
 
     /**

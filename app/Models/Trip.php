@@ -274,6 +274,44 @@ class Trip extends Model
     }
 
     /**
+     * The locations that best represent this trip's cover photo, ordered by relevance.
+     *
+     * Prefers waypoints (the places actually explored on a multi-stop trip) over the
+     * single `destination` field, which for a round trip is often just the return leg
+     * (e.g. a "Golden Triangle" trip's `destination` is New Delhi even though Agra and
+     * Jaipur are the highlights). Falls back to `destination` when there are no
+     * distinct waypoints, and never uses `origin` or the trip title.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function coverDestinationCandidates(): array
+    {
+        $origin = self::normalizeLocation($this->getAttribute('origin'));
+        $destination = self::normalizeLocation($this->getAttribute('destination'));
+        $waypoints = self::normalizeWaypoints($this->getAttribute('waypoints'));
+
+        $candidates = collect($waypoints)
+            ->pluck('location')
+            ->filter(fn (mixed $location): bool => is_array($location) && filled($location['label'] ?? null))
+            ->push($destination)
+            ->filter(fn (mixed $location): bool => is_array($location) && filled($location['label'] ?? null))
+            ->unique(fn (array $location): string => strtolower((string) $location['label']))
+            ->values();
+
+        if ($origin !== null && $candidates->count() > 1) {
+            $withoutOrigin = $candidates->reject(
+                fn (array $location): bool => strtolower((string) $location['label']) === strtolower((string) $origin['label'])
+            )->values();
+
+            if ($withoutOrigin->isNotEmpty()) {
+                $candidates = $withoutOrigin;
+            }
+        }
+
+        return $candidates->all();
+    }
+
+    /**
      * @param  list<array<string, mixed>>|null  $waypoints
      * @return list<array<string, mixed>>
      */
