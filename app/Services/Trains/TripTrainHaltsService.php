@@ -2,6 +2,7 @@
 
 namespace App\Services\Trains;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -106,7 +107,16 @@ class TripTrainHaltsService
         $attempts[] = fn (): Response => $this->client->trainSchedule($trainNumber);
 
         foreach ($attempts as $attempt) {
-            $response = $attempt();
+            try {
+                $response = $attempt();
+            } catch (ConnectionException $exception) {
+                Log::warning('RailRadar halt lookup request could not connect.', [
+                    'message' => $exception->getMessage(),
+                    'train' => $trainNumber,
+                ]);
+
+                continue;
+            }
 
             if ($response->failed()) {
                 continue;

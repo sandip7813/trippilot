@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ExternalLink, ListTree, TrainFront } from '@lucide/vue';
+import { ExternalLink, ListTree, RefreshCw, TrainFront } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import TripController from '@/actions/App/Http/Controllers/TripController';
 import TripHubTrainHaltsDialog from '@/components/trip-hub/TripHubTrainHaltsDialog.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
 import { formatDisplayDate } from '@/lib/dates';
 import { formatTrainLabel } from '@/lib/trains';
 import { cn } from '@/lib/utils';
 import type {
     TripTrainLeg,
+    TripTrainLiveStatus,
     TripTrainOption,
     TripTrainTimings,
 } from '@/types/train';
@@ -73,6 +76,80 @@ watch(
     { immediate: true },
 );
 
+const liveOverrides = ref<Record<string, TripTrainLiveStatus | null>>({});
+const liveLoading = ref(false);
+const liveError = ref<string | null>(null);
+const liveFetchedAt = ref<string | null>(null);
+
+watch(activeTab, () => {
+    liveOverrides.value = {};
+    liveError.value = null;
+    liveFetchedAt.value = null;
+});
+
+function trainLive(train: TripTrainOption): TripTrainLiveStatus | null {
+    return train.number in liveOverrides.value
+        ? liveOverrides.value[train.number]
+        : train.live;
+}
+
+async function refreshLiveStatus(): Promise<void> {
+    const leg = activeLeg.value;
+
+    if (!leg || liveLoading.value) {
+        return;
+    }
+
+    liveLoading.value = true;
+    liveError.value = null;
+
+    try {
+        const url = TripController.trainLiveStatus.url(
+            { trip: props.tripId },
+            {
+                query: {
+                    from: leg.from_station.code,
+                    to: leg.to_station.code,
+                    date: leg.date ?? undefined,
+                },
+            },
+        );
+
+        const response = await fetch(url, {
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+        });
+
+        if (!response.ok) {
+            throw new Error('Could not load live status.');
+        }
+
+        const payload = (await response.json()) as {
+            available: boolean;
+            message?: string;
+            statuses?: Record<string, TripTrainLiveStatus | null>;
+            fetched_at?: string;
+        };
+
+        if (!payload.available) {
+            liveError.value =
+                payload.message ?? 'Live status is not available right now.';
+
+            return;
+        }
+
+        liveOverrides.value = payload.statuses ?? {};
+        liveFetchedAt.value = payload.fetched_at ?? null;
+    } catch {
+        liveError.value = 'Could not load live status. Please try again.';
+    } finally {
+        liveLoading.value = false;
+    }
+}
+
 const selectedTrain = ref<TripTrainOption | null>(null);
 const selectedLeg = ref<TripTrainLeg | null>(null);
 const haltsOpen = ref(false);
@@ -90,6 +167,17 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
 
     return formatDisplayDate(leg.date);
 }
+
+const liveFetchedAtLabel = computed(() => {
+    if (!liveFetchedAt.value) {
+        return null;
+    }
+
+    return new Date(liveFetchedAt.value).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+});
 </script>
 
 <template>
@@ -236,6 +324,32 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                     </div>
 
                     <div
+                        v-if="(activeLeg.trains?.length ?? 0) > 0"
+                        class="flex flex-wrap items-center gap-2"
+                    >
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            :disabled="liveLoading"
+                            @click="refreshLiveStatus"
+                        >
+                            <Spinner v-if="liveLoading" class="mr-2 size-3.5" />
+                            <RefreshCw v-else class="mr-2 size-3.5" />
+                            Check live status
+                        </Button>
+                        <p
+                            v-if="liveFetchedAtLabel"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Updated {{ liveFetchedAtLabel }}
+                        </p>
+                        <p v-if="liveError" class="text-xs text-destructive">
+                            {{ liveError }}
+                        </p>
+                    </div>
+
+                    <div
                         v-if="
                             activeLeg.message &&
                             (activeLeg.trains?.length ?? 0) > 0
@@ -324,19 +438,43 @@ function legDateLabel(leg: TripTrainLeg | null): string | null {
                                             </Badge>
                                         </div>
                                         <p
-                                            v-if="train.live?.platform"
+                                            v-if="
+                                                trainLive(train)?.platform ||
+                                                trainLive(train)?.delay_minutes
+                                            "
                                             class="mt-1 text-[11px] text-muted-foreground"
                                         >
-                                            Platform {{ train.live.platform }}
-                                            <span
+                                            <template
                                                 v-if="
-                                                    train.live.delay_minutes &&
-                                                    train.live.delay_minutes > 0
+                                                    trainLive(train)?.platform
                                                 "
                                             >
-                                                ·
-                                                {{ train.live.delay_minutes }}m
-                                                delay
+                                                Platform
+                                                {{ trainLive(train)?.platform }}
+                                            </template>
+                                            <span
+                                                v-if="
+                                                    (trainLive(train)
+                                                        ?.delay_minutes ?? 0) >
+                                                    0
+                                                "
+                                                :class="
+                                                    trainLive(train)?.platform
+                                                        ? ''
+                                                        : 'text-amber-600 dark:text-amber-400'
+                                                "
+                                            >
+                                                <template
+                                                    v-if="
+                                                        trainLive(train)
+                                                            ?.platform
+                                                    "
+                                                    >·
+                                                </template>
+                                                {{
+                                                    trainLive(train)
+                                                        ?.delay_minutes
+                                                }}m delay
                                             </span>
                                         </p>
                                     </td>

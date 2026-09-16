@@ -30,6 +30,11 @@ class RegistrationOtpService
         ));
     }
 
+    public function pending(string $email): bool
+    {
+        return Cache::has($this->cacheKey($this->normalizeEmail($email)));
+    }
+
     public function matches(string $email, string $code): bool
     {
         $normalizedEmail = $this->normalizeEmail($email);

@@ -2,6 +2,7 @@
 import { Form, Head, useForm } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import OtpInput from '@/components/OtpInput.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ defineOptions({
 });
 
 const email = ref(props.otpStatus?.email ?? '');
+const otp = ref('');
 const recaptchaToken = ref('');
 const skipRecaptchaOnce = ref(false);
 const captchaSubmitting = ref(false);
@@ -50,9 +52,9 @@ function requestOtp(): void {
 
 async function handleSubmit(event: Event): Promise<void> {
     if (
-        ! props.recaptcha.enabled
-        || ! props.recaptcha.siteKey
-        || skipRecaptchaOnce.value
+        !props.recaptcha.enabled ||
+        !props.recaptcha.siteKey ||
+        skipRecaptchaOnce.value
     ) {
         skipRecaptchaOnce.value = false;
 
@@ -90,19 +92,48 @@ async function handleSubmit(event: Event): Promise<void> {
         />
 
         <div class="grid gap-6">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-2">
+                    <Label for="first_name">First name</Label>
+                    <Input
+                        id="first_name"
+                        type="text"
+                        required
+                        autofocus
+                        :tabindex="1"
+                        autocomplete="given-name"
+                        name="first_name"
+                        placeholder="First name"
+                    />
+                    <InputError :message="errors.first_name" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="last_name">Last name</Label>
+                    <Input
+                        id="last_name"
+                        type="text"
+                        required
+                        :tabindex="2"
+                        autocomplete="family-name"
+                        name="last_name"
+                        placeholder="Last name"
+                    />
+                    <InputError :message="errors.last_name" />
+                </div>
+            </div>
+
             <div class="grid gap-2">
-                <Label for="name">Name</Label>
+                <Label for="mobile_number">Mobile number (optional)</Label>
                 <Input
-                    id="name"
-                    type="text"
-                    required
-                    autofocus
-                    :tabindex="1"
-                    autocomplete="name"
-                    name="name"
-                    placeholder="Full name"
+                    id="mobile_number"
+                    type="tel"
+                    :tabindex="3"
+                    autocomplete="tel"
+                    name="mobile_number"
+                    placeholder="Mobile number"
                 />
-                <InputError :message="errors.name" />
+                <InputError :message="errors.mobile_number" />
             </div>
 
             <div class="grid gap-2">
@@ -113,7 +144,7 @@ async function handleSubmit(event: Event): Promise<void> {
                         v-model="email"
                         type="email"
                         required
-                        :tabindex="2"
+                        :tabindex="4"
                         autocomplete="email"
                         name="email"
                         placeholder="email@example.com"
@@ -140,20 +171,9 @@ async function handleSubmit(event: Event): Promise<void> {
                 </p>
             </div>
 
-            <div class="grid gap-2">
+            <div v-if="otpStatus?.sent || errors.otp" class="grid gap-2">
                 <Label for="otp">Email verification code</Label>
-                <Input
-                    id="otp"
-                    type="text"
-                    required
-                    inputmode="numeric"
-                    pattern="[0-9]{6}"
-                    maxlength="6"
-                    :tabindex="3"
-                    autocomplete="one-time-code"
-                    name="otp"
-                    placeholder="6-digit code"
-                />
+                <OtpInput id="otp" v-model="otp" name="otp" autofocus />
                 <InputError :message="errors.otp" />
                 <p class="text-xs text-muted-foreground">
                     Enter the code we emailed you. Codes expire after 10
@@ -166,7 +186,7 @@ async function handleSubmit(event: Event): Promise<void> {
                 <PasswordInput
                     id="password"
                     required
-                    :tabindex="4"
+                    :tabindex="6"
                     autocomplete="new-password"
                     name="password"
                     placeholder="Password"
@@ -180,7 +200,7 @@ async function handleSubmit(event: Event): Promise<void> {
                 <PasswordInput
                     id="password_confirmation"
                     required
-                    :tabindex="5"
+                    :tabindex="7"
                     autocomplete="new-password"
                     name="password_confirmation"
                     placeholder="Confirm password"
@@ -194,7 +214,7 @@ async function handleSubmit(event: Event): Promise<void> {
             <Button
                 type="submit"
                 class="mt-2 w-full"
-                tabindex="6"
+                tabindex="8"
                 :disabled="processing || captchaSubmitting"
                 data-test="register-user-button"
             >
@@ -231,7 +251,7 @@ async function handleSubmit(event: Event): Promise<void> {
             <TextLink
                 :href="login()"
                 class="underline underline-offset-4"
-                :tabindex="7"
+                :tabindex="9"
                 >Log in</TextLink
             >
         </div>

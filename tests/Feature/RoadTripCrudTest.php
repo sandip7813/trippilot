@@ -227,7 +227,7 @@ test('users can view their road trip show page', function () {
             ->component('RoadTrips/Show')
             ->where('trip.id', (string) $trip->id)
             ->has('amenityLayers')
-            ->has('weather'));
+            ->loadDeferredProps(fn ($page) => $page->has('weather')));
 });
 
 test('vacation trips cannot be viewed as road trips', function () {

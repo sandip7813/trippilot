@@ -8,6 +8,7 @@ import {
     Pencil,
     Plus,
     Trash2,
+    UserRound,
     Users,
 } from '@lucide/vue';
 import { ref } from 'vue';
@@ -55,6 +56,7 @@ const filters: { key: TripFilter; label: string }[] = [
     { key: 'all', label: 'All trips' },
     { key: 'favorites', label: 'Favorites' },
     { key: 'archived', label: 'Archived' },
+    { key: 'shared', label: 'Invited' },
 ];
 
 const deleteDialogOpen = ref(false);
@@ -98,6 +100,10 @@ function statusVariant(
 
 function coverThumbUrl(trip: Trip): string | null {
     return trip.cover_image_thumb_url ?? trip.cover_image_url ?? null;
+}
+
+function canEdit(trip: Trip): boolean {
+    return trip.is_owner || trip.collaborator_role === 'editor';
 }
 </script>
 
@@ -147,7 +153,9 @@ function coverThumbUrl(trip: Trip): string | null {
                     ? 'No favorite trips'
                     : filter === 'archived'
                       ? 'No archived trips'
-                      : 'No trips yet'
+                      : filter === 'shared'
+                        ? 'No invited trips'
+                        : 'No trips yet'
             "
             :description="
                 filter === 'all'
@@ -220,6 +228,7 @@ function coverThumbUrl(trip: Trip): string | null {
                                 </p>
                             </div>
                             <Button
+                                v-if="canEdit(trip)"
                                 variant="ghost"
                                 size="icon"
                                 class="size-8 shrink-0"
@@ -260,11 +269,40 @@ function coverThumbUrl(trip: Trip): string | null {
                             >
                                 {{ trip.travel_style_label }}
                             </Badge>
+                            <Badge
+                                v-if="!trip.is_owner"
+                                variant="outline"
+                                class="border-sky-500/30 bg-sky-500/5 text-xs"
+                            >
+                                Invited · {{ trip.collaborator_role }}
+                            </Badge>
                         </div>
 
                         <div
                             class="mt-2.5 space-y-1 text-sm text-muted-foreground"
                         >
+                            <div
+                                v-if="!trip.is_owner && trip.owner"
+                                class="flex items-start gap-2"
+                            >
+                                <UserRound
+                                    class="mt-0.5 size-3.5 shrink-0 text-sky-600 dark:text-sky-400"
+                                />
+                                <div class="min-w-0 leading-tight">
+                                    <p class="truncate">
+                                        Invited by
+                                        {{
+                                            trip.owner.name ?? trip.owner.email
+                                        }}
+                                    </p>
+                                    <p
+                                        v-if="trip.owner.name"
+                                        class="truncate text-xs"
+                                    >
+                                        {{ trip.owner.email }}
+                                    </p>
+                                </div>
+                            </div>
                             <p class="flex items-center gap-2">
                                 <Calendar
                                     class="size-3.5 shrink-0 text-sky-600 dark:text-sky-400"
@@ -292,6 +330,7 @@ function coverThumbUrl(trip: Trip): string | null {
                             <Link :href="show(trip.id)">View trip</Link>
                         </Button>
                         <Button
+                            v-if="canEdit(trip)"
                             variant="outline"
                             size="sm"
                             as-child
@@ -302,6 +341,7 @@ function coverThumbUrl(trip: Trip): string | null {
                             </Link>
                         </Button>
                         <Button
+                            v-if="trip.is_owner"
                             variant="outline"
                             size="sm"
                             class="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"

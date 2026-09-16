@@ -9,7 +9,7 @@ import type { TripWeather, TripWeatherSegment } from '@/types/weather';
 
 const props = withDefaults(
     defineProps<{
-        weather: TripWeather | null;
+        weather?: TripWeather | null;
         class?: string;
     }>(),
     {
@@ -75,11 +75,7 @@ function shortCityLabel(label: string | null | undefined): string {
 </script>
 
 <template>
-    <Card
-        :class="
-            cn('card-vibrant overflow-hidden', props.class ?? 'h-full')
-        "
-    >
+    <Card :class="cn('card-vibrant overflow-hidden', props.class ?? 'h-full')">
         <div
             class="h-1.5 bg-gradient-to-r from-sky-400 via-cyan-500 to-indigo-500"
         />

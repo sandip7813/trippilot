@@ -19,6 +19,8 @@ import {
     Route,
     Sparkles,
     Trash2,
+    UserPlus,
+    X,
     Zap,
 } from '@lucide/vue';
 import {
@@ -39,6 +41,17 @@ import TripWeatherCard from '@/components/TripWeatherCard.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import { useTripRouteStops } from '@/composables/useTripRouteStops';
@@ -61,7 +74,7 @@ import type {
     RoadTripFormOptions,
     RoadTripPlace,
 } from '@/types/roadTrip';
-import type { RagCoverage, TripOption } from '@/types/trip';
+import type { RagCoverage, TripCollaborator, TripOption } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 import type { TripWeather } from '@/types/weather';
 
@@ -77,7 +90,7 @@ const props = defineProps<
         aiConfigured: boolean;
         ragCoverage: RagCoverage;
         amenityLayers: string[];
-        weather: TripWeather | null;
+        weather?: TripWeather | null;
     }
 >();
 
@@ -94,6 +107,70 @@ const activeAmenityLayer = ref<string | null>(null);
 const focusedAmenityPlaceKey = ref<string | null>(null);
 const copiedAmenityPlaceKey = ref<string | null>(null);
 const activePanel = ref<PanelTab>('amenities');
+
+const canEdit = computed(
+    () => props.trip.is_owner || props.trip.collaborator_role === 'editor',
+);
+
+const shareDialogOpen = ref(false);
+const collaboratorEmail = ref('');
+const collaboratorRole = ref<'viewer' | 'editor'>('viewer');
+const addingCollaborator = ref(false);
+const collaboratorError = ref<string | null>(null);
+
+function addCollaborator(): void {
+    addingCollaborator.value = true;
+    collaboratorError.value = null;
+
+    router.post(
+        `/trips/${props.trip.id}/collaborators`,
+        {
+            email: collaboratorEmail.value,
+            role: collaboratorRole.value,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                collaboratorEmail.value = '';
+                collaboratorRole.value = 'viewer';
+            },
+            onError: (errors) => {
+                collaboratorError.value = errors.email ?? null;
+            },
+            onFinish: () => {
+                addingCollaborator.value = false;
+            },
+        },
+    );
+}
+
+function collaboratorPath(email: string): string {
+    return `/trips/${props.trip.id}/collaborators/${encodeURIComponent(email)}`;
+}
+
+function updateCollaboratorRole(
+    email: string,
+    role: 'viewer' | 'editor',
+): void {
+    router.patch(collaboratorPath(email), { role }, { preserveScroll: true });
+}
+
+function removeCollaborator(email: string): void {
+    router.delete(collaboratorPath(email), {
+        preserveScroll: true,
+        onFinish: () => {
+            collaboratorToRemove.value = null;
+        },
+    });
+}
+
+const collaboratorToRemove = ref<TripCollaborator | null>(null);
+
+function confirmRemoveCollaborator(): void {
+    if (collaboratorToRemove.value) {
+        removeCollaborator(collaboratorToRemove.value.email);
+    }
+}
 
 const isBicycleTrip = computed(
     () => props.trip.road_profile?.vehicle_class === 'bicycle',
@@ -257,6 +334,7 @@ onUnmounted(() => {
             :pending="waitingForCover"
             :sync-cover-form="RoadTripController.syncCover.form(trip.id)"
             :upload-cover-form="RoadTripController.uploadCover.form(trip.id)"
+            :can-edit="canEdit"
             class="-mx-4 md:-mx-6"
         />
 
@@ -298,6 +376,7 @@ onUnmounted(() => {
             />
             <div class="absolute top-3 right-3 z-10 flex items-center gap-2">
                 <TripCoverRegenerateButton
+                    v-if="canEdit"
                     :form-binding="RoadTripController.syncCover.form(trip.id)"
                     :has-cover="true"
                     :exhausted="Boolean(trip.cover_image_exhausted)"
@@ -306,6 +385,7 @@ onUnmounted(() => {
                     class="size-8 border-border/60 bg-background/90 shadow-sm backdrop-blur-sm"
                 />
                 <TripCoverUploadButton
+                    v-if="canEdit"
                     :form-binding="RoadTripController.uploadCover.form(trip.id)"
                     variant="secondary"
                     size="icon"
@@ -342,13 +422,217 @@ onUnmounted(() => {
                         Road trips
                     </Link>
                 </Button>
-                <Button variant="outline" size="sm" as-child>
-                    <Link :href="edit(trip.id)">
-                        <Pencil class="mr-1.5 size-4" />
-                        Edit trip
-                    </Link>
-                </Button>
+                <div class="flex items-center gap-2">
+                    <Button
+                        v-if="trip.is_owner"
+                        variant="outline"
+                        size="sm"
+                        @click="shareDialogOpen = true"
+                    >
+                        <UserPlus class="mr-1.5 size-4" />
+                        Share
+                    </Button>
+                    <Button v-if="canEdit" variant="outline" size="sm" as-child>
+                        <Link :href="edit(trip.id)">
+                            <Pencil class="mr-1.5 size-4" />
+                            Edit trip
+                        </Link>
+                    </Button>
+                </div>
             </div>
+
+            <Dialog v-model:open="shareDialogOpen">
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Share "{{ trip.title }}"</DialogTitle>
+                        <DialogDescription>
+                            Invite another TripPilot user to view or edit this
+                            trip.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form class="space-y-4" @submit.prevent="addCollaborator">
+                        <div class="flex items-end gap-2">
+                            <div class="flex-1 space-y-1.5">
+                                <Label for="road-trip-collaborator-email"
+                                    >Email</Label
+                                >
+                                <Input
+                                    id="road-trip-collaborator-email"
+                                    v-model="collaboratorEmail"
+                                    type="email"
+                                    required
+                                    placeholder="teammate@example.com"
+                                />
+                                <p
+                                    v-if="collaboratorError"
+                                    class="text-sm text-destructive"
+                                >
+                                    {{ collaboratorError }}
+                                </p>
+                            </div>
+                            <div
+                                class="flex rounded-md border border-input p-0.5"
+                            >
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    :variant="
+                                        collaboratorRole === 'viewer'
+                                            ? 'default'
+                                            : 'ghost'
+                                    "
+                                    @click="collaboratorRole = 'viewer'"
+                                >
+                                    Viewer
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    :variant="
+                                        collaboratorRole === 'editor'
+                                            ? 'default'
+                                            : 'ghost'
+                                    "
+                                    @click="collaboratorRole = 'editor'"
+                                >
+                                    Editor
+                                </Button>
+                            </div>
+                        </div>
+                        <Button
+                            type="submit"
+                            class="w-full"
+                            :disabled="addingCollaborator"
+                        >
+                            <UserPlus class="mr-2 size-4" />
+                            Add collaborator
+                        </Button>
+                    </form>
+
+                    <div v-if="trip.collaborators.length > 0" class="space-y-2">
+                        <p class="text-sm font-medium">People with access</p>
+                        <div
+                            v-for="collaborator in trip.collaborators"
+                            :key="collaborator.email"
+                            class="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-card/60 px-3 py-2"
+                        >
+                            <div class="min-w-0">
+                                <p
+                                    class="flex items-center gap-1.5 truncate text-sm font-medium"
+                                >
+                                    {{
+                                        collaborator.name ?? collaborator.email
+                                    }}
+                                    <Badge
+                                        v-if="collaborator.status === 'pending'"
+                                        variant="outline"
+                                        class="text-xs"
+                                    >
+                                        Invited
+                                    </Badge>
+                                </p>
+                                <p
+                                    class="truncate text-xs text-muted-foreground"
+                                >
+                                    {{ collaborator.email }}
+                                </p>
+                            </div>
+                            <div class="flex shrink-0 items-center gap-2">
+                                <div
+                                    class="flex rounded-md border border-input p-0.5"
+                                >
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        :variant="
+                                            collaborator.role === 'viewer'
+                                                ? 'default'
+                                                : 'ghost'
+                                        "
+                                        @click="
+                                            updateCollaboratorRole(
+                                                collaborator.email,
+                                                'viewer',
+                                            )
+                                        "
+                                    >
+                                        Viewer
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        :variant="
+                                            collaborator.role === 'editor'
+                                                ? 'default'
+                                                : 'ghost'
+                                        "
+                                        @click="
+                                            updateCollaboratorRole(
+                                                collaborator.email,
+                                                'editor',
+                                            )
+                                        "
+                                    >
+                                        Editor
+                                    </Button>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    class="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    :title="`Remove ${collaborator.name ?? collaborator.email}`"
+                                    @click="collaboratorToRemove = collaborator"
+                                >
+                                    <X class="size-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                :open="collaboratorToRemove !== null"
+                @update:open="
+                    (open) => {
+                        if (!open) collaboratorToRemove = null;
+                    }
+                "
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Remove access?</DialogTitle>
+                        <DialogDescription>
+                            <template v-if="collaboratorToRemove">
+                                "{{
+                                    collaboratorToRemove.name ??
+                                    collaboratorToRemove.email
+                                }}" will no longer be able to
+                                {{
+                                    collaboratorToRemove.status === 'pending'
+                                        ? 'accept this invite and access'
+                                        : 'view or edit'
+                                }}
+                                "{{ trip.title }}".
+                            </template>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose as-child>
+                            <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            @click="confirmRemoveCollaborator"
+                        >
+                            Remove access
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <div
                 class="grid grid-cols-1 items-start gap-x-8 gap-y-3 md:grid-cols-[minmax(0,1fr)_auto]"
@@ -428,6 +712,28 @@ onUnmounted(() => {
                         >
                             Tolls on route
                         </Badge>
+                        <Badge
+                            v-if="!trip.is_owner"
+                            variant="outline"
+                            class="font-normal"
+                        >
+                            Invited · {{ trip.collaborator_role }}
+                        </Badge>
+                    </div>
+
+                    <div
+                        v-if="!trip.is_owner && trip.owner"
+                        class="text-sm text-muted-foreground"
+                    >
+                        <p>
+                            Invited by
+                            <span class="font-medium text-foreground">{{
+                                trip.owner.name ?? trip.owner.email
+                            }}</span>
+                        </p>
+                        <p v-if="trip.owner.name" class="text-xs">
+                            {{ trip.owner.email }}
+                        </p>
                     </div>
                 </div>
 
@@ -1111,6 +1417,7 @@ onUnmounted(() => {
             :trip="trip"
             :ai-configured="aiConfigured"
             :rag-coverage="ragCoverage"
+            :can-edit="canEdit"
             variant="road"
         />
     </div>

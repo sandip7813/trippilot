@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TravelStyle;
+use App\Enums\TripCollaboratorRole;
 use App\Enums\TripCoverSource;
 use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
@@ -51,6 +52,7 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property list<array<string, mixed>>|null $suggested_breaks
  * @property array<string, mixed>|null $amenities_cache
  * @property list<array<string, mixed>>|null $chat_messages
+ * @property list<array{user_id: int|null, email: string, role: string, status: string, added_at: string|null}>|null $collaborators
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -100,6 +102,7 @@ class Trip extends Model
         'suggested_breaks',
         'amenities_cache',
         'chat_messages',
+        'collaborators',
     ];
 
     /**
@@ -112,6 +115,7 @@ class Trip extends Model
         ['travel_style' => 1],
         ['trip_scope' => 1],
         ['created_at' => -1],
+        ['collaborators.user_id' => 1],
     ];
 
     /**
@@ -373,6 +377,120 @@ class Trip extends Model
         return $this->type === TripType::Road;
     }
 
+    public function isOwnedBy(User $user): bool
+    {
+        return (int) $this->user_id === $user->id;
+    }
+
+    /**
+     * @return list<array{user_id: int|null, email: string, role: string, status: string, added_at: string|null}>
+     */
+    public function collaboratorEntries(): array
+    {
+        $collaborators = self::coerceStructuredArray($this->getAttribute('collaborators')) ?? [];
+
+        return array_values(array_filter(
+            $collaborators,
+            fn (mixed $entry): bool => is_array($entry) && filled($entry['email'] ?? null),
+        ));
+    }
+
+    /**
+     * @return list<array{user_id: int|null, email: string, role: string, status: string, added_at: string|null}>
+     */
+    public function pendingCollaboratorEntriesForEmail(string $email): array
+    {
+        return array_values(array_filter(
+            $this->collaboratorEntries(),
+            fn (array $entry): bool => ($entry['status'] ?? '') === 'pending'
+                && strcasecmp((string) $entry['email'], $email) === 0,
+        ));
+    }
+
+    public function collaboratorRole(User $user): ?TripCollaboratorRole
+    {
+        foreach ($this->collaboratorEntries() as $entry) {
+            if ((int) ($entry['user_id'] ?? 0) === $user->id) {
+                return TripCollaboratorRole::tryFrom((string) ($entry['role'] ?? ''));
+            }
+        }
+
+        return null;
+    }
+
+    public function isCollaborator(User $user): bool
+    {
+        return $this->collaboratorRole($user) !== null;
+    }
+
+    /**
+     * Owner or a collaborator (any role) can view the trip.
+     */
+    public function isViewableBy(User $user): bool
+    {
+        return $this->isOwnedBy($user) || $this->isCollaborator($user);
+    }
+
+    /**
+     * Owner or an editor collaborator can change the trip.
+     */
+    public function isEditableBy(User $user): bool
+    {
+        return $this->isOwnedBy($user) || $this->collaboratorRole($user) === TripCollaboratorRole::Editor;
+    }
+
+    /**
+     * @return list<array{user_id: int|null, name: string|null, email: string, role: string, role_label: string, status: string, added_at: string|null}>
+     */
+    public function collaboratorsForFrontend(): array
+    {
+        $entries = $this->collaboratorEntries();
+
+        if ($entries === []) {
+            return [];
+        }
+
+        $users = User::query()
+            ->whereIn('id', collect($entries)->pluck('user_id')->filter())
+            ->get()
+            ->keyBy('id');
+
+        return collect($entries)
+            ->map(function (array $entry) use ($users): array {
+                $user = isset($entry['user_id']) ? $users->get((int) $entry['user_id']) : null;
+                $role = TripCollaboratorRole::tryFrom((string) ($entry['role'] ?? '')) ?? TripCollaboratorRole::Viewer;
+
+                return [
+                    'user_id' => $user?->id,
+                    'name' => $user?->name,
+                    'email' => $user?->email ?? (string) $entry['email'],
+                    'role' => $role->value,
+                    'role_label' => $role->label(),
+                    'status' => $user !== null ? 'accepted' : (string) ($entry['status'] ?? 'pending'),
+                    'added_at' => $entry['added_at'] ?? null,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array{name: string|null, email: string|null}|null
+     */
+    public function ownerForFrontend(): ?array
+    {
+        $owner = User::query()->find((int) $this->user_id);
+
+        if ($owner === null) {
+            return null;
+        }
+
+        return [
+            'name' => $owner->name,
+            'email' => $owner->email,
+        ];
+    }
+
     /**
      * @return array<string, mixed>|null
      */
@@ -390,6 +508,28 @@ class Trip extends Model
     public function scopeForUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeForUserOrCollaborator(Builder $query, int $userId): Builder
+    {
+        return $query->where(function (Builder $query) use ($userId): void {
+            $query->where('user_id', $userId)
+                ->orWhere('collaborators.user_id', $userId);
+        });
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeSharedWithUser(Builder $query, int $userId): Builder
+    {
+        return $query->where('user_id', '!=', $userId)
+            ->where('collaborators.user_id', $userId);
     }
 
     /**
@@ -422,14 +562,20 @@ class Trip extends Model
     /**
      * @return array<string, mixed>
      */
-    public function toFrontend(): array
+    public function toFrontend(?User $viewer = null): array
     {
         $origin = self::normalizeLocation($this->getAttribute('origin'));
         $destination = self::normalizeLocation($this->getAttribute('destination'));
+        $viewer ??= auth()->user();
+        $isOwner = $viewer !== null && $this->isOwnedBy($viewer);
 
         return [
             'id' => (string) $this->id,
             'user_id' => $this->user_id,
+            'is_owner' => $isOwner,
+            'collaborator_role' => $viewer ? $this->collaboratorRole($viewer)?->value : null,
+            'collaborators' => $isOwner ? $this->collaboratorsForFrontend() : [],
+            'owner' => (! $isOwner && $viewer !== null) ? $this->ownerForFrontend() : null,
             'type' => $this->type->value,
             'type_label' => $this->type->label(),
             'travel_style' => $this->travel_style?->value,

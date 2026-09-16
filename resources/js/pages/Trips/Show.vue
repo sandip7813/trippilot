@@ -7,6 +7,8 @@ import {
     Minimize2,
     Pencil,
     Trash2,
+    UserPlus,
+    X,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
@@ -25,6 +27,7 @@ import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
 import TripWeatherCard from '@/components/TripWeatherCard.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -35,21 +38,26 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import { normalizeBudgetBreakdown } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { edit, index as tripsIndex } from '@/routes/trips';
 import type { TripTrainTimings } from '@/types/train';
 import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
-import type { RagCoverage, Trip } from '@/types/trip';
+import type { RagCoverage, Trip, TripCollaborator } from '@/types/trip';
 import type { TripWeather } from '@/types/weather';
 
 const props = defineProps<{
     trip: Trip;
     aiConfigured: boolean;
     ragCoverage: RagCoverage;
-    weather: TripWeather | null;
-    trainTimings: TripTrainTimings | null;
+    // Deferred props: undefined until they finish loading in the background,
+    // then null (unavailable) or the real payload.
+    weather?: TripWeather | null;
+    trainTimings?: TripTrainTimings | null;
 }>();
 
 defineOptions({
@@ -57,6 +65,10 @@ defineOptions({
         breadcrumbs: [{ title: 'Trips', href: tripsIndex() }],
     },
 });
+
+const canEdit = computed(
+    () => props.trip.is_owner || props.trip.collaborator_role === 'editor',
+);
 
 const needsDestinationCoordinates = computed(
     () =>
@@ -99,6 +111,66 @@ function toggleFavorite(): void {
     );
 }
 
+const shareDialogOpen = ref(false);
+const collaboratorEmail = ref('');
+const collaboratorRole = ref<'viewer' | 'editor'>('viewer');
+const addingCollaborator = ref(false);
+const collaboratorError = ref<string | null>(null);
+
+function addCollaborator(): void {
+    addingCollaborator.value = true;
+    collaboratorError.value = null;
+
+    router.post(
+        `/trips/${props.trip.id}/collaborators`,
+        {
+            email: collaboratorEmail.value,
+            role: collaboratorRole.value,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                collaboratorEmail.value = '';
+                collaboratorRole.value = 'viewer';
+            },
+            onError: (errors) => {
+                collaboratorError.value = errors.email ?? null;
+            },
+            onFinish: () => {
+                addingCollaborator.value = false;
+            },
+        },
+    );
+}
+
+function collaboratorPath(email: string): string {
+    return `/trips/${props.trip.id}/collaborators/${encodeURIComponent(email)}`;
+}
+
+function updateCollaboratorRole(
+    email: string,
+    role: 'viewer' | 'editor',
+): void {
+    router.patch(collaboratorPath(email), { role }, { preserveScroll: true });
+}
+
+function removeCollaborator(email: string): void {
+    router.delete(collaboratorPath(email), {
+        preserveScroll: true,
+        onFinish: () => {
+            collaboratorToRemove.value = null;
+        },
+    });
+}
+
+const collaboratorToRemove = ref<TripCollaborator | null>(null);
+
+function confirmRemoveCollaborator(): void {
+    if (collaboratorToRemove.value) {
+        removeCollaborator(collaboratorToRemove.value.email);
+    }
+}
+
 const bannerExpanded = ref(false);
 
 const { waitingForCover } = useTripCoverAutoRefresh();
@@ -114,6 +186,7 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             :pending="waitingForCover"
             :sync-cover-form="TripController.syncCover.form(trip.id)"
             :upload-cover-form="TripController.uploadCover.form(trip.id)"
+            :can-edit="canEdit"
             class="-mx-4 md:-mx-6"
         />
 
@@ -152,6 +225,7 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             </div>
             <div class="absolute top-4 right-4 z-10 flex items-center gap-2">
                 <TripCoverRegenerateButton
+                    v-if="canEdit"
                     :form-binding="TripController.syncCover.form(trip.id)"
                     :has-cover="true"
                     :exhausted="Boolean(trip.cover_image_exhausted)"
@@ -160,6 +234,7 @@ const { waitingForCover } = useTripCoverAutoRefresh();
                     class="size-8 border-border/60 bg-background/85 shadow-sm backdrop-blur-sm"
                 />
                 <TripCoverUploadButton
+                    v-if="canEdit"
                     :form-binding="TripController.uploadCover.form(trip.id)"
                     variant="secondary"
                     size="icon"
@@ -233,6 +308,7 @@ const { waitingForCover } = useTripCoverAutoRefresh();
                         </Link>
                     </Button>
                     <Button
+                        v-if="canEdit"
                         variant="outline"
                         size="icon"
                         :title="
@@ -248,13 +324,21 @@ const { waitingForCover } = useTripCoverAutoRefresh();
                             :class="trip.is_favorite ? 'fill-current' : ''"
                         />
                     </Button>
-                    <Button variant="outline" as-child>
+                    <Button v-if="canEdit" variant="outline" as-child>
                         <Link :href="edit(trip.id)">
                             <Pencil class="mr-2 size-4" />
                             Edit
                         </Link>
                     </Button>
-                    <Dialog>
+                    <Button
+                        v-if="trip.is_owner"
+                        variant="outline"
+                        @click="shareDialogOpen = true"
+                    >
+                        <UserPlus class="mr-2 size-4" />
+                        Share
+                    </Button>
+                    <Dialog v-if="trip.is_owner">
                         <DialogTrigger as-child>
                             <Button variant="destructive">
                                 <Trash2 class="mr-2 size-4" />
@@ -305,14 +389,17 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             class="flex flex-wrap items-center justify-end gap-2"
         >
             <TripCoverRegenerateButton
+                v-if="canEdit"
                 :form-binding="TripController.syncCover.form(trip.id)"
                 :has-cover="true"
                 :exhausted="Boolean(trip.cover_image_exhausted)"
             />
             <TripCoverUploadButton
+                v-if="canEdit"
                 :form-binding="TripController.uploadCover.form(trip.id)"
             />
             <Button
+                v-if="canEdit"
                 variant="outline"
                 size="icon"
                 :title="
@@ -328,13 +415,21 @@ const { waitingForCover } = useTripCoverAutoRefresh();
                     :class="trip.is_favorite ? 'fill-current' : ''"
                 />
             </Button>
-            <Button variant="outline" as-child>
+            <Button v-if="canEdit" variant="outline" as-child>
                 <Link :href="edit(trip.id)">
                     <Pencil class="mr-2 size-4" />
                     Edit
                 </Link>
             </Button>
-            <Dialog>
+            <Button
+                v-if="trip.is_owner"
+                variant="outline"
+                @click="shareDialogOpen = true"
+            >
+                <UserPlus class="mr-2 size-4" />
+                Share
+            </Button>
+            <Dialog v-if="trip.is_owner">
                 <DialogTrigger as-child>
                     <Button variant="destructive">
                         <Trash2 class="mr-2 size-4" />
@@ -398,7 +493,213 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             >
                 {{ trip.trip_scope_label }}
             </Badge>
+            <Badge
+                v-if="!trip.is_owner"
+                variant="outline"
+                class="border-sky-500/30 bg-sky-500/5"
+            >
+                Invited · {{ trip.collaborator_role }}
+            </Badge>
         </div>
+
+        <div
+            v-if="!trip.is_owner && trip.owner"
+            class="text-sm text-muted-foreground"
+        >
+            <p>
+                Invited by
+                <span class="font-medium text-foreground">{{
+                    trip.owner.name ?? trip.owner.email
+                }}</span>
+            </p>
+            <p v-if="trip.owner.name" class="text-xs">
+                {{ trip.owner.email }}
+            </p>
+        </div>
+
+        <Dialog v-model:open="shareDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Share "{{ trip.title }}"</DialogTitle>
+                    <DialogDescription>
+                        Invite another TripPilot user to view or edit this trip.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <form class="space-y-4" @submit.prevent="addCollaborator">
+                    <div class="flex items-end gap-2">
+                        <div class="flex-1 space-y-1.5">
+                            <Label for="collaborator-email">Email</Label>
+                            <Input
+                                id="collaborator-email"
+                                v-model="collaboratorEmail"
+                                type="email"
+                                required
+                                placeholder="teammate@example.com"
+                            />
+                            <p
+                                v-if="collaboratorError"
+                                class="text-sm text-destructive"
+                            >
+                                {{ collaboratorError }}
+                            </p>
+                        </div>
+                        <div class="flex rounded-md border border-input p-0.5">
+                            <Button
+                                type="button"
+                                size="sm"
+                                :variant="
+                                    collaboratorRole === 'viewer'
+                                        ? 'default'
+                                        : 'ghost'
+                                "
+                                @click="collaboratorRole = 'viewer'"
+                            >
+                                Viewer
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                :variant="
+                                    collaboratorRole === 'editor'
+                                        ? 'default'
+                                        : 'ghost'
+                                "
+                                @click="collaboratorRole = 'editor'"
+                            >
+                                Editor
+                            </Button>
+                        </div>
+                    </div>
+                    <Button
+                        type="submit"
+                        class="w-full"
+                        :disabled="addingCollaborator"
+                    >
+                        <UserPlus class="mr-2 size-4" />
+                        Add collaborator
+                    </Button>
+                </form>
+
+                <div v-if="trip.collaborators.length > 0" class="space-y-2">
+                    <p class="text-sm font-medium">People with access</p>
+                    <div
+                        v-for="collaborator in trip.collaborators"
+                        :key="collaborator.email"
+                        class="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-card/60 px-3 py-2"
+                    >
+                        <div class="min-w-0">
+                            <p
+                                class="flex items-center gap-1.5 truncate text-sm font-medium"
+                            >
+                                {{ collaborator.name ?? collaborator.email }}
+                                <Badge
+                                    v-if="collaborator.status === 'pending'"
+                                    variant="outline"
+                                    class="text-xs"
+                                >
+                                    Invited
+                                </Badge>
+                            </p>
+                            <p class="truncate text-xs text-muted-foreground">
+                                {{ collaborator.email }}
+                            </p>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-2">
+                            <div
+                                class="flex rounded-md border border-input p-0.5"
+                            >
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    :variant="
+                                        collaborator.role === 'viewer'
+                                            ? 'default'
+                                            : 'ghost'
+                                    "
+                                    @click="
+                                        updateCollaboratorRole(
+                                            collaborator.email,
+                                            'viewer',
+                                        )
+                                    "
+                                >
+                                    Viewer
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    :variant="
+                                        collaborator.role === 'editor'
+                                            ? 'default'
+                                            : 'ghost'
+                                    "
+                                    @click="
+                                        updateCollaboratorRole(
+                                            collaborator.email,
+                                            'editor',
+                                        )
+                                    "
+                                >
+                                    Editor
+                                </Button>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                class="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                :title="`Remove ${collaborator.name ?? collaborator.email}`"
+                                @click="collaboratorToRemove = collaborator"
+                            >
+                                <X class="size-4" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog
+            :open="collaboratorToRemove !== null"
+            @update:open="
+                (open) => {
+                    if (!open) collaboratorToRemove = null;
+                }
+            "
+        >
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Remove access?</DialogTitle>
+                    <DialogDescription>
+                        <template v-if="collaboratorToRemove">
+                            "{{
+                                collaboratorToRemove.name ??
+                                collaboratorToRemove.email
+                            }}" will no longer be able to
+                            {{
+                                collaboratorToRemove.status === 'pending'
+                                    ? 'accept this invite and access'
+                                    : 'view or edit'
+                            }}
+                            "{{ trip.title }}".
+                        </template>
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose as-child>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        @click="confirmRemoveCollaborator"
+                    >
+                        Remove access
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <LocationCoordinatesAlert
             v-if="needsDestinationCoordinates"
@@ -412,25 +713,59 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             </div>
 
             <div class="xl:col-span-3">
-                <TripWeatherCard :weather="weather" />
+                <Card v-if="weather === undefined" class="card-vibrant h-full">
+                    <div
+                        class="h-1.5 bg-gradient-to-r from-sky-400 via-cyan-500 to-indigo-500"
+                    />
+                    <CardHeader>
+                        <Skeleton class="h-5 w-32" />
+                    </CardHeader>
+                    <CardContent class="space-y-3">
+                        <Skeleton class="h-4 w-3/4" />
+                        <Skeleton class="h-24 w-full" />
+                        <Skeleton class="h-4 w-1/2" />
+                    </CardContent>
+                </Card>
+                <TripWeatherCard v-else :weather="weather" />
             </div>
         </div>
 
-        <TripHubItinerarySection :trip="trip" :ai-configured="aiConfigured" />
+        <TripHubItinerarySection
+            :trip="trip"
+            :ai-configured="aiConfigured"
+            :can-edit="canEdit"
+        />
 
         <TripChatPanel
             v-if="aiConfigured"
             :trip="trip"
             :ai-configured="aiConfigured"
             :rag-coverage="ragCoverage"
+            :can-edit="canEdit"
         />
 
         <section
-            v-if="trip.trip_scope === 'domestic' || trainTimings != null"
+            v-if="
+                trip.trip_scope === 'domestic' ||
+                (trainTimings !== undefined && trainTimings != null)
+            "
             class="space-y-4"
         >
             <h2 class="section-heading">Train timings</h2>
+            <Card v-if="trainTimings === undefined" class="card-vibrant">
+                <div
+                    class="h-1.5 bg-gradient-to-r from-orange-400 via-amber-500 to-rose-500"
+                />
+                <CardHeader>
+                    <Skeleton class="h-5 w-40" />
+                </CardHeader>
+                <CardContent class="space-y-3">
+                    <Skeleton class="h-9 w-full" />
+                    <Skeleton class="h-32 w-full" />
+                </CardContent>
+            </Card>
             <TripHubTrainTimings
+                v-else
                 :trip-id="trip.id"
                 :train-timings="trainTimings"
             />

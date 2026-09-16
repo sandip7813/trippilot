@@ -105,14 +105,15 @@ test('trip show includes outbound and return train timings for domestic trips', 
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Trips/Show')
-            ->where('trainTimings.available', true)
-            ->where('trainTimings.outbound.available', true)
-            ->where('trainTimings.outbound.date', $startDate)
-            ->where('trainTimings.outbound.trains.0.number', '12345')
-            ->where('trainTimings.outbound.trains.0.duration_label', '16h 25m')
-            ->where('trainTimings.return.available', true)
-            ->where('trainTimings.return.date', $endDate)
-            ->where('trainTimings.return.trains.0.number', '54321'));
+            ->loadDeferredProps(fn ($page) => $page
+                ->where('trainTimings.available', true)
+                ->where('trainTimings.outbound.available', true)
+                ->where('trainTimings.outbound.date', $startDate)
+                ->where('trainTimings.outbound.trains.0.number', '12345')
+                ->where('trainTimings.outbound.trains.0.duration_label', '16h 25m')
+                ->where('trainTimings.return.available', true)
+                ->where('trainTimings.return.date', $endDate)
+                ->where('trainTimings.return.trains.0.number', '54321')));
 });
 
 test('trip show explains when railradar api key is missing', function () {
@@ -128,8 +129,9 @@ test('trip show explains when railradar api key is missing', function () {
         ->get(route('trips.show', $trip))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('trainTimings.available', false)
-            ->where('trainTimings.reason', 'driver_disabled'));
+            ->loadDeferredProps(fn ($page) => $page
+                ->where('trainTimings.available', false)
+                ->where('trainTimings.reason', 'driver_disabled')));
 });
 
 test('trip show skips train availability for international trips', function () {
@@ -158,8 +160,9 @@ test('trip show skips train availability for international trips', function () {
         ->get(route('trips.show', $trip))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('trainTimings.available', false)
-            ->where('trainTimings.reason', 'not_domestic'));
+            ->loadDeferredProps(fn ($page) => $page
+                ->where('trainTimings.available', false)
+                ->where('trainTimings.reason', 'not_domestic')));
 
     Http::assertNothingSent();
 });
@@ -212,13 +215,14 @@ test('trip show falls back to nearest railhead when no direct trains exist', fun
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Trips/Show')
-            ->where('trainTimings.available', true)
-            ->where('trainTimings.uses_railhead_fallback', true)
-            ->where('trainTimings.destination_railhead.station.code', 'KLK')
-            ->where('trainTimings.outbound.search_mode', 'railhead')
-            ->where('trainTimings.outbound.trains.0.number', '12301')
-            ->where('trainTimings.return.search_mode', 'railhead')
-            ->where('trainTimings.return.trains.0.number', '12302'));
+            ->loadDeferredProps(fn ($page) => $page
+                ->where('trainTimings.available', true)
+                ->where('trainTimings.uses_railhead_fallback', true)
+                ->where('trainTimings.destination_railhead.station.code', 'KLK')
+                ->where('trainTimings.outbound.search_mode', 'railhead')
+                ->where('trainTimings.outbound.trains.0.number', '12301')
+                ->where('trainTimings.return.search_mode', 'railhead')
+                ->where('trainTimings.return.trains.0.number', '12302')));
 });
 
 test('trip show handles no trains on travel dates', function () {
@@ -248,10 +252,11 @@ test('trip show handles no trains on travel dates', function () {
         ->get(route('trips.show', $trip))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->where('trainTimings.available', false)
-            ->where('trainTimings.reason', 'no_trains')
-            ->where('trainTimings.outbound.available', false)
-            ->where('trainTimings.return.available', false));
+            ->loadDeferredProps(fn ($page) => $page
+                ->where('trainTimings.available', false)
+                ->where('trainTimings.reason', 'no_trains')
+                ->where('trainTimings.outbound.available', false)
+                ->where('trainTimings.return.available', false)));
 });
 
 test('users can fetch train halts for their trip', function () {
@@ -314,4 +319,99 @@ test('users can fetch train halts for their trip', function () {
         ->assertJsonCount(3, 'halts')
         ->assertJsonPath('halts.0.code', 'BCT')
         ->assertJsonPath('halts.2.code', 'BHP');
+});
+
+test('trip trains live endpoint returns fresh delay status', function () {
+    Http::fake([
+        'api.railradar.in/v1/trains/between/BCT/BHP*' => Http::response([
+            'success' => true,
+            'data' => [
+                'trains' => [
+                    [
+                        'train' => ['number' => '12345', 'name' => 'Test Express'],
+                        'live' => [
+                            'type' => 'running',
+                            'platform' => '4',
+                            'delayMinutes' => 23,
+                            'expectedArrivalTime' => '2026-07-10T18:40:00+05:30',
+                        ],
+                    ],
+                ],
+            ],
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create([
+        'trip_scope' => TripScope::Domestic,
+        ...domesticTripLocationPayload('Mumbai, India', 'Shantiniketan, India'),
+    ]);
+
+    $this->actingAs($user)
+        ->getJson(route('trips.trains.live', [
+            'trip' => $trip,
+            'from' => 'BCT',
+            'to' => 'BHP',
+            'date' => '2026-07-10',
+        ]))
+        ->assertOk()
+        ->assertJsonPath('available', true)
+        ->assertJsonPath('statuses.12345.platform', '4')
+        ->assertJsonPath('statuses.12345.delay_minutes', 23);
+});
+
+test('trip trains live endpoint requires view access', function () {
+    $owner = User::factory()->create();
+    $stranger = User::factory()->create();
+    $trip = Trip::factory()->forUser($owner)->create([
+        'trip_scope' => TripScope::Domestic,
+        ...domesticTripLocationPayload('Mumbai, India', 'Shantiniketan, India'),
+    ]);
+
+    $this->actingAs($stranger)
+        ->getJson(route('trips.trains.live', [
+            'trip' => $trip,
+            'from' => 'BCT',
+            'to' => 'BHP',
+        ]))
+        ->assertForbidden();
+});
+
+test('trip trains live endpoint explains when railradar api key is missing', function () {
+    config(['integrations.trains.drivers.railradar.api_key' => null]);
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create([
+        'trip_scope' => TripScope::Domestic,
+        ...domesticTripLocationPayload('Mumbai, India', 'Shantiniketan, India'),
+    ]);
+
+    $this->actingAs($user)
+        ->getJson(route('trips.trains.live', [
+            'trip' => $trip,
+            'from' => 'BCT',
+            'to' => 'BHP',
+        ]))
+        ->assertOk()
+        ->assertJsonPath('available', false);
+});
+
+test('trip show degrades gracefully instead of crashing when railradar cannot be reached', function () {
+    Http::fake([
+        'api.railradar.in/*' => Http::failedConnection(),
+        'api.open-meteo.com/*' => Http::response(['daily' => ['time' => []]]),
+    ]);
+
+    $user = User::factory()->create();
+    $trip = Trip::factory()->forUser($user)->create([
+        'trip_scope' => TripScope::Domestic,
+        ...domesticTripLocationPayload('Mumbai, India', 'Shantiniketan, India'),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('trips.show', $trip))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->loadDeferredProps(fn ($page) => $page
+                ->where('trainTimings.available', false)));
 });

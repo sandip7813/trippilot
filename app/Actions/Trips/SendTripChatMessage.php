@@ -3,7 +3,10 @@
 namespace App\Actions\Trips;
 
 use App\Contracts\Ai\ChatAssistant;
+use App\Exceptions\AiGenerationException;
 use App\Models\Trip;
+use App\Models\User;
+use App\Services\Ai\GeminiUsageLimiter;
 use App\Services\Trips\TripAiContextBuilder;
 use App\Support\Trips\TripItineraryPatcher;
 use Illuminate\Support\Str;
@@ -14,13 +17,23 @@ class SendTripChatMessage
         private ChatAssistant $chatAssistant,
         private TripAiContextBuilder $contextBuilder,
         private TripItineraryPatcher $itineraryPatcher,
+        private GeminiUsageLimiter $usageLimiter,
     ) {}
 
     /**
      * @return array{trip: Trip, patch_applied: bool}
      */
-    public function __invoke(Trip $trip, string $message): array
+    public function __invoke(Trip $trip, string $message, User $user): array
     {
+        if (! $this->usageLimiter->hasRemaining($user)) {
+            throw new AiGenerationException(__(
+                "You've reached today's AI usage limit (:limit requests). Please try again tomorrow.",
+                ['limit' => $this->usageLimiter->dailyLimit()],
+            ));
+        }
+
+        $this->usageLimiter->increment($user);
+
         $history = Trip::normalizeChatMessages($trip->getAttribute('chat_messages'));
         $tripContext = $this->contextBuilder->build($trip, $message);
 

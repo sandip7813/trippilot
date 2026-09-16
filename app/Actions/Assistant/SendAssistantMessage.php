@@ -3,8 +3,10 @@
 namespace App\Actions\Assistant;
 
 use App\Contracts\Ai\TravelAssistant;
+use App\Exceptions\AiGenerationException;
 use App\Models\AssistantConversation;
 use App\Models\User;
+use App\Services\Ai\GeminiUsageLimiter;
 use App\Services\Assistant\AssistantContextBuilder;
 use Illuminate\Support\Str;
 
@@ -13,6 +15,7 @@ class SendAssistantMessage
     public function __construct(
         private TravelAssistant $travelAssistant,
         private AssistantContextBuilder $contextBuilder,
+        private GeminiUsageLimiter $usageLimiter,
     ) {}
 
     /**
@@ -20,6 +23,15 @@ class SendAssistantMessage
      */
     public function __invoke(AssistantConversation $conversation, User $user, string $message): array
     {
+        if (! $this->usageLimiter->hasRemaining($user)) {
+            throw new AiGenerationException(__(
+                "You've reached today's AI usage limit (:limit requests). Please try again tomorrow.",
+                ['limit' => $this->usageLimiter->dailyLimit()],
+            ));
+        }
+
+        $this->usageLimiter->increment($user);
+
         $history = AssistantConversation::normalizeMessages($conversation->messages);
         $context = $this->contextBuilder->build($user, $message);
 

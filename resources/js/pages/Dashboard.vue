@@ -7,6 +7,7 @@ import {
     MapPinned,
     Route,
     Sparkles,
+    UserPlus,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -32,8 +33,10 @@ const props = defineProps<{
         trips: number;
         road_trips: number;
         upcoming: string | null;
+        invited: number;
     };
     recentTrips: Trip[];
+    invitedTrips: Trip[];
 }>();
 
 const upcomingLabel = computed(() =>
@@ -116,7 +119,7 @@ const quickActions = [
             </div>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
                 label="Trips"
                 :value="stats.trips"
@@ -137,6 +140,13 @@ const quickActions = [
                 hint="Next scheduled departure"
                 :icon="CalendarDays"
                 accent="amber"
+            />
+            <StatCard
+                label="Invited"
+                :value="stats.invited"
+                hint="Trips shared with you"
+                :icon="UserPlus"
+                accent="violet"
             />
         </div>
 
@@ -173,6 +183,48 @@ const quickActions = [
                         </p>
                     </div>
                     <Badge variant="outline">{{ trip.status_label }}</Badge>
+                </Link>
+            </CardContent>
+        </Card>
+
+        <Card
+            v-if="invitedTrips.length > 0"
+            class="card-vibrant overflow-hidden"
+        >
+            <div class="h-1 bg-gradient-to-r from-violet-500 to-purple-600" />
+            <CardHeader class="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle class="text-base">Invited</CardTitle>
+                    <CardDescription
+                        >Trips other people have shared with
+                        you</CardDescription
+                    >
+                </div>
+                <Button variant="ghost" size="sm" as-child>
+                    <Link :href="tripsIndex({ query: { filter: 'shared' } })">
+                        View all
+                    </Link>
+                </Button>
+            </CardHeader>
+            <CardContent class="space-y-3">
+                <Link
+                    v-for="trip in invitedTrips"
+                    :key="trip.id"
+                    :href="show(trip.id)"
+                    class="flex items-center justify-between rounded-xl border border-border/50 bg-muted/30 p-3 transition-all hover:border-violet-500/30 hover:bg-violet-500/5"
+                >
+                    <div class="min-w-0">
+                        <p class="truncate font-medium">{{ trip.title }}</p>
+                        <p class="truncate text-sm text-muted-foreground">
+                            {{
+                                locationLabel(trip.destination) ??
+                                'No destination'
+                            }}
+                        </p>
+                    </div>
+                    <Badge variant="outline">{{
+                        trip.collaborator_role
+                    }}</Badge>
                 </Link>
             </CardContent>
         </Card>

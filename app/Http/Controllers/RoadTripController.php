@@ -105,7 +105,7 @@ class RoadTripController extends Controller
             'aiConfigured' => filled(config('integrations.ai.drivers.gemini.api_key')),
             'ragCoverage' => $tripAiContext->ragCoverage($road_trip),
             'amenityLayers' => app(RoadTripAmenitiesService::class)->layersForTrip($road_trip),
-            'weather' => $tripWeather->forTrip($road_trip),
+            'weather' => Inertia::defer(fn () => $tripWeather->forTrip($road_trip)),
         ]);
     }
 
