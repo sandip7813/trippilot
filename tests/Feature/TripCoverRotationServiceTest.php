@@ -51,7 +51,7 @@ test('trip cover rotation prefers wikipedia on first attempt', function () {
 
     $result = app(TripCoverRotationService::class)->resolve(
         $trip,
-        $trip->destination,
+        [$trip->destination],
         null,
         1920,
         900,
@@ -108,7 +108,7 @@ test('trip cover rotation advances to next source when user tries another photo'
 
     $result = app(TripCoverRotationService::class)->resolve(
         $trip,
-        $trip->destination,
+        [$trip->destination],
         null,
         1920,
         900,
@@ -174,7 +174,7 @@ test('trip cover rotation tries the next candidate within the same source', func
 
     $result = app(TripCoverRotationService::class)->resolve(
         $trip,
-        $trip->destination,
+        [$trip->destination],
         null,
         1920,
         900,
@@ -231,7 +231,7 @@ test('trip cover rotation skips legacy unsplash covers when trying another photo
 
     $result = app(TripCoverRotationService::class)->resolve(
         $trip,
-        $trip->destination,
+        [$trip->destination],
         null,
         1920,
         900,

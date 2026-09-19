@@ -56,6 +56,24 @@ return [
     'ai' => [
         'driver' => env('AI_DRIVER', 'gemini'),
 
+        /*
+         * Cost guardrail: max Gemini-backed requests (itinerary generation,
+         * trip chat, assistant chat) a single user may make per day. Set to
+         * 0 to disable the daily cap.
+         */
+        'daily_limit_per_user' => (int) env('AI_DAILY_LIMIT_PER_USER', 50),
+
+        /*
+         * Estimated USD price per 1M tokens, used for the admin analytics
+         * cost estimate. Keyed by model; `default` applies to unknown models.
+         */
+        'pricing' => [
+            'gemini-2.5-flash' => ['input' => 0.30, 'output' => 2.50],
+            'gemini-2.5-flash-image' => ['input' => 0.30, 'output' => 30.00],
+            'gemini-embedding-001' => ['input' => 0.15, 'output' => 0.0],
+            'default' => ['input' => 0.30, 'output' => 2.50],
+        ],
+
         'drivers' => [
             'gemini' => [
                 'api_key' => env('GEMINI_API_KEY'),
@@ -92,6 +110,7 @@ return [
     'trains' => [
         'driver' => env('TRAIN_DRIVER', 'railradar'),
         'cache_ttl' => (int) env('TRAIN_CACHE_TTL', 43200),
+        'live_cache_ttl' => (int) env('TRAIN_LIVE_CACHE_TTL', 120),
         'station_lookup_cache_ttl' => (int) env('TRAIN_STATION_LOOKUP_CACHE_TTL', 604800),
         'max_results' => (int) env('TRAIN_MAX_RESULTS', 12),
 

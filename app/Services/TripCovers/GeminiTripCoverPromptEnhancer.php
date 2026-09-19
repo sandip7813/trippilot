@@ -2,6 +2,7 @@
 
 namespace App\Services\TripCovers;
 
+use App\Enums\AiUsageFeature;
 use App\Services\Ai\Gemini\GeminiClient;
 use Illuminate\Support\Facades\Log;
 
@@ -47,6 +48,7 @@ class GeminiTripCoverPromptEnhancer
                     'maxOutputTokens' => 220,
                 ],
             ],
+            AiUsageFeature::CoverPrompt,
         );
 
         if ($response->failed()) {

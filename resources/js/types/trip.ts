@@ -118,6 +118,10 @@ export type TripItinerary = {
 export type Trip = {
     id: string;
     user_id: number;
+    is_owner: boolean;
+    collaborator_role: TripCollaboratorRole | null;
+    collaborators: TripCollaborator[];
+    owner: { name: string | null; email: string | null } | null;
     type: TripType;
     type_label: string;
     travel_style: TravelStyle | null;
@@ -163,12 +167,31 @@ export type TripOption = {
     label: string;
 };
 
-export type TripFilter = 'all' | 'favorites' | 'archived';
+export type TripFilter = 'all' | 'favorites' | 'archived' | 'shared';
+
+export type TripPhase = 'upcoming' | 'ongoing' | 'past';
+
+export type TripPhaseCounts = Record<TripPhase, number>;
 
 export type TripCounts = {
     all: number;
     favorites: number;
     archived: number;
+    shared: number;
+};
+
+export type TripCollaboratorRole = 'viewer' | 'editor';
+
+export type TripCollaboratorStatus = 'pending' | 'accepted';
+
+export type TripCollaborator = {
+    user_id: number | null;
+    name: string | null;
+    email: string;
+    role: TripCollaboratorRole;
+    role_label: string;
+    status: TripCollaboratorStatus;
+    added_at: string | null;
 };
 
 export function locationLabel(

@@ -17,9 +17,11 @@ class SendRegistrationOtpController extends Controller
 
         $registrationOtpService->send($email);
 
-        return back()->with([
+        $request->session()->put([
             'otp_sent' => true,
             'otp_email' => $email,
         ]);
+
+        return back();
     }
 }

@@ -36,13 +36,25 @@ class DashboardController extends Controller
             ->orderBy('start_date')
             ->first();
 
+        $invitedTrips = Trip::query()
+            ->sharedWithUser($userId)
+            ->active()
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get()
+            ->map->toFrontend();
+
+        $invitedTripCount = Trip::query()->sharedWithUser($userId)->active()->count();
+
         return Inertia::render('Dashboard', [
             'stats' => [
                 'trips' => $tripCount,
                 'road_trips' => $roadTripCount,
                 'upcoming' => $upcomingTrip?->start_date?->toDateString(),
+                'invited' => $invitedTripCount,
             ],
             'recentTrips' => $recentTrips,
+            'invitedTrips' => $invitedTrips,
         ]);
     }
 }

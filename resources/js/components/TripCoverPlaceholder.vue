@@ -5,13 +5,17 @@ import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
-defineProps<{
-    exhausted: boolean;
-    pending?: boolean;
-    syncCoverForm: Record<string, unknown>;
-    uploadCoverForm: Record<string, unknown>;
-    class?: string;
-}>();
+withDefaults(
+    defineProps<{
+        exhausted: boolean;
+        pending?: boolean;
+        syncCoverForm: Record<string, unknown>;
+        uploadCoverForm: Record<string, unknown>;
+        canEdit?: boolean;
+        class?: string;
+    }>(),
+    { canEdit: true },
+);
 </script>
 
 <template>
@@ -53,7 +57,7 @@ defineProps<{
             </div>
             <Spinner v-if="pending" class="size-6 text-muted-foreground" />
             <div
-                v-else
+                v-else-if="canEdit"
                 class="flex flex-wrap items-center justify-center gap-2"
             >
                 <TripCoverRegenerateButton

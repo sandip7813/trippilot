@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\TravelStyle;
+use App\Enums\TripCollaboratorRole;
 use App\Enums\TripCoverSource;
+use App\Enums\TripPhase;
 use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
@@ -51,6 +53,8 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property list<array<string, mixed>>|null $suggested_breaks
  * @property array<string, mixed>|null $amenities_cache
  * @property list<array<string, mixed>>|null $chat_messages
+ * @property list<int>|null $reminders_sent
+ * @property list<array{user_id: int|null, email: string, role: string, status: string, added_at: string|null}>|null $collaborators
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -100,6 +104,8 @@ class Trip extends Model
         'suggested_breaks',
         'amenities_cache',
         'chat_messages',
+        'collaborators',
+        'reminders_sent',
     ];
 
     /**
@@ -112,6 +118,7 @@ class Trip extends Model
         ['travel_style' => 1],
         ['trip_scope' => 1],
         ['created_at' => -1],
+        ['collaborators.user_id' => 1],
     ];
 
     /**
@@ -274,6 +281,44 @@ class Trip extends Model
     }
 
     /**
+     * The locations that best represent this trip's cover photo, ordered by relevance.
+     *
+     * Prefers waypoints (the places actually explored on a multi-stop trip) over the
+     * single `destination` field, which for a round trip is often just the return leg
+     * (e.g. a "Golden Triangle" trip's `destination` is New Delhi even though Agra and
+     * Jaipur are the highlights). Falls back to `destination` when there are no
+     * distinct waypoints, and never uses `origin` or the trip title.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function coverDestinationCandidates(): array
+    {
+        $origin = self::normalizeLocation($this->getAttribute('origin'));
+        $destination = self::normalizeLocation($this->getAttribute('destination'));
+        $waypoints = self::normalizeWaypoints($this->getAttribute('waypoints'));
+
+        $candidates = collect($waypoints)
+            ->pluck('location')
+            ->filter(fn (mixed $location): bool => is_array($location) && filled($location['label'] ?? null))
+            ->push($destination)
+            ->filter(fn (mixed $location): bool => is_array($location) && filled($location['label'] ?? null))
+            ->unique(fn (array $location): string => strtolower((string) $location['label']))
+            ->values();
+
+        if ($origin !== null && $candidates->count() > 1) {
+            $withoutOrigin = $candidates->reject(
+                fn (array $location): bool => strtolower((string) $location['label']) === strtolower((string) $origin['label'])
+            )->values();
+
+            if ($withoutOrigin->isNotEmpty()) {
+                $candidates = $withoutOrigin;
+            }
+        }
+
+        return $candidates->all();
+    }
+
+    /**
      * @param  list<array<string, mixed>>|null  $waypoints
      * @return list<array<string, mixed>>
      */
@@ -335,6 +380,120 @@ class Trip extends Model
         return $this->type === TripType::Road;
     }
 
+    public function isOwnedBy(User $user): bool
+    {
+        return (int) $this->user_id === $user->id;
+    }
+
+    /**
+     * @return list<array{user_id: int|null, email: string, role: string, status: string, added_at: string|null}>
+     */
+    public function collaboratorEntries(): array
+    {
+        $collaborators = self::coerceStructuredArray($this->getAttribute('collaborators')) ?? [];
+
+        return array_values(array_filter(
+            $collaborators,
+            fn (mixed $entry): bool => is_array($entry) && filled($entry['email'] ?? null),
+        ));
+    }
+
+    /**
+     * @return list<array{user_id: int|null, email: string, role: string, status: string, added_at: string|null}>
+     */
+    public function pendingCollaboratorEntriesForEmail(string $email): array
+    {
+        return array_values(array_filter(
+            $this->collaboratorEntries(),
+            fn (array $entry): bool => ($entry['status'] ?? '') === 'pending'
+                && strcasecmp((string) $entry['email'], $email) === 0,
+        ));
+    }
+
+    public function collaboratorRole(User $user): ?TripCollaboratorRole
+    {
+        foreach ($this->collaboratorEntries() as $entry) {
+            if ((int) ($entry['user_id'] ?? 0) === $user->id) {
+                return TripCollaboratorRole::tryFrom((string) ($entry['role'] ?? ''));
+            }
+        }
+
+        return null;
+    }
+
+    public function isCollaborator(User $user): bool
+    {
+        return $this->collaboratorRole($user) !== null;
+    }
+
+    /**
+     * Owner or a collaborator (any role) can view the trip.
+     */
+    public function isViewableBy(User $user): bool
+    {
+        return $this->isOwnedBy($user) || $this->isCollaborator($user);
+    }
+
+    /**
+     * Owner or an editor collaborator can change the trip.
+     */
+    public function isEditableBy(User $user): bool
+    {
+        return $this->isOwnedBy($user) || $this->collaboratorRole($user) === TripCollaboratorRole::Editor;
+    }
+
+    /**
+     * @return list<array{user_id: int|null, name: string|null, email: string, role: string, role_label: string, status: string, added_at: string|null}>
+     */
+    public function collaboratorsForFrontend(): array
+    {
+        $entries = $this->collaboratorEntries();
+
+        if ($entries === []) {
+            return [];
+        }
+
+        $users = User::query()
+            ->whereIn('id', collect($entries)->pluck('user_id')->filter())
+            ->get()
+            ->keyBy('id');
+
+        return collect($entries)
+            ->map(function (array $entry) use ($users): array {
+                $user = isset($entry['user_id']) ? $users->get((int) $entry['user_id']) : null;
+                $role = TripCollaboratorRole::tryFrom((string) ($entry['role'] ?? '')) ?? TripCollaboratorRole::Viewer;
+
+                return [
+                    'user_id' => $user?->id,
+                    'name' => $user?->name,
+                    'email' => $user?->email ?? (string) $entry['email'],
+                    'role' => $role->value,
+                    'role_label' => $role->label(),
+                    'status' => $user !== null ? 'accepted' : (string) ($entry['status'] ?? 'pending'),
+                    'added_at' => $entry['added_at'] ?? null,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array{name: string|null, email: string|null}|null
+     */
+    public function ownerForFrontend(): ?array
+    {
+        $owner = User::query()->find((int) $this->user_id);
+
+        if ($owner === null) {
+            return null;
+        }
+
+        return [
+            'name' => $owner->name,
+            'email' => $owner->email,
+        ];
+    }
+
     /**
      * @return array<string, mixed>|null
      */
@@ -352,6 +511,28 @@ class Trip extends Model
     public function scopeForUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeForUserOrCollaborator(Builder $query, int $userId): Builder
+    {
+        return $query->where(function (Builder $query) use ($userId): void {
+            $query->where('user_id', $userId)
+                ->orWhere('collaborators.user_id', $userId);
+        });
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeSharedWithUser(Builder $query, int $userId): Builder
+    {
+        return $query->where('user_id', '!=', $userId)
+            ->where('collaborators.user_id', $userId);
     }
 
     /**
@@ -382,16 +563,66 @@ class Trip extends Model
     }
 
     /**
+     * Trips without a start date count as upcoming; a missing end date means
+     * a single-day trip.
+     *
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeInPhase(Builder $query, TripPhase $phase): Builder
+    {
+        $today = Carbon::today();
+
+        return match ($phase) {
+            TripPhase::Upcoming => $query->where(fn (Builder $query) => $query
+                ->whereNull('start_date')
+                ->orWhere('start_date', '>', $today)),
+            TripPhase::Ongoing => $query
+                ->where('start_date', '<=', $today)
+                ->where(fn (Builder $query) => $query
+                    ->where('end_date', '>=', $today)
+                    ->orWhere(fn (Builder $query) => $query
+                        ->whereNull('end_date')
+                        ->where('start_date', '>=', $today))),
+            TripPhase::Past => $query->where(fn (Builder $query) => $query
+                ->where('end_date', '<', $today)
+                ->orWhere(fn (Builder $query) => $query
+                    ->whereNull('end_date')
+                    ->where('start_date', '<', $today))),
+        };
+    }
+
+    /**
+     * Upcoming and ongoing trips are soonest first; past trips latest first.
+     *
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeOrderedForPhase(Builder $query, TripPhase $phase): Builder
+    {
+        return match ($phase) {
+            TripPhase::Past => $query->orderByDesc('end_date')->orderByDesc('start_date'),
+            default => $query->orderBy('start_date')->orderByDesc('created_at'),
+        };
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    public function toFrontend(): array
+    public function toFrontend(?User $viewer = null): array
     {
         $origin = self::normalizeLocation($this->getAttribute('origin'));
         $destination = self::normalizeLocation($this->getAttribute('destination'));
+        $viewer ??= auth()->user();
+        $isOwner = $viewer !== null && $this->isOwnedBy($viewer);
 
         return [
             'id' => (string) $this->id,
             'user_id' => $this->user_id,
+            'is_owner' => $isOwner,
+            'collaborator_role' => $viewer ? $this->collaboratorRole($viewer)?->value : null,
+            'collaborators' => $isOwner ? $this->collaboratorsForFrontend() : [],
+            'owner' => (! $isOwner && $viewer !== null) ? $this->ownerForFrontend() : null,
             'type' => $this->type->value,
             'type_label' => $this->type->label(),
             'travel_style' => $this->travel_style?->value,

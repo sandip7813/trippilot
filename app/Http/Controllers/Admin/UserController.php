@@ -21,7 +21,8 @@ class UserController extends Controller
         $actor = $request->user();
 
         $users = User::query()
-            ->orderBy('name')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
             ->paginate(20)
             ->withQueryString()
             ->through(fn (User $user): array => $this->userPayload($actor, $user));

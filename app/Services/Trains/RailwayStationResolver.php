@@ -3,6 +3,7 @@
 namespace App\Services\Trains;
 
 use App\Contracts\Maps\PlacesService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -59,7 +60,15 @@ class RailwayStationResolver
         $cacheTtl = (int) config('integrations.trains.station_lookup_cache_ttl', 604800);
 
         return Cache::remember('railradar:stations:lookup', $cacheTtl, function (): array {
-            $response = $this->client->stationsLookup();
+            try {
+                $response = $this->client->stationsLookup();
+            } catch (ConnectionException $exception) {
+                Log::warning('RailRadar station lookup could not connect.', [
+                    'message' => $exception->getMessage(),
+                ]);
+
+                return [];
+            }
 
             if ($response->failed()) {
                 Log::warning('RailRadar station lookup failed.', [

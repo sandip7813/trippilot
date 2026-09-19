@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Controllers\Assistant\AssistantConversationController;
 use App\Http\Controllers\Auth\SendRegistrationOtpController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocationSearchController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RoadTripController;
+use App\Http\Controllers\TripCollaboratorController;
 use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,7 +42,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('trips/{trip}/trains/{trainNumber}/halts', [TripController::class, 'trainHalts'])
         ->middleware('throttle:30,1')
         ->name('trips.trains.halts');
+    Route::get('trips/{trip}/trains/live', [TripController::class, 'trainLiveStatus'])
+        ->middleware('throttle:20,1')
+        ->name('trips.trains.live');
     Route::resource('trips', TripController::class);
+    Route::post('trips/{trip}/collaborators', [TripCollaboratorController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('trips.collaborators.store');
+    Route::patch('trips/{trip}/collaborators/{email}', [TripCollaboratorController::class, 'update'])
+        ->where('email', '.*')
+        ->name('trips.collaborators.update');
+    Route::delete('trips/{trip}/collaborators/{email}', [TripCollaboratorController::class, 'destroy'])
+        ->where('email', '.*')
+        ->name('trips.collaborators.destroy');
 
     Route::post('road-trips/{trip}/route', [RoadTripController::class, 'computeRoute'])
         ->name('road-trips.route');
@@ -59,6 +74,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('throttle:10,1')
         ->name('road-trips.cover.upload');
     Route::resource('road-trips', RoadTripController::class)->except(['destroy']);
+
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    Route::patch('notifications/{notification}', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+
+    Route::prefix('assistant')->name('assistant.')->group(function () {
+        Route::get('/', [AssistantConversationController::class, 'index'])->name('index');
+        Route::post('conversations', [AssistantConversationController::class, 'store'])->name('conversations.store');
+        Route::get('conversations/{conversation}', [AssistantConversationController::class, 'show'])->name('show');
+        Route::post('conversations/{conversation}/messages', [AssistantConversationController::class, 'storeMessage'])
+            ->middleware('throttle:15,1')
+            ->name('conversations.messages.store');
+        Route::delete('conversations/{conversation}', [AssistantConversationController::class, 'destroy'])->name('conversations.destroy');
+    });
 });
 
 require __DIR__.'/settings.php';

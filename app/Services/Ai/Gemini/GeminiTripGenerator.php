@@ -4,6 +4,7 @@ namespace App\Services\Ai\Gemini;
 
 use App\Contracts\Ai\TripGenerator;
 use App\Data\Ai\GeneratedItinerary;
+use App\Enums\AiUsageFeature;
 use App\Exceptions\AiGenerationException;
 use App\Support\BudgetBreakdownNormalizer;
 use App\Support\GeminiResponseErrors;
@@ -39,6 +40,7 @@ class GeminiTripGenerator implements TripGenerator
                     'responseSchema' => $this->responseSchema(),
                 ],
             ],
+            AiUsageFeature::ItineraryGeneration,
         );
 
         if ($response->failed()) {

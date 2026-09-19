@@ -14,7 +14,7 @@ class TripPolicy
 
     public function view(User $user, Trip $trip): bool
     {
-        return $this->ownsTrip($user, $trip) || $user->isAdmin();
+        return $trip->isViewableBy($user) || $user->isAdmin();
     }
 
     public function create(User $user): bool
@@ -24,7 +24,7 @@ class TripPolicy
 
     public function update(User $user, Trip $trip): bool
     {
-        return $this->ownsTrip($user, $trip);
+        return $trip->isEditableBy($user);
     }
 
     public function delete(User $user, Trip $trip): bool
@@ -39,10 +39,15 @@ class TripPolicy
 
     public function generateItinerary(User $user, Trip $trip): bool
     {
-        return $this->ownsTrip($user, $trip);
+        return $trip->isEditableBy($user);
     }
 
     public function chat(User $user, Trip $trip): bool
+    {
+        return $trip->isEditableBy($user);
+    }
+
+    public function manageCollaborators(User $user, Trip $trip): bool
     {
         return $this->ownsTrip($user, $trip);
     }

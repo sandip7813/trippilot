@@ -12,19 +12,23 @@ import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import type { RagCoverage, Trip, TripChatMessage } from '@/types/trip';
 
-const props = defineProps<{
-    trip: Trip;
-    aiConfigured: boolean;
-    ragCoverage?: RagCoverage;
-    variant?: 'vacation' | 'road';
-}>();
+const props = withDefaults(
+    defineProps<{
+        trip: Trip;
+        aiConfigured: boolean;
+        ragCoverage?: RagCoverage;
+        variant?: 'vacation' | 'road';
+        canEdit?: boolean;
+    }>(),
+    { canEdit: true },
+);
 
 const page = usePage();
 const messageInput = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 
 const messages = computed(() => props.trip.chat_messages ?? []);
-const canChat = computed(() => props.aiConfigured);
+const canChat = computed(() => props.aiConfigured && props.canEdit);
 const isRoadTrip = computed(() => props.variant === 'road');
 
 const showCoverageHint = computed(
@@ -49,6 +53,10 @@ const coverageHint = computed((): string => {
 const chatHint = computed((): string => {
     if (!props.aiConfigured) {
         return 'Add GEMINI_API_KEY to your environment to chat with TripPilot.';
+    }
+
+    if (!props.canEdit) {
+        return 'You have view-only access to this trip, so chatting is disabled.';
     }
 
     if (isRoadTrip.value) {
@@ -101,7 +109,9 @@ function messageClasses(message: TripChatMessage): string {
         >
             <div class="space-y-2">
                 <div class="flex flex-wrap items-center gap-2">
-                    <CardTitle class="text-lg font-bold">Trip assistant</CardTitle>
+                    <CardTitle class="text-lg font-bold"
+                        >Trip assistant</CardTitle
+                    >
                     <Badge
                         class="bg-violet-500/15 text-violet-700 dark:text-violet-300"
                     >
@@ -167,7 +177,9 @@ function messageClasses(message: TripChatMessage): string {
                     v-for="message in messages"
                     :key="message.id"
                     class="flex flex-col gap-1"
-                    :class="message.role === 'user' ? 'items-end' : 'items-start'"
+                    :class="
+                        message.role === 'user' ? 'items-end' : 'items-start'
+                    "
                 >
                     <div :class="messageClasses(message)">
                         <p class="whitespace-pre-wrap">{{ message.content }}</p>
@@ -206,6 +218,7 @@ function messageClasses(message: TripChatMessage): string {
             </div>
 
             <Form
+                v-if="canEdit"
                 v-bind="TripController.chat.form(trip.id)"
                 v-slot="{ processing, errors }"
                 class="space-y-3"
@@ -234,7 +247,9 @@ function messageClasses(message: TripChatMessage): string {
                     </p>
                     <Button
                         type="submit"
-                        :disabled="!canChat || processing || messageInput.trim() === ''"
+                        :disabled="
+                            !canChat || processing || messageInput.trim() === ''
+                        "
                     >
                         <Spinner v-if="processing" class="mr-2" />
                         <Send v-else class="mr-2 size-4" />
@@ -242,6 +257,9 @@ function messageClasses(message: TripChatMessage): string {
                     </Button>
                 </div>
             </Form>
+            <p v-else class="text-sm text-muted-foreground">
+                {{ chatHint }}
+            </p>
         </CardContent>
     </Card>
 </template>

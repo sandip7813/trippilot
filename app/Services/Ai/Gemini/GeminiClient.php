@@ -2,19 +2,31 @@
 
 namespace App\Services\Ai\Gemini;
 
+use App\Enums\AiUsageFeature;
+use App\Services\Ai\AiUsageRecorder;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 class GeminiClient
 {
+    public function __construct(private AiUsageRecorder $usageRecorder) {}
+
     /**
      * @param  array<string, mixed>  $payload
      */
-    public function post(string $model, string $action, array $payload): Response
-    {
-        return $this->client()
+    public function post(
+        string $model,
+        string $action,
+        array $payload,
+        AiUsageFeature $feature = AiUsageFeature::Other,
+    ): Response {
+        $response = $this->client()
             ->post("models/{$model}:{$action}", $payload);
+
+        $this->usageRecorder->record($response, $model, $feature, auth()->id());
+
+        return $response;
     }
 
     private function client(): PendingRequest
@@ -60,6 +72,7 @@ class GeminiClient
                     ],
                 ],
             ],
+            AiUsageFeature::Embedding,
         );
     }
 }

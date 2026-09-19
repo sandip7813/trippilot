@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -14,8 +15,11 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
+ * @property string $first_name
+ * @property string $last_name
  * @property string $name
  * @property string $email
+ * @property string|null $mobile_number
  * @property UserRole $role
  * @property Carbon|null $email_verified_at
  * @property string $password
@@ -27,12 +31,29 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'role', 'travel_preferences'])]
+#[Fillable(['first_name', 'last_name', 'email', 'mobile_number', 'password', 'role', 'travel_preferences'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * The accessors to append to the model's array/JSON form.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['name'];
+
+    /**
+     * The user's full name, derived from their first and last name.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function name(): Attribute
+    {
+        return Attribute::get(fn (): string => trim("{$this->first_name} {$this->last_name}"));
+    }
 
     public function isAdmin(): bool
     {

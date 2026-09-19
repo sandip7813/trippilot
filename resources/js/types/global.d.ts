@@ -18,6 +18,18 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            notifications: {
+                unread: number;
+                recent: {
+                    id: string;
+                    kind: 'reminder' | 'shared';
+                    title: string;
+                    message: string;
+                    url: string | null;
+                    read: boolean;
+                    created_at: string | null;
+                }[];
+            };
             sidebarOpen: boolean;
             brand: {
                 logo: string;

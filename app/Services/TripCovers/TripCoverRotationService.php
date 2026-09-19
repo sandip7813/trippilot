@@ -18,15 +18,22 @@ class TripCoverRotationService
         private TripCoverImageDownloader $downloader,
     ) {}
 
+    /**
+     * @param  list<array<string, mixed>>  $destinationCandidates
+     */
     public function resolve(
         Trip $trip,
-        array $destination,
+        array $destinationCandidates,
         ?string $travelStyle,
         int $width,
         int $height,
         bool $tryNextSource,
     ): ?TripCoverGenerationResult {
         $trip->refresh();
+
+        if ($destinationCandidates === []) {
+            return null;
+        }
 
         $ladder = TripCoverSource::rotationLadder();
         /** @var list<string> $triedRefs */
@@ -36,13 +43,15 @@ class TripCoverRotationService
             $triedRefs = $this->appendExistingCoverRefs($trip, $triedRefs);
         }
 
+        $primaryDestination = $destinationCandidates[0];
+
         $startIndex = 0;
 
         for ($index = $startIndex; $index < count($ladder); $index++) {
             $source = $ladder[$index];
 
             if (in_array($source, [TripCoverSource::Unsplash, TripCoverSource::Pollinations], true)) {
-                foreach ($this->generatorCandidatesForSource($source, $destination, $travelStyle, $width, $height, $triedRefs) as $candidate) {
+                foreach ($this->generatorCandidatesForSource($source, $primaryDestination, $travelStyle, $width, $height, $triedRefs) as $candidate) {
                     if (in_array($candidate->ref, $triedRefs, true)) {
                         continue;
                     }
@@ -68,27 +77,29 @@ class TripCoverRotationService
                 continue;
             }
 
-            foreach ($this->urlCandidatesForSource($source, $destination, $width) as $candidate) {
-                if (in_array($candidate->ref, $triedRefs, true)) {
-                    continue;
+            foreach ($destinationCandidates as $destination) {
+                foreach ($this->urlCandidatesForSource($source, $destination, $width) as $candidate) {
+                    if (in_array($candidate->ref, $triedRefs, true)) {
+                        continue;
+                    }
+
+                    $bytes = $this->downloader->download($candidate->imageUrl);
+
+                    if ($bytes === null) {
+                        $triedRefs[] = $candidate->ref;
+
+                        continue;
+                    }
+
+                    return new TripCoverGenerationResult(
+                        bytes: $bytes,
+                        source: $source,
+                        ref: $candidate->ref,
+                        sourceIndex: $index,
+                        attribution: $candidate->attribution,
+                        triedRefs: [...$triedRefs, $candidate->ref],
+                    );
                 }
-
-                $bytes = $this->downloader->download($candidate->imageUrl);
-
-                if ($bytes === null) {
-                    $triedRefs[] = $candidate->ref;
-
-                    continue;
-                }
-
-                return new TripCoverGenerationResult(
-                    bytes: $bytes,
-                    source: $source,
-                    ref: $candidate->ref,
-                    sourceIndex: $index,
-                    attribution: $candidate->attribution,
-                    triedRefs: [...$triedRefs, $candidate->ref],
-                );
             }
         }
 

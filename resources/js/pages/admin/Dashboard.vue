@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Bot, Map, Shield, Users } from '@lucide/vue';
+import { Bot, Coins, Map, Shield, Users } from '@lucide/vue';
 import { computed } from 'vue';
 import PageHeader from '@/components/PageHeader.vue';
 import StatCard from '@/components/StatCard.vue';
@@ -12,11 +12,40 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { dashboard as adminDashboard } from '@/routes/admin';
+import { settings as superSettings } from '@/routes/admin/super';
 import { index as adminTripsIndex } from '@/routes/admin/trips';
 import { index as usersIndex } from '@/routes/admin/users';
-import { settings as superSettings } from '@/routes/admin/super';
 
 const props = defineProps<{
+    analytics: {
+        trips: {
+            domestic: number;
+            international: number;
+            by_month: { label: string; count: number }[];
+            top_destinations: { label: string; count: number }[];
+        };
+        ai: {
+            total_tokens: number;
+            total_cost_usd: number;
+            period_days: number;
+            period_requests: number;
+            period_cost_usd: number;
+            by_feature: {
+                feature: string;
+                label: string;
+                requests: number;
+                tokens: number;
+                cost_usd: number;
+            }[];
+            daily: { date: string; requests: number; cost_usd: number }[];
+            top_users: {
+                name: string;
+                email: string;
+                requests: number;
+                cost_usd: number;
+            }[];
+        };
+    };
     stats: {
         users: {
             total: number;
@@ -36,6 +65,36 @@ const props = defineProps<{
 }>();
 
 const formatCount = (value: number): string => value.toLocaleString();
+
+const formatCost = (value: number): string =>
+    `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+
+const percent = (value: number, max: number): string =>
+    `${max > 0 ? Math.max((value / max) * 100, value > 0 ? 3 : 0) : 0}%`;
+
+const maxMonth = computed(() =>
+    Math.max(...props.analytics.trips.by_month.map((m) => m.count), 0),
+);
+const maxDestination = computed(() =>
+    Math.max(...props.analytics.trips.top_destinations.map((d) => d.count), 0),
+);
+const maxFeature = computed(() =>
+    Math.max(...props.analytics.ai.by_feature.map((f) => f.requests), 0),
+);
+const maxDaily = computed(() =>
+    Math.max(...props.analytics.ai.daily.map((d) => d.requests), 0),
+);
+
+const tripHintScope = computed(() => {
+    const { domestic, international } = props.analytics.trips;
+
+    return `${formatCount(domestic)} domestic · ${formatCount(international)} international`;
+});
+
+const aiCostHint = computed(
+    () =>
+        `${formatCost(props.analytics.ai.period_cost_usd)} in last ${props.analytics.ai.period_days} days`,
+);
 
 const userHint = computed(() => {
     const { admins } = props.stats.users;
@@ -81,7 +140,7 @@ defineOptions({
             :icon="Shield"
         />
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Link :href="usersIndex()" class="block transition-opacity hover:opacity-90">
                 <StatCard
                     label="Users"
@@ -110,7 +169,149 @@ defineOptions({
                 :icon="Bot"
                 accent="violet"
             />
+            <StatCard
+                label="Estimated AI cost"
+                :value="formatCost(analytics.ai.total_cost_usd)"
+                :hint="aiCostHint"
+                :icon="Coins"
+                accent="amber"
+            />
         </div>
+
+        <div class="grid gap-4 lg:grid-cols-2">
+            <Card class="border-sidebar-border/70 dark:border-sidebar-border">
+                <CardHeader>
+                    <CardTitle class="text-base">Trips created</CardTitle>
+                    <CardDescription>Last 6 months · {{ tripHintScope }}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div class="flex h-40 items-end gap-3">
+                        <div
+                            v-for="month in analytics.trips.by_month"
+                            :key="month.label"
+                            class="flex h-full flex-1 flex-col items-center justify-end gap-1"
+                        >
+                            <span class="text-xs font-medium">{{ month.count }}</span>
+                            <div
+                                class="w-full rounded-t bg-sky-500"
+                                :style="{ height: percent(month.count, maxMonth) }"
+                            />
+                            <span class="text-xs text-muted-foreground">{{ month.label }}</span>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card class="border-sidebar-border/70 dark:border-sidebar-border">
+                <CardHeader>
+                    <CardTitle class="text-base">Top destinations</CardTitle>
+                    <CardDescription>Most planned places</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-3">
+                    <p
+                        v-if="analytics.trips.top_destinations.length === 0"
+                        class="text-sm text-muted-foreground"
+                    >
+                        No destinations yet.
+                    </p>
+                    <div v-for="item in analytics.trips.top_destinations" :key="item.label">
+                        <div class="mb-1 flex justify-between gap-2 text-sm">
+                            <span class="truncate">{{ item.label }}</span>
+                            <span class="font-medium">{{ item.count }}</span>
+                        </div>
+                        <div class="h-2 rounded-full bg-muted">
+                            <div
+                                class="h-2 rounded-full bg-teal-500"
+                                :style="{ width: percent(item.count, maxDestination) }"
+                            />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+
+        <Card class="border-sidebar-border/70 dark:border-sidebar-border">
+            <CardHeader>
+                <CardTitle class="text-base">AI requests per day</CardTitle>
+                <CardDescription>Last {{ analytics.ai.period_days }} days</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="flex h-32 items-end gap-0.5">
+                    <div
+                        v-for="day in analytics.ai.daily"
+                        :key="day.date"
+                        class="flex h-full flex-1 items-end"
+                        :title="`${day.date}: ${day.requests} requests · ${formatCost(day.cost_usd)}`"
+                    >
+                        <div
+                            class="w-full rounded-t bg-violet-500"
+                            :style="{ height: percent(day.requests, maxDaily) }"
+                        />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        <div class="grid gap-4 lg:grid-cols-2">
+            <Card class="border-sidebar-border/70 dark:border-sidebar-border">
+                <CardHeader>
+                    <CardTitle class="text-base">Usage by feature</CardTitle>
+                    <CardDescription>Last {{ analytics.ai.period_days }} days</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-3">
+                    <p
+                        v-if="analytics.ai.by_feature.length === 0"
+                        class="text-sm text-muted-foreground"
+                    >
+                        No AI usage recorded yet.
+                    </p>
+                    <div v-for="item in analytics.ai.by_feature" :key="item.feature">
+                        <div class="mb-1 flex justify-between gap-2 text-sm">
+                            <span>{{ item.label }}</span>
+                            <span class="text-muted-foreground">
+                                {{ formatCount(item.requests) }} req · {{ formatCount(item.tokens) }} tokens ·
+                                {{ formatCost(item.cost_usd) }}
+                            </span>
+                        </div>
+                        <div class="h-2 rounded-full bg-muted">
+                            <div
+                                class="h-2 rounded-full bg-violet-500"
+                                :style="{ width: percent(item.requests, maxFeature) }"
+                            />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card class="border-sidebar-border/70 dark:border-sidebar-border">
+                <CardHeader>
+                    <CardTitle class="text-base">Top AI users</CardTitle>
+                    <CardDescription>Last {{ analytics.ai.period_days }} days</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-3">
+                    <p
+                        v-if="analytics.ai.top_users.length === 0"
+                        class="text-sm text-muted-foreground"
+                    >
+                        No AI usage recorded yet.
+                    </p>
+                    <div
+                        v-for="user in analytics.ai.top_users"
+                        :key="user.email"
+                        class="flex items-center justify-between gap-2 text-sm"
+                    >
+                        <div class="min-w-0">
+                            <p class="truncate font-medium">{{ user.name }}</p>
+                            <p class="truncate text-xs text-muted-foreground">{{ user.email }}</p>
+                        </div>
+                        <span class="shrink-0 text-muted-foreground">
+                            {{ formatCount(user.requests) }} req · {{ formatCost(user.cost_usd) }}
+                        </span>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+
 
         <Card class="border-sidebar-border/70 dark:border-sidebar-border">
             <CardHeader>

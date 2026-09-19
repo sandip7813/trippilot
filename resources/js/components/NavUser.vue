@@ -1,55 +1,62 @@
 <script setup lang="ts">
-import { usePage } from '@inertiajs/vue3';
-import { ChevronsUpDown } from '@lucide/vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { LogOut, Settings } from '@lucide/vue';
 import { computed } from 'vue';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    useSidebar,
 } from '@/components/ui/sidebar';
 import UserInfo from '@/components/UserInfo.vue';
-import UserMenuContent from '@/components/UserMenuContent.vue';
+import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import { logout } from '@/routes';
+import { edit } from '@/routes/profile';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
-const { isMobile, state } = useSidebar();
+const { isCurrentUrl } = useCurrentUrl();
+
+function handleLogout(): void {
+    router.flushAll();
+}
 </script>
 
 <template>
     <SidebarMenu>
         <SidebarMenuItem>
-            <DropdownMenu>
-                <DropdownMenuTrigger as-child>
-                    <SidebarMenuButton
-                        size="lg"
-                        class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                        data-test="sidebar-menu-button"
-                    >
-                        <UserInfo :user="user" />
-                        <ChevronsUpDown class="ml-auto size-4" />
-                    </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                    class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                    :side="
-                        isMobile
-                            ? 'bottom'
-                            : state === 'collapsed'
-                              ? 'left'
-                              : 'bottom'
-                    "
-                    align="end"
-                    :side-offset="4"
+            <SidebarMenuButton
+                size="lg"
+                class="pointer-events-none hover:bg-transparent"
+            >
+                <UserInfo :user="user" />
+            </SidebarMenuButton>
+        </SidebarMenuItem>
+
+        <SidebarMenuItem>
+            <SidebarMenuButton
+                as-child
+                :is-active="isCurrentUrl(edit())"
+                tooltip="Settings"
+            >
+                <Link :href="edit()" prefetch>
+                    <Settings />
+                    <span>Settings</span>
+                </Link>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
+
+        <SidebarMenuItem>
+            <SidebarMenuButton as-child tooltip="Log out">
+                <Link
+                    :href="logout()"
+                    @click="handleLogout"
+                    as="button"
+                    data-test="logout-button"
                 >
-                    <UserMenuContent :user="user" />
-                </DropdownMenuContent>
-            </DropdownMenu>
+                    <LogOut />
+                    <span>Log out</span>
+                </Link>
+            </SidebarMenuButton>
         </SidebarMenuItem>
     </SidebarMenu>
 </template>

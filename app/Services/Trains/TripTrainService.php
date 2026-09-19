@@ -5,6 +5,7 @@ namespace App\Services\Trains;
 use App\Enums\TripScope;
 use App\Models\Trip;
 use App\Services\Trips\TripRouteResolver;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -430,12 +431,6 @@ class TripTrainService
         ?string $fromLabel,
         ?string $toLabel,
     ): array {
-        $response = $this->client->trainsBetween(
-            $fromStation['code'],
-            $toStation['code'],
-            $travelDate,
-        );
-
         $leg = [
             'direction' => $direction,
             'date' => $travelDate,
@@ -445,6 +440,29 @@ class TripTrainService
             'to_label' => $toLabel,
             'route_label' => sprintf('%s → %s', $fromStation['name'], $toStation['name']),
         ];
+
+        try {
+            $response = $this->client->trainsBetween(
+                $fromStation['code'],
+                $toStation['code'],
+                $travelDate,
+            );
+        } catch (ConnectionException $exception) {
+            Log::warning('RailRadar trains-between request could not connect.', [
+                'message' => $exception->getMessage(),
+                'from' => $fromStation['code'],
+                'to' => $toStation['code'],
+            ]);
+
+            return [
+                ...$leg,
+                'available' => false,
+                'reason' => 'fetch_failed',
+                'message' => 'Train timings are temporarily unavailable for this direction.',
+                'count' => 0,
+                'trains' => [],
+            ];
+        }
 
         if ($response->status() === 404) {
             return [
@@ -545,6 +563,83 @@ class TripTrainService
             'to_station' => $toStation,
             'live' => $this->formatLiveStatus($live),
         ];
+    }
+
+    /**
+     * Fetch fresh live status (platform, delay, expected arrival) for every
+     * train between two stations. Cached on a short TTL, separate from the
+     * long-lived schedule cache, since delay data goes stale in minutes.
+     *
+     * @return array{available: bool, message?: string, statuses?: array<string, array<string, mixed>|null>, fetched_at?: string}
+     */
+    public function liveStatusForLeg(string $fromCode, string $toCode, ?string $date): array
+    {
+        if (config('integrations.trains.driver') !== 'railradar') {
+            return [
+                'available' => false,
+                'message' => 'Set TRAIN_DRIVER=railradar in your .env file to enable live train status.',
+            ];
+        }
+
+        if (! filled(config('integrations.trains.drivers.railradar.api_key'))) {
+            return [
+                'available' => false,
+                'message' => 'Add RAILRADAR_API_KEY to your .env file to see live train status.',
+            ];
+        }
+
+        $fromCode = strtoupper($fromCode);
+        $toCode = strtoupper($toCode);
+
+        $cacheTtl = (int) config('integrations.trains.live_cache_ttl', 120);
+        $cacheKey = sprintf('trip_train_live_status:v1:%s:%s:%s', $fromCode, $toCode, $date ?? 'any');
+
+        return Cache::remember($cacheKey, $cacheTtl, function () use ($fromCode, $toCode, $date): array {
+            try {
+                $response = $this->client->trainsBetween($fromCode, $toCode, $date, live: true);
+            } catch (ConnectionException $exception) {
+                Log::warning('RailRadar live status request could not connect.', [
+                    'message' => $exception->getMessage(),
+                    'from' => $fromCode,
+                    'to' => $toCode,
+                ]);
+
+                return [
+                    'available' => false,
+                    'message' => 'Live train status is temporarily unavailable.',
+                ];
+            }
+
+            if ($response->failed()) {
+                Log::warning('RailRadar live status request failed.', [
+                    'status' => $response->status(),
+                    'from' => $fromCode,
+                    'to' => $toCode,
+                ]);
+
+                return [
+                    'available' => false,
+                    'message' => 'Live train status is temporarily unavailable.',
+                ];
+            }
+
+            /** @var list<array<string, mixed>> $trains */
+            $trains = $response->json('data.trains') ?? [];
+
+            $statuses = collect($trains)
+                ->mapWithKeys(function (array $entry): array {
+                    $number = (string) ($entry['train']['number'] ?? '');
+
+                    return $number === '' ? [] : [$number => $this->formatLiveStatus($entry['live'] ?? [])];
+                })
+                ->all();
+
+            return [
+                'available' => true,
+                'statuses' => $statuses,
+                'fetched_at' => now()->toIso8601String(),
+            ];
+        });
     }
 
     /**

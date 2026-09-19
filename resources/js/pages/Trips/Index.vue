@@ -8,13 +8,16 @@ import {
     Pencil,
     Plus,
     Trash2,
+    UserRound,
     Users,
 } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
 import EmptyState from '@/components/EmptyState.vue';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import TripPager from '@/components/TripPager.vue';
+import TripPhaseTabs from '@/components/TripPhaseTabs.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -31,14 +34,32 @@ import { tripCardAccent } from '@/lib/card-accents';
 import { formatDisplayDateRange } from '@/lib/dates';
 import { create, index as tripsIndex } from '@/routes/trips';
 import { edit, show } from '@/routes/trips';
-import type { Trip, TripCounts, TripFilter } from '@/types/trip';
+import type { Paginated } from '@/types/admin';
+import type {
+    Trip,
+    TripCounts,
+    TripFilter,
+    TripPhase,
+    TripPhaseCounts,
+} from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
 const props = defineProps<{
-    trips: Trip[];
+    trips: Paginated<Trip>;
     filter: TripFilter;
     counts: TripCounts;
+    phase: TripPhase;
+    phaseCounts: TripPhaseCounts;
 }>();
+
+const tripListProps = ['trips', 'phase', 'phaseCounts', 'counts'];
+
+const totalTrips = computed(
+    () =>
+        props.phaseCounts.upcoming +
+        props.phaseCounts.ongoing +
+        props.phaseCounts.past,
+);
 
 defineOptions({
     layout: {
@@ -55,6 +76,7 @@ const filters: { key: TripFilter; label: string }[] = [
     { key: 'all', label: 'All trips' },
     { key: 'favorites', label: 'Favorites' },
     { key: 'archived', label: 'Archived' },
+    { key: 'shared', label: 'Invited' },
 ];
 
 const deleteDialogOpen = ref(false);
@@ -62,7 +84,7 @@ const tripToDelete = ref<Trip | null>(null);
 
 function setFilter(filter: TripFilter): void {
     router.get(
-        tripsIndex({ query: { filter } }),
+        tripsIndex({ query: { filter, phase: props.phase } }),
         {},
         { preserveState: true, preserveScroll: true },
     );
@@ -98,6 +120,10 @@ function statusVariant(
 
 function coverThumbUrl(trip: Trip): string | null {
     return trip.cover_image_thumb_url ?? trip.cover_image_url ?? null;
+}
+
+function canEdit(trip: Trip): boolean {
+    return trip.is_owner || trip.collaborator_role === 'editor';
 }
 </script>
 
@@ -141,13 +167,15 @@ function coverThumbUrl(trip: Trip): string | null {
         </div>
 
         <EmptyState
-            v-if="trips.length === 0"
+            v-if="totalTrips === 0"
             :title="
                 filter === 'favorites'
                     ? 'No favorite trips'
                     : filter === 'archived'
                       ? 'No archived trips'
-                      : 'No trips yet'
+                      : filter === 'shared'
+                        ? 'No invited trips'
+                        : 'No trips yet'
             "
             :description="
                 filter === 'all'
@@ -166,154 +194,211 @@ function coverThumbUrl(trip: Trip): string | null {
             </template>
         </EmptyState>
 
-        <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <Card
-                v-for="(trip, index) in trips"
-                :key="trip.id"
-                class="card-vibrant group !flex-row items-stretch gap-0 overflow-hidden !py-0"
-            >
-                <Link
-                    v-if="coverThumbUrl(trip)"
-                    :href="show(trip.id)"
-                    class="relative w-[7.5rem] shrink-0 self-stretch overflow-hidden sm:w-32"
-                >
-                    <img
-                        :src="coverThumbUrl(trip) ?? undefined"
-                        :alt="`${trip.title} cover`"
-                        width="384"
-                        height="512"
-                        loading="lazy"
-                        decoding="async"
-                        class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                </Link>
-                <div
-                    v-else
-                    class="w-1 shrink-0 bg-gradient-to-b"
-                    :class="tripCardAccent(index)"
-                />
+        <template v-else>
+            <TripPhaseTabs
+                :phase="phase"
+                :counts="phaseCounts"
+                :href="
+                    (key) => tripsIndex({ query: { filter, phase: key } }).url
+                "
+                :only="tripListProps"
+            />
 
-                <div class="flex min-w-0 flex-1 flex-col justify-between p-4">
-                    <div>
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="min-w-0 flex-1">
-                                <h3
-                                    class="truncate text-base leading-tight font-semibold"
-                                >
-                                    <Link
-                                        :href="show(trip.id)"
-                                        class="transition-colors hover:text-primary"
+            <p
+                v-if="trips.data.length === 0"
+                class="py-10 text-center text-sm text-muted-foreground"
+            >
+                No {{ phase }} trips.
+            </p>
+
+            <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <Card
+                    v-for="(trip, index) in trips.data"
+                    :key="trip.id"
+                    class="card-vibrant group !flex-row items-stretch gap-0 overflow-hidden !py-0"
+                >
+                    <Link
+                        v-if="coverThumbUrl(trip)"
+                        :href="show(trip.id)"
+                        class="relative w-[7.5rem] shrink-0 self-stretch overflow-hidden sm:w-32"
+                    >
+                        <img
+                            :src="coverThumbUrl(trip) ?? undefined"
+                            :alt="`${trip.title} cover`"
+                            width="384"
+                            height="512"
+                            loading="lazy"
+                            decoding="async"
+                            class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                    </Link>
+                    <div
+                        v-else
+                        class="w-1 shrink-0 bg-gradient-to-b"
+                        :class="tripCardAccent(index)"
+                    />
+
+                    <div
+                        class="flex min-w-0 flex-1 flex-col justify-between p-4"
+                    >
+                        <div>
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0 flex-1">
+                                    <h3
+                                        class="truncate text-base leading-tight font-semibold"
                                     >
-                                        {{ trip.title }}
-                                    </Link>
-                                </h3>
-                                <p
-                                    v-if="locationLabel(trip.destination)"
-                                    class="mt-1 flex items-center gap-1 text-sm text-muted-foreground"
+                                        <Link
+                                            :href="show(trip.id)"
+                                            class="transition-colors hover:text-primary"
+                                        >
+                                            {{ trip.title }}
+                                        </Link>
+                                    </h3>
+                                    <p
+                                        v-if="locationLabel(trip.destination)"
+                                        class="mt-1 flex items-center gap-1 text-sm text-muted-foreground"
+                                    >
+                                        <MapPin
+                                            class="size-3.5 shrink-0 text-teal-600 dark:text-teal-400"
+                                        />
+                                        <span class="truncate">{{
+                                            locationLabel(trip.destination)
+                                        }}</span>
+                                    </p>
+                                </div>
+                                <Button
+                                    v-if="canEdit(trip)"
+                                    variant="ghost"
+                                    size="icon"
+                                    class="size-8 shrink-0"
+                                    :title="
+                                        trip.is_favorite
+                                            ? 'Remove from favorites'
+                                            : 'Add to favorites'
+                                    "
+                                    :class="
+                                        trip.is_favorite
+                                            ? 'text-rose-500 hover:bg-rose-500/10 hover:text-rose-600'
+                                            : 'text-muted-foreground'
+                                    "
+                                    @click="toggleFavorite(trip)"
                                 >
-                                    <MapPin
-                                        class="size-3.5 shrink-0 text-teal-600 dark:text-teal-400"
+                                    <Heart
+                                        class="size-4"
+                                        :class="
+                                            trip.is_favorite
+                                                ? 'fill-current'
+                                                : ''
+                                        "
+                                    />
+                                </Button>
+                            </div>
+
+                            <div class="mt-2.5 flex flex-wrap gap-1.5">
+                                <Badge
+                                    :variant="statusVariant(trip.status)"
+                                    class="text-xs"
+                                    >{{ trip.status_label }}</Badge
+                                >
+                                <Badge variant="outline" class="text-xs">{{
+                                    trip.type_label
+                                }}</Badge>
+                                <Badge
+                                    v-if="trip.travel_style_label"
+                                    variant="secondary"
+                                    class="bg-violet-500/10 text-xs text-violet-700 dark:text-violet-300"
+                                >
+                                    {{ trip.travel_style_label }}
+                                </Badge>
+                                <Badge
+                                    v-if="!trip.is_owner"
+                                    variant="outline"
+                                    class="border-sky-500/30 bg-sky-500/5 text-xs"
+                                >
+                                    Invited · {{ trip.collaborator_role }}
+                                </Badge>
+                            </div>
+
+                            <div
+                                class="mt-2.5 space-y-1 text-sm text-muted-foreground"
+                            >
+                                <div
+                                    v-if="!trip.is_owner && trip.owner"
+                                    class="flex items-start gap-2"
+                                >
+                                    <UserRound
+                                        class="mt-0.5 size-3.5 shrink-0 text-sky-600 dark:text-sky-400"
+                                    />
+                                    <div class="min-w-0 leading-tight">
+                                        <p class="truncate">
+                                            Invited by
+                                            {{
+                                                trip.owner.name ??
+                                                trip.owner.email
+                                            }}
+                                        </p>
+                                        <p
+                                            v-if="trip.owner.name"
+                                            class="truncate text-xs"
+                                        >
+                                            {{ trip.owner.email }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p class="flex items-center gap-2">
+                                    <Calendar
+                                        class="size-3.5 shrink-0 text-sky-600 dark:text-sky-400"
                                     />
                                     <span class="truncate">{{
-                                        locationLabel(trip.destination)
+                                        formatDisplayDateRange(
+                                            trip.start_date,
+                                            trip.end_date,
+                                        )
                                     }}</span>
                                 </p>
+                                <p class="flex items-center gap-2">
+                                    <Users
+                                        class="size-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+                                    />
+                                    {{ trip.travelers }} traveler{{
+                                        trip.travelers === 1 ? '' : 's'
+                                    }}
+                                </p>
                             </div>
+                        </div>
+
+                        <div class="mt-3 flex gap-2">
+                            <Button size="sm" as-child class="min-w-0 flex-1">
+                                <Link :href="show(trip.id)">View trip</Link>
+                            </Button>
                             <Button
-                                variant="ghost"
-                                size="icon"
-                                class="size-8 shrink-0"
-                                :title="
-                                    trip.is_favorite
-                                        ? 'Remove from favorites'
-                                        : 'Add to favorites'
-                                "
-                                :class="
-                                    trip.is_favorite
-                                        ? 'text-rose-500 hover:bg-rose-500/10 hover:text-rose-600'
-                                        : 'text-muted-foreground'
-                                "
-                                @click="toggleFavorite(trip)"
+                                v-if="canEdit(trip)"
+                                variant="outline"
+                                size="sm"
+                                as-child
+                                class="shrink-0"
                             >
-                                <Heart
-                                    class="size-4"
-                                    :class="
-                                        trip.is_favorite ? 'fill-current' : ''
-                                    "
-                                />
+                                <Link :href="edit(trip.id)">
+                                    <Pencil class="size-4" />
+                                </Link>
+                            </Button>
+                            <Button
+                                v-if="trip.is_owner"
+                                variant="outline"
+                                size="sm"
+                                class="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                :title="`Delete ${trip.title}`"
+                                @click="openDeleteDialog(trip)"
+                            >
+                                <Trash2 class="size-4" />
                             </Button>
                         </div>
-
-                        <div class="mt-2.5 flex flex-wrap gap-1.5">
-                            <Badge
-                                :variant="statusVariant(trip.status)"
-                                class="text-xs"
-                                >{{ trip.status_label }}</Badge
-                            >
-                            <Badge variant="outline" class="text-xs">{{
-                                trip.type_label
-                            }}</Badge>
-                            <Badge
-                                v-if="trip.travel_style_label"
-                                variant="secondary"
-                                class="bg-violet-500/10 text-xs text-violet-700 dark:text-violet-300"
-                            >
-                                {{ trip.travel_style_label }}
-                            </Badge>
-                        </div>
-
-                        <div
-                            class="mt-2.5 space-y-1 text-sm text-muted-foreground"
-                        >
-                            <p class="flex items-center gap-2">
-                                <Calendar
-                                    class="size-3.5 shrink-0 text-sky-600 dark:text-sky-400"
-                                />
-                                <span class="truncate">{{
-                                    formatDisplayDateRange(
-                                        trip.start_date,
-                                        trip.end_date,
-                                    )
-                                }}</span>
-                            </p>
-                            <p class="flex items-center gap-2">
-                                <Users
-                                    class="size-3.5 shrink-0 text-amber-600 dark:text-amber-400"
-                                />
-                                {{ trip.travelers }} traveler{{
-                                    trip.travelers === 1 ? '' : 's'
-                                }}
-                            </p>
-                        </div>
                     </div>
+                </Card>
+            </div>
 
-                    <div class="mt-3 flex gap-2">
-                        <Button size="sm" as-child class="min-w-0 flex-1">
-                            <Link :href="show(trip.id)">View trip</Link>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            as-child
-                            class="shrink-0"
-                        >
-                            <Link :href="edit(trip.id)">
-                                <Pencil class="size-4" />
-                            </Link>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            class="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            :title="`Delete ${trip.title}`"
-                            @click="openDeleteDialog(trip)"
-                        >
-                            <Trash2 class="size-4" />
-                        </Button>
-                    </div>
-                </div>
-            </Card>
-        </div>
+            <TripPager :paginated="trips" :only="tripListProps" />
+        </template>
 
         <Dialog
             v-model:open="deleteDialogOpen"

@@ -92,8 +92,8 @@ test('authenticated users can list only their road trips', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('RoadTrips/Index')
-            ->has('trips', 1)
-            ->where('trips.0.title', 'My Drive'));
+            ->has('trips.data', 1)
+            ->where('trips.data.0.title', 'My Drive'));
 });
 
 test('users can create a road trip and calculate the route', function () {
@@ -227,7 +227,7 @@ test('users can view their road trip show page', function () {
             ->component('RoadTrips/Show')
             ->where('trip.id', (string) $trip->id)
             ->has('amenityLayers')
-            ->has('weather'));
+            ->loadDeferredProps(fn ($page) => $page->has('weather')));
 });
 
 test('vacation trips cannot be viewed as road trips', function () {

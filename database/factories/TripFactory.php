@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\TripCollaboratorRole;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
 use App\Models\Trip;
@@ -94,6 +95,22 @@ class TripFactory extends Factory
                 'summary' => 'Sample generated plan.',
                 'packing_list' => ['Passport'],
                 'budget_breakdown' => [],
+            ],
+        ]);
+    }
+
+    public function withCollaborator(User $user, TripCollaboratorRole $role = TripCollaboratorRole::Viewer): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'collaborators' => [
+                ...($attributes['collaborators'] ?? []),
+                [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $role->value,
+                    'status' => 'accepted',
+                    'added_at' => now()->toIso8601String(),
+                ],
             ],
         ]);
     }

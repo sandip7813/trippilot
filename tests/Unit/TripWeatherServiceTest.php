@@ -309,6 +309,33 @@ test('trip weather returns per-city segments for multi-city trips', function () 
         ->and($weather['disclaimer'])->toContain('Each stop');
 });
 
+test('trip weather degrades gracefully instead of crashing when open meteo cannot be reached', function () {
+    Carbon::setTestNow(Carbon::parse('2026-07-07'));
+
+    Http::fake([
+        'api.open-meteo.com/*' => Http::failedConnection(),
+    ]);
+
+    $trip = new Trip;
+    $trip->forceFill([
+        'destination' => [
+            'label' => 'Goa, India',
+            'lat' => 15.2993,
+            'lng' => 74.1240,
+            'place_id' => 'goa',
+            'country_code' => 'in',
+        ],
+        'start_date' => Carbon::parse('2026-07-20'),
+        'end_date' => Carbon::parse('2026-07-24'),
+    ]);
+
+    $weather = app(TripWeatherService::class)->forTrip($trip);
+
+    expect($weather)->not->toBeNull()
+        ->and($weather['available'])->toBeFalse()
+        ->and($weather['reason'])->toBe('fetch_failed');
+});
+
 test('open meteo client calls forecast endpoint without an api key', function () {
     Http::fake([
         'api.open-meteo.com/*' => Http::response(['daily' => ['time' => []]]),

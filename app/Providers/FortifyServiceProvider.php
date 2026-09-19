@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Services\Auth\RegistrationOtpService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -67,17 +68,26 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn (Request $request) => Inertia::render('auth/Register', [
-            'passwordRules' => Password::defaults()->toPasswordRulesString(),
-            'recaptcha' => [
-                'enabled' => (bool) config('recaptcha.enabled') && filled(config('recaptcha.site_key')),
-                'siteKey' => config('recaptcha.site_key'),
-            ],
-            'otpStatus' => [
-                'sent' => (bool) $request->session()->get('otp_sent', false),
-                'email' => $request->session()->get('otp_email'),
-            ],
-        ]));
+        Fortify::registerView(function (Request $request) {
+            $email = $request->session()->get('otp_email');
+            $sent = filled($email) && app(RegistrationOtpService::class)->pending($email);
+
+            if (! $sent) {
+                $request->session()->forget(['otp_sent', 'otp_email']);
+            }
+
+            return Inertia::render('auth/Register', [
+                'passwordRules' => Password::defaults()->toPasswordRulesString(),
+                'recaptcha' => [
+                    'enabled' => (bool) config('recaptcha.enabled') && filled(config('recaptcha.site_key')),
+                    'siteKey' => config('recaptcha.site_key'),
+                ],
+                'otpStatus' => [
+                    'sent' => $sent,
+                    'email' => $sent ? $email : null,
+                ],
+            ]);
+        });
 
     }
 
@@ -96,9 +106,13 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('registration-otp', function (Request $request) {
             $email = Str::lower((string) $request->input('email'));
 
+            $tooManyRequestsResponse = fn (Request $request, array $headers) => back()
+                ->withErrors(['email' => 'Please wait a moment before requesting another code.'])
+                ->withHeaders($headers);
+
             return [
-                Limit::perMinute(1)->by($email),
-                Limit::perHour(5)->by($request->ip()),
+                Limit::perMinute(1)->by($email)->response($tooManyRequestsResponse),
+                Limit::perHour(5)->by($request->ip())->response($tooManyRequestsResponse),
             ];
         });
     }

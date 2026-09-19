@@ -4,6 +4,7 @@ namespace App\Services\Ai\Gemini;
 
 use App\Contracts\Ai\ChatAssistant;
 use App\Data\Ai\ChatResponse;
+use App\Enums\AiUsageFeature;
 use App\Exceptions\AiGenerationException;
 use App\Support\GeminiResponseErrors;
 use Illuminate\Support\Arr;
@@ -42,6 +43,7 @@ class GeminiChatAssistant implements ChatAssistant
                     'responseSchema' => $this->responseSchema(),
                 ],
             ],
+            AiUsageFeature::TripChat,
         );
 
         if ($response->failed()) {

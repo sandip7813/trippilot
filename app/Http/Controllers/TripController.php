@@ -6,6 +6,7 @@ use App\Actions\Trips\GenerateTripItinerary;
 use App\Actions\Trips\SendTripChatMessage;
 use App\Actions\Trips\SyncTripCoverImage;
 use App\Enums\TravelStyle;
+use App\Enums\TripPhase;
 use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
@@ -33,9 +34,11 @@ class TripController extends Controller
     {
         $filter = $request->string('filter', 'all')->toString();
 
-        $query = Trip::query()
-            ->forUser($request->user()->id)
-            ->orderByDesc('created_at');
+        $query = match ($filter) {
+            'shared' => Trip::query()->sharedWithUser($request->user()->id),
+            'favorites', 'archived' => Trip::query()->forUser($request->user()->id),
+            default => Trip::query()->forUserOrCollaborator($request->user()->id),
+        };
 
         $query = match ($filter) {
             'favorites' => $query->favorites()->active(),
@@ -43,11 +46,24 @@ class TripController extends Controller
             default => $query->active(),
         };
 
-        $trips = $query->get()->map->toFrontend();
+        $phase = TripPhase::tryFrom($request->string('phase')->toString()) ?? TripPhase::Upcoming;
+
+        $trips = (clone $query)
+            ->inPhase($phase)
+            ->orderedForPhase($phase)
+            ->paginate(9)
+            ->withQueryString()
+            ->through(fn (Trip $trip): array => $trip->toFrontend());
 
         return Inertia::render('Trips/Index', [
             'trips' => $trips,
             'filter' => $filter,
+            'phase' => $phase->value,
+            'phaseCounts' => collect(TripPhase::cases())
+                ->mapWithKeys(fn (TripPhase $case): array => [
+                    $case->value => (clone $query)->inPhase($case)->count(),
+                ])
+                ->all(),
             'counts' => $this->tripCounts($request->user()->id),
         ]);
     }
@@ -100,8 +116,8 @@ class TripController extends Controller
             'trip' => $trip->toFrontend(),
             'aiConfigured' => filled(config('integrations.ai.drivers.gemini.api_key')),
             'ragCoverage' => $tripAiContext->ragCoverage($trip),
-            'weather' => $tripWeather->forTrip($trip),
-            'trainTimings' => $tripTrains->forTrip($trip),
+            'weather' => Inertia::defer(fn () => $tripWeather->forTrip($trip), 'trip-extras'),
+            'trainTimings' => Inertia::defer(fn () => $tripTrains->forTrip($trip), 'trip-extras'),
         ]);
     }
 
@@ -119,6 +135,21 @@ class TripController extends Controller
 
         return response()->json(
             $tripTrainHalts->forSegment($trainNumber, $validated),
+        );
+    }
+
+    public function trainLiveStatus(Trip $trip, Request $request, TripTrainService $tripTrains): JsonResponse
+    {
+        $this->authorize('view', $trip);
+
+        $validated = $request->validate([
+            'from' => ['required', 'string', 'min:2', 'max:6'],
+            'to' => ['required', 'string', 'min:2', 'max:6'],
+            'date' => ['nullable', 'date'],
+        ]);
+
+        return response()->json(
+            $tripTrains->liveStatusForLeg($validated['from'], $validated['to'], $validated['date'] ?? null),
         );
     }
 
@@ -254,7 +285,7 @@ class TripController extends Controller
         return back();
     }
 
-    public function generateItinerary(Trip $trip, GenerateTripItinerary $generateItinerary): RedirectResponse
+    public function generateItinerary(Trip $trip, Request $request, GenerateTripItinerary $generateItinerary): RedirectResponse
     {
         $this->authorize('generateItinerary', $trip);
 
@@ -273,7 +304,7 @@ class TripController extends Controller
         }
 
         try {
-            $generateItinerary($trip);
+            $generateItinerary($trip, $request->user());
         } catch (AiGenerationException $exception) {
             return back()->withErrors([
                 'ai' => $exception->getMessage(),
@@ -296,7 +327,7 @@ class TripController extends Controller
         }
 
         try {
-            $result = $sendTripChatMessage($trip, $request->validated('message'));
+            $result = $sendTripChatMessage($trip, $request->validated('message'), $request->user());
         } catch (AiGenerationException $exception) {
             return back()->withErrors([
                 'chat' => $exception->getMessage(),
@@ -404,16 +435,17 @@ class TripController extends Controller
     }
 
     /**
-     * @return array{all: int, favorites: int, archived: int}
+     * @return array{all: int, favorites: int, archived: int, shared: int}
      */
     protected function tripCounts(int $userId): array
     {
         $base = Trip::query()->forUser($userId);
 
         return [
-            'all' => (clone $base)->active()->count(),
+            'all' => Trip::query()->forUserOrCollaborator($userId)->active()->count(),
             'favorites' => (clone $base)->favorites()->active()->count(),
             'archived' => (clone $base)->archived()->count(),
+            'shared' => Trip::query()->sharedWithUser($userId)->active()->count(),
         ];
     }
 }

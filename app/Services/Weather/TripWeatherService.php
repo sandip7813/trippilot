@@ -7,6 +7,7 @@ use App\Services\Trips\TripRouteResolver;
 use App\Services\Weather\OpenMeteo\OpenMeteoClient;
 use App\Services\Weather\OpenMeteo\WeatherCode;
 use Carbon\CarbonInterface;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -137,24 +138,27 @@ class TripWeatherService
             return $this->buildTypicalPayload($destination, $startDate, $endDate);
         }
 
-        $response = $this->client->forecast(
-            $destination['lat'],
-            $destination['lng'],
-            $forecastStart->toDateString(),
-            $forecastEnd->toDateString(),
-        );
+        try {
+            $response = $this->client->forecast(
+                $destination['lat'],
+                $destination['lng'],
+                $forecastStart->toDateString(),
+                $forecastEnd->toDateString(),
+            );
+        } catch (ConnectionException $exception) {
+            Log::warning('Open-Meteo forecast request could not connect.', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return $this->fetchFailedPayload($destination['label']);
+        }
 
         if (! $response->successful()) {
             Log::warning('Open-Meteo forecast request failed.', [
                 'status' => $response->status(),
             ]);
 
-            return [
-                'available' => false,
-                'reason' => 'fetch_failed',
-                'message' => 'Weather forecast could not be loaded right now. Try again in a few minutes.',
-                'location_label' => $destination['label'],
-            ];
+            return $this->fetchFailedPayload($destination['label']);
         }
 
         $forecastDays = $this->mapDailyRows($response->json('daily'));
@@ -511,6 +515,19 @@ class TripWeatherService
             count($days),
             $rainyDays,
         );
+    }
+
+    /**
+     * @return array{available: false, reason: string, message: string, location_label: string|null}
+     */
+    private function fetchFailedPayload(?string $locationLabel): array
+    {
+        return [
+            'available' => false,
+            'reason' => 'fetch_failed',
+            'message' => 'Weather forecast could not be loaded right now. Try again in a few minutes.',
+            'location_label' => $locationLabel,
+        ];
     }
 
     private function dateForYear(int $year, CarbonInterface $reference): Carbon

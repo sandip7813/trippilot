@@ -14,6 +14,16 @@ import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Tooltip,
@@ -25,10 +35,14 @@ import { cn } from '@/lib/utils';
 import type { Trip } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
-const props = defineProps<{
-    trip: Trip;
-    aiConfigured: boolean;
-}>();
+const props = withDefaults(
+    defineProps<{
+        trip: Trip;
+        aiConfigured: boolean;
+        canEdit?: boolean;
+    }>(),
+    { canEdit: true },
+);
 
 const page = usePage();
 const selectedDayIndex = ref(0);
@@ -60,6 +74,14 @@ const generateHint = computed((): string => {
         ? 'Regenerate the full day-by-day plan and refresh the destination banner image.'
         : 'Generate a day-by-day plan and destination banner tailored to this trip.';
 });
+
+const generateDialogOpen = ref(false);
+
+const generateWarning = computed((): string =>
+    hasItinerary.value
+        ? "This will replace your current day-by-day plan, packing list, and budget with a new AI-generated itinerary. Your existing plan can't be recovered afterward."
+        : 'TripPilot will use AI to build a day-by-day plan, packing list, and budget estimate for this trip based on your trip details. This uses one of your daily AI requests.',
+);
 
 function dayTabDateLabel(day: (typeof days.value)[number]): string {
     if (day.date) {
@@ -133,25 +155,58 @@ function nextDay(): void {
                     {{ generateHint }}
                 </p>
             </div>
-            <Form
-                v-bind="TripController.generateItinerary.form(trip.id)"
-                v-slot="{ processing }"
-                class="shrink-0"
-            >
-                <FormSavingOverlay
-                    :show="processing"
-                    :message="
-                        hasItinerary
-                            ? 'Regenerating itinerary...'
-                            : 'Generating itinerary...'
-                    "
-                />
-                <Button type="submit" :disabled="!canGenerate || processing">
-                    <Spinner v-if="processing" class="mr-2" />
-                    <Sparkles v-else class="mr-2 size-4" />
-                    {{ hasItinerary ? 'Regenerate' : 'Generate with AI' }}
-                </Button>
-            </Form>
+            <Dialog v-if="canEdit" v-model:open="generateDialogOpen">
+                <DialogTrigger as-child>
+                    <Button
+                        type="button"
+                        class="shrink-0"
+                        :disabled="!canGenerate"
+                    >
+                        <Sparkles class="mr-2 size-4" />
+                        {{ hasItinerary ? 'Regenerate' : 'Generate with AI' }}
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {{
+                                hasItinerary
+                                    ? 'Regenerate itinerary?'
+                                    : 'Generate itinerary with AI?'
+                            }}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {{ generateWarning }}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose as-child>
+                            <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Form
+                            v-bind="
+                                TripController.generateItinerary.form(trip.id)
+                            "
+                            v-slot="{ processing }"
+                            @success="generateDialogOpen = false"
+                        >
+                            <FormSavingOverlay
+                                :show="processing"
+                                :message="
+                                    hasItinerary
+                                        ? 'Regenerating itinerary...'
+                                        : 'Generating itinerary...'
+                                "
+                            />
+                            <Button type="submit" :disabled="processing">
+                                <Spinner v-if="processing" class="mr-2" />
+                                <Sparkles v-else class="mr-2 size-4" />
+                                {{ hasItinerary ? 'Regenerate' : 'Generate' }}
+                            </Button>
+                        </Form>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </CardHeader>
 
         <CardContent class="space-y-4">
