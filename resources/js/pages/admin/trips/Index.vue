@@ -15,7 +15,7 @@ import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as tripsIndex } from '@/routes/admin/trips';
 import type { AdminTrip, Paginated } from '@/types/admin';
 
-const props = defineProps<{
+defineProps<{
     trips: Paginated<AdminTrip>;
     filters: {
         status: string;
