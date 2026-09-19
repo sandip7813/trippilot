@@ -63,6 +63,17 @@ return [
          */
         'daily_limit_per_user' => (int) env('AI_DAILY_LIMIT_PER_USER', 50),
 
+        /*
+         * Estimated USD price per 1M tokens, used for the admin analytics
+         * cost estimate. Keyed by model; `default` applies to unknown models.
+         */
+        'pricing' => [
+            'gemini-2.5-flash' => ['input' => 0.30, 'output' => 2.50],
+            'gemini-2.5-flash-image' => ['input' => 0.30, 'output' => 30.00],
+            'gemini-embedding-001' => ['input' => 0.15, 'output' => 0.0],
+            'default' => ['input' => 0.30, 'output' => 2.50],
+        ],
+
         'drivers' => [
             'gemini' => [
                 'api_key' => env('GEMINI_API_KEY'),

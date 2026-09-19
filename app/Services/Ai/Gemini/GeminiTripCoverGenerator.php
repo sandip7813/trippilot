@@ -3,6 +3,8 @@
 namespace App\Services\Ai\Gemini;
 
 use App\Contracts\TripCovers\TripCoverGenerator;
+use App\Enums\AiUsageFeature;
+use App\Services\Ai\AiUsageRecorder;
 use App\Services\TripCovers\TripCoverPromptBuilder;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -12,6 +14,7 @@ class GeminiTripCoverGenerator implements TripCoverGenerator
 {
     public function __construct(
         private TripCoverPromptBuilder $promptBuilder,
+        private AiUsageRecorder $usageRecorder,
     ) {}
 
     public function generate(array $destination, ?string $travelStyle, int $width, int $height): ?string
@@ -28,6 +31,8 @@ class GeminiTripCoverGenerator implements TripCoverGenerator
         $prompt = $this->promptBuilder->build($destination, $travelStyle);
 
         $response = $this->requestImage($model, $prompt, $this->aspectRatio($width, $height));
+
+        $this->usageRecorder->record($response, $model, AiUsageFeature::CoverImage, auth()->id());
 
         if ($response->failed()) {
             $this->logFailure($model, $response);

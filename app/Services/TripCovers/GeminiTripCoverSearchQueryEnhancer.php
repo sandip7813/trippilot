@@ -2,6 +2,7 @@
 
 namespace App\Services\TripCovers;
 
+use App\Enums\AiUsageFeature;
 use App\Services\Ai\Gemini\GeminiClient;
 use Illuminate\Support\Facades\Log;
 
@@ -48,6 +49,7 @@ class GeminiTripCoverSearchQueryEnhancer
                     'maxOutputTokens' => 160,
                 ],
             ],
+            AiUsageFeature::CoverSearch,
         );
 
         if ($response->failed()) {

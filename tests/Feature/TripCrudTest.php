@@ -57,8 +57,8 @@ test('authenticated users can list their trips', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Trips/Index')
-            ->has('trips', 1)
-            ->where('trips.0.title', 'My Trip'));
+            ->has('trips.data', 1)
+            ->where('trips.data.0.title', 'My Trip'));
 });
 
 test('users can create a trip with structured locations', function () {
@@ -286,8 +286,8 @@ test('trips index filters favorites', function () {
         ->get(route('trips.index', ['filter' => 'favorites']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->has('trips', 1)
-            ->where('trips.0.title', 'Favorite'));
+            ->has('trips.data', 1)
+            ->where('trips.data.0.title', 'Favorite'));
 });
 
 test('trip creation rejects start dates in the past', function () {

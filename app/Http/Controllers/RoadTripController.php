@@ -6,6 +6,7 @@ use App\Actions\Trips\SyncTripCoverImage;
 use App\Enums\DrivingPace;
 use App\Enums\FoodPreference;
 use App\Enums\FuelType;
+use App\Enums\TripPhase;
 use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
@@ -32,16 +33,28 @@ class RoadTripController extends Controller
 {
     public function index(Request $request): Response
     {
-        $trips = Trip::query()
+        $query = Trip::query()
             ->forUser($request->user()->id)
             ->road()
-            ->active()
-            ->orderByDesc('created_at')
-            ->get()
-            ->map->toFrontend();
+            ->active();
+
+        $phase = TripPhase::tryFrom($request->string('phase')->toString()) ?? TripPhase::Upcoming;
+
+        $trips = (clone $query)
+            ->inPhase($phase)
+            ->orderedForPhase($phase)
+            ->paginate(9)
+            ->withQueryString()
+            ->through(fn (Trip $trip): array => $trip->toFrontend());
 
         return Inertia::render('RoadTrips/Index', [
             'trips' => $trips,
+            'phase' => $phase->value,
+            'phaseCounts' => collect(TripPhase::cases())
+                ->mapWithKeys(fn (TripPhase $case): array => [
+                    $case->value => (clone $query)->inPhase($case)->count(),
+                ])
+                ->all(),
         ]);
     }
 

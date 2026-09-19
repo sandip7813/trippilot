@@ -92,8 +92,8 @@ test('authenticated users can list only their road trips', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('RoadTrips/Index')
-            ->has('trips', 1)
-            ->where('trips.0.title', 'My Drive'));
+            ->has('trips.data', 1)
+            ->where('trips.data.0.title', 'My Drive'));
 });
 
 test('users can create a road trip and calculate the route', function () {

@@ -6,6 +6,7 @@ use App\Actions\Trips\GenerateTripItinerary;
 use App\Actions\Trips\SendTripChatMessage;
 use App\Actions\Trips\SyncTripCoverImage;
 use App\Enums\TravelStyle;
+use App\Enums\TripPhase;
 use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
@@ -39,19 +40,30 @@ class TripController extends Controller
             default => Trip::query()->forUserOrCollaborator($request->user()->id),
         };
 
-        $query = $query->orderByDesc('created_at');
-
         $query = match ($filter) {
             'favorites' => $query->favorites()->active(),
             'archived' => $query->archived(),
             default => $query->active(),
         };
 
-        $trips = $query->get()->map->toFrontend();
+        $phase = TripPhase::tryFrom($request->string('phase')->toString()) ?? TripPhase::Upcoming;
+
+        $trips = (clone $query)
+            ->inPhase($phase)
+            ->orderedForPhase($phase)
+            ->paginate(9)
+            ->withQueryString()
+            ->through(fn (Trip $trip): array => $trip->toFrontend());
 
         return Inertia::render('Trips/Index', [
             'trips' => $trips,
             'filter' => $filter,
+            'phase' => $phase->value,
+            'phaseCounts' => collect(TripPhase::cases())
+                ->mapWithKeys(fn (TripPhase $case): array => [
+                    $case->value => (clone $query)->inPhase($case)->count(),
+                ])
+                ->all(),
             'counts' => $this->tripCounts($request->user()->id),
         ]);
     }

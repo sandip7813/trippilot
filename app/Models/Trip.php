@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\TravelStyle;
 use App\Enums\TripCollaboratorRole;
 use App\Enums\TripCoverSource;
+use App\Enums\TripPhase;
 use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
@@ -52,6 +53,7 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property list<array<string, mixed>>|null $suggested_breaks
  * @property array<string, mixed>|null $amenities_cache
  * @property list<array<string, mixed>>|null $chat_messages
+ * @property list<int>|null $reminders_sent
  * @property list<array{user_id: int|null, email: string, role: string, status: string, added_at: string|null}>|null $collaborators
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -103,6 +105,7 @@ class Trip extends Model
         'amenities_cache',
         'chat_messages',
         'collaborators',
+        'reminders_sent',
     ];
 
     /**
@@ -557,6 +560,50 @@ class Trip extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', '!=', TripStatus::Archived->value);
+    }
+
+    /**
+     * Trips without a start date count as upcoming; a missing end date means
+     * a single-day trip.
+     *
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeInPhase(Builder $query, TripPhase $phase): Builder
+    {
+        $today = Carbon::today();
+
+        return match ($phase) {
+            TripPhase::Upcoming => $query->where(fn (Builder $query) => $query
+                ->whereNull('start_date')
+                ->orWhere('start_date', '>', $today)),
+            TripPhase::Ongoing => $query
+                ->where('start_date', '<=', $today)
+                ->where(fn (Builder $query) => $query
+                    ->where('end_date', '>=', $today)
+                    ->orWhere(fn (Builder $query) => $query
+                        ->whereNull('end_date')
+                        ->where('start_date', '>=', $today))),
+            TripPhase::Past => $query->where(fn (Builder $query) => $query
+                ->where('end_date', '<', $today)
+                ->orWhere(fn (Builder $query) => $query
+                    ->whereNull('end_date')
+                    ->where('start_date', '<', $today))),
+        };
+    }
+
+    /**
+     * Upcoming and ongoing trips are soonest first; past trips latest first.
+     *
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeOrderedForPhase(Builder $query, TripPhase $phase): Builder
+    {
+        return match ($phase) {
+            TripPhase::Past => $query->orderByDesc('end_date')->orderByDesc('start_date'),
+            default => $query->orderBy('start_date')->orderByDesc('created_at'),
+        };
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Services\RoadTrips;
 
+use App\Enums\AiUsageFeature;
 use App\Enums\DrivingPace;
 use App\Enums\FuelType;
 use App\Enums\VehicleClass;
@@ -73,6 +74,7 @@ class RoadTripBreakSuggestionService
                     ],
                 ],
             ],
+            AiUsageFeature::RoadBreakSuggestions,
         );
 
         if ($response->failed()) {

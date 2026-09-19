@@ -171,8 +171,8 @@ test('trips shared with a user appear under the shared filter', function () {
         ->get(route('trips.index', ['filter' => 'shared']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->has('trips', 1)
-            ->where('trips.0.title', 'Shared Trip'));
+            ->has('trips.data', 1)
+            ->where('trips.data.0.title', 'Shared Trip'));
 });
 
 test('owner can remove a collaborator', function () {

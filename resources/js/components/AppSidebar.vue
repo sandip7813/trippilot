@@ -24,13 +24,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { index as assistantIndex } from '@/routes/assistant';
 import { dashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as knowledgeIndex } from '@/routes/admin/knowledge';
+import { settings as superSettings } from '@/routes/admin/super';
 import { index as adminTripsIndex } from '@/routes/admin/trips';
 import { index as usersIndex } from '@/routes/admin/users';
-import { settings as superSettings } from '@/routes/admin/super';
+import { index as assistantIndex } from '@/routes/assistant';
 import { index as roadTripsIndex } from '@/routes/road-trips';
 import { index as tripsIndex } from '@/routes/trips';
 import type { Auth, NavItem } from '@/types';

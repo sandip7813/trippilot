@@ -24,6 +24,18 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Trip Reminders
+    |--------------------------------------------------------------------------
+    |
+    | Days before a trip's start date on which owners and accepted
+    | collaborators are reminded (email + in-app).
+    |
+    */
+
+    'reminder_days' => [7, 1],
+
     'currency' => env('TRIPPILOT_CURRENCY', 'INR'),
 
     'currency_locale' => env('TRIPPILOT_CURRENCY_LOCALE', 'en-IN'),

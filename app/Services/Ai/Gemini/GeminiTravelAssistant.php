@@ -4,6 +4,7 @@ namespace App\Services\Ai\Gemini;
 
 use App\Contracts\Ai\TravelAssistant;
 use App\Data\Ai\AssistantChatResponse;
+use App\Enums\AiUsageFeature;
 use App\Exceptions\AiGenerationException;
 use App\Support\GeminiResponseErrors;
 use Illuminate\Support\Arr;
@@ -41,6 +42,7 @@ class GeminiTravelAssistant implements TravelAssistant
                     'maxOutputTokens' => self::MAX_OUTPUT_TOKENS,
                 ],
             ],
+            AiUsageFeature::AssistantChat,
         );
 
         if ($response->failed()) {

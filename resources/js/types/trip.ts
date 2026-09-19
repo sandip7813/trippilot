@@ -169,6 +169,10 @@ export type TripOption = {
 
 export type TripFilter = 'all' | 'favorites' | 'archived' | 'shared';
 
+export type TripPhase = 'upcoming' | 'ongoing' | 'past';
+
+export type TripPhaseCounts = Record<TripPhase, number>;
+
 export type TripCounts = {
     all: number;
     favorites: number;

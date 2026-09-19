@@ -4,6 +4,7 @@ use App\Http\Controllers\Assistant\AssistantConversationController;
 use App\Http\Controllers\Auth\SendRegistrationOtpController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocationSearchController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RoadTripController;
 use App\Http\Controllers\TripCollaboratorController;
 use App\Http\Controllers\TripController;
@@ -73,6 +74,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('throttle:10,1')
         ->name('road-trips.cover.upload');
     Route::resource('road-trips', RoadTripController::class)->except(['destroy']);
+
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    Route::patch('notifications/{notification}', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 
     Route::prefix('assistant')->name('assistant.')->group(function () {
         Route::get('/', [AssistantConversationController::class, 'index'])->name('index');

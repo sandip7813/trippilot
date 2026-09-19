@@ -7,6 +7,7 @@ use App\Mail\TripCollaboratorAddedMail;
 use App\Mail\TripCollaboratorInvitedMail;
 use App\Models\Trip;
 use App\Models\User;
+use App\Notifications\TripSharedNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
@@ -38,6 +39,7 @@ class AddTripCollaborator
 
         if ($collaborator !== null) {
             Mail::to($collaborator)->queue(new TripCollaboratorAddedMail($trip, $role));
+            $collaborator->notify(TripSharedNotification::forTrip($trip, $role));
         } else {
             Mail::to($email)->queue(new TripCollaboratorInvitedMail($trip, $role, $email));
         }
