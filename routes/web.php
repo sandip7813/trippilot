@@ -8,6 +8,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RoadTripController;
 use App\Http\Controllers\TripCollaboratorController;
 use App\Http\Controllers\TripController;
+use App\Http\Controllers\TripExpenseController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -39,6 +40,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('trips/{trip}/cover/upload', [TripController::class, 'uploadCover'])
         ->middleware('throttle:10,1')
         ->name('trips.cover.upload');
+    Route::get('trips/{trip}/hotels', [TripController::class, 'hotels'])
+        ->middleware('throttle:60,1')
+        ->name('trips.hotels');
     Route::get('trips/{trip}/trains/{trainNumber}/halts', [TripController::class, 'trainHalts'])
         ->middleware('throttle:30,1')
         ->name('trips.trains.halts');
@@ -55,6 +59,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('trips/{trip}/collaborators/{email}', [TripCollaboratorController::class, 'destroy'])
         ->where('email', '.*')
         ->name('trips.collaborators.destroy');
+
+    Route::prefix('trips/{trip}/expenses')->name('trips.expenses.')->controller(TripExpenseController::class)->group(function () {
+        Route::post('sheet', 'storeSheet')->name('sheet.store');
+        Route::post('participants', 'storeParticipant')->name('participants.store');
+        Route::patch('participants/{participantId}', 'updateParticipant')->name('participants.update');
+        Route::delete('participants/{participantId}', 'destroyParticipant')->name('participants.destroy');
+        Route::post('entries', 'storeEntry')->name('entries.store');
+        Route::patch('entries/{entry}', 'updateEntry')->name('entries.update');
+        Route::delete('entries/{entry}', 'destroyEntry')->name('entries.destroy');
+        Route::post('settle', 'settle')->name('settle');
+        Route::post('reopen', 'reopen')->middleware('throttle:5,60')->name('reopen');
+        Route::get('export/csv', 'exportCsv')->middleware('throttle:20,1')->name('export.csv');
+        Route::get('export/pdf', 'exportPdf')->middleware('throttle:10,1')->name('export.pdf');
+        Route::post('email', 'emailReport')->middleware('throttle:10,60')->name('email');
+    });
 
     Route::post('road-trips/{trip}/route', [RoadTripController::class, 'computeRoute'])
         ->name('road-trips.route');

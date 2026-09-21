@@ -164,7 +164,7 @@ test('trip show skips train availability for international trips', function () {
                 ->where('trainTimings.available', false)
                 ->where('trainTimings.reason', 'not_domestic')));
 
-    Http::assertNothingSent();
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), 'railradar'));
 });
 
 test('trip show falls back to nearest railhead when no direct trains exist', function () {

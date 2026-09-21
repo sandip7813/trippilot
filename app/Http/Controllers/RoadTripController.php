@@ -18,6 +18,8 @@ use App\Http\Requests\StoreRoadTripRequest;
 use App\Http\Requests\UpdateRoadTripRequest;
 use App\Http\Requests\UploadTripCoverImageRequest;
 use App\Models\Trip;
+use App\Services\Expenses\ExpenseSheetPresenter;
+use App\Services\Hotels\TripHotelsService;
 use App\Services\RoadTrips\RoadTripAmenitiesService;
 use App\Services\RoadTrips\RoadTripBreakSuggestionService;
 use App\Services\RoadTrips\RoadTripRouteService;
@@ -106,7 +108,7 @@ class RoadTripController extends Controller
         return to_route('road-trips.show', $trip);
     }
 
-    public function show(Trip $road_trip, TripWeatherService $tripWeather, TripAiContextBuilder $tripAiContext): Response
+    public function show(Trip $road_trip, TripWeatherService $tripWeather, TripHotelsService $tripHotels, TripAiContextBuilder $tripAiContext): Response
     {
         $this->authorize('view', $road_trip);
         $this->ensureRoadTrip($road_trip);
@@ -119,6 +121,8 @@ class RoadTripController extends Controller
             'ragCoverage' => $tripAiContext->ragCoverage($road_trip),
             'amenityLayers' => app(RoadTripAmenitiesService::class)->layersForTrip($road_trip),
             'weather' => Inertia::defer(fn () => $tripWeather->forTrip($road_trip)),
+            'hotels' => Inertia::defer(fn () => $tripHotels->forTrip($road_trip), 'trip-extras'),
+            'expenses' => Inertia::defer(fn () => app(ExpenseSheetPresenter::class)->forTrip($road_trip, request()->user()), 'expenses'),
         ]);
     }
 

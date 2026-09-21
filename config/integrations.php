@@ -28,6 +28,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Hotels
+    |--------------------------------------------------------------------------
+    |
+    | Hotels are listed through the configured maps driver (Geoapify) and are
+    | loaded one page at a time around each place the trip stays in.
+    |
+    */
+
+    'hotels' => [
+        'cache_ttl' => (int) env('HOTELS_CACHE_TTL', 604800),
+        'page_size' => (int) env('HOTELS_PAGE_SIZE', 12),
+        'radius_meters' => (int) env('HOTELS_RADIUS_METERS', 10000),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Weather Integration
     |--------------------------------------------------------------------------
     */
