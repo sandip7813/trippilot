@@ -47,6 +47,16 @@ class TripPolicy
         return $trip->isEditableBy($user);
     }
 
+    public function viewExpenses(User $user, Trip $trip): bool
+    {
+        return $trip->isViewableBy($user) || $user->isAdmin();
+    }
+
+    public function manageExpenses(User $user, Trip $trip): bool
+    {
+        return $trip->isEditableBy($user);
+    }
+
     public function manageCollaborators(User $user, Trip $trip): bool
     {
         return $this->ownsTrip($user, $trip);

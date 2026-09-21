@@ -17,6 +17,8 @@ use App\Http\Requests\StoreTripRequest;
 use App\Http\Requests\UpdateTripRequest;
 use App\Http\Requests\UploadTripCoverImageRequest;
 use App\Models\Trip;
+use App\Services\Expenses\ExpenseSheetPresenter;
+use App\Services\Hotels\TripHotelsService;
 use App\Services\Trains\TripTrainHaltsService;
 use App\Services\Trains\TripTrainService;
 use App\Services\Trips\TripAiContextBuilder;
@@ -108,7 +110,7 @@ class TripController extends Controller
         return to_route('trips.show', $trip);
     }
 
-    public function show(Trip $trip, TripWeatherService $tripWeather, TripTrainService $tripTrains, TripAiContextBuilder $tripAiContext): Response
+    public function show(Trip $trip, TripWeatherService $tripWeather, TripTrainService $tripTrains, TripHotelsService $tripHotels, TripAiContextBuilder $tripAiContext): Response
     {
         $this->authorize('view', $trip);
 
@@ -118,7 +120,25 @@ class TripController extends Controller
             'ragCoverage' => $tripAiContext->ragCoverage($trip),
             'weather' => Inertia::defer(fn () => $tripWeather->forTrip($trip), 'trip-extras'),
             'trainTimings' => Inertia::defer(fn () => $tripTrains->forTrip($trip), 'trip-extras'),
+            'hotels' => Inertia::defer(fn () => $tripHotels->forTrip($trip), 'trip-extras'),
+            'expenses' => Inertia::defer(fn () => app(ExpenseSheetPresenter::class)->forTrip($trip, request()->user()), 'expenses'),
         ]);
+    }
+
+    public function hotels(Trip $trip, Request $request, TripHotelsService $tripHotels): JsonResponse
+    {
+        $this->authorize('view', $trip);
+
+        $validated = $request->validate([
+            'location' => ['required', 'integer', 'min:0', 'max:50'],
+            'offset' => ['required', 'integer', 'min:0', 'max:1000'],
+        ]);
+
+        $page = $tripHotels->pageForLocation($trip, (int) $validated['location'], (int) $validated['offset']);
+
+        abort_if($page === null, 404);
+
+        return response()->json($page);
     }
 
     public function trainHalts(Trip $trip, string $trainNumber, Request $request, TripTrainHaltsService $tripTrainHalts): JsonResponse

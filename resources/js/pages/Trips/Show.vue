@@ -17,8 +17,12 @@ import LocationCoordinatesAlert from '@/components/LocationCoordinatesAlert.vue'
 import PageHeader from '@/components/PageHeader.vue';
 import TripChatPanel from '@/components/trip-hub/TripChatPanel.vue';
 import TripHubAtAGlance from '@/components/trip-hub/TripHubAtAGlance.vue';
+import TripHubExpenses from '@/components/trip-hub/TripHubExpenses.vue';
+import TripHubHotels from '@/components/trip-hub/TripHubHotels.vue';
 import TripHubItinerarySection from '@/components/trip-hub/TripHubItinerarySection.vue';
 import TripHubPracticalSection from '@/components/trip-hub/TripHubPracticalSection.vue';
+import TripHubTabs from '@/components/trip-hub/TripHubTabs.vue';
+import type { TripHubTab } from '@/components/trip-hub/TripHubTabs.vue';
 import TripHubTrainTimings from '@/components/trip-hub/TripHubTrainTimings.vue';
 import TripHubUsefulLinks from '@/components/trip-hub/TripHubUsefulLinks.vue';
 import TripCoverPlaceholder from '@/components/TripCoverPlaceholder.vue';
@@ -45,6 +49,8 @@ import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import { normalizeBudgetBreakdown } from '@/lib/budget';
 import { cn } from '@/lib/utils';
 import { edit, index as tripsIndex } from '@/routes/trips';
+import type { TripExpenses } from '@/types/expenses';
+import type { TripHotels } from '@/types/hotel';
 import type { TripTrainTimings } from '@/types/train';
 import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
 import type { RagCoverage, Trip, TripCollaborator } from '@/types/trip';
@@ -58,6 +64,8 @@ const props = defineProps<{
     // then null (unavailable) or the real payload.
     weather?: TripWeather | null;
     trainTimings?: TripTrainTimings | null;
+    hotels?: TripHotels | null;
+    expenses?: TripExpenses | null;
 }>();
 
 defineOptions({
@@ -102,6 +110,27 @@ const hasExtras = computed(
         (props.trip.itinerary?.packing_list?.length ?? 0) > 0 ||
         hasBudgetBreakdown.value,
 );
+
+const showTrainTimings = computed(
+    () =>
+        props.trip.trip_scope === 'domestic' ||
+        (props.trainTimings !== undefined && props.trainTimings != null),
+);
+
+const activeTab = ref('overview');
+
+const detailTabs = computed<TripHubTab[]>(() => [
+    { id: 'overview', label: 'Overview' },
+    { id: 'itinerary', label: 'Itinerary' },
+    ...(showTrainTimings.value
+        ? [{ id: 'trains', label: 'Train timings' }]
+        : []),
+    ...(props.hotels !== null ? [{ id: 'hotels', label: 'Hotels' }] : []),
+    ...(props.expenses !== null ? [{ id: 'expenses', label: 'Expenses' }] : []),
+    ...(props.aiConfigured ? [{ id: 'assistant', label: 'AI assistant' }] : []),
+    ...(hasExtras.value ? [{ id: 'notes', label: 'Notes & budget' }] : []),
+    { id: 'links', label: 'Useful links' },
+]);
 
 function toggleFavorite(): void {
     router.patch(
@@ -706,76 +735,112 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             :edit-url="edit.url(trip.id)"
         />
 
-        <div class="grid gap-6 xl:grid-cols-5">
-            <div class="space-y-4 xl:col-span-2">
-                <h2 class="section-heading">At a glance</h2>
-                <TripHubAtAGlance :trip="trip" :train-timings="trainTimings" />
-            </div>
+        <TripHubTabs v-model:active="activeTab" :tabs="detailTabs" />
 
-            <div class="xl:col-span-3">
-                <Card v-if="weather === undefined" class="card-vibrant h-full">
-                    <div
-                        class="h-1.5 bg-gradient-to-r from-sky-400 via-cyan-500 to-indigo-500"
+        <div v-if="activeTab === 'overview'" class="space-y-8">
+            <div class="grid gap-6 xl:grid-cols-5">
+                <div class="space-y-4 xl:col-span-2">
+                    <h2 class="section-heading">At a glance</h2>
+                    <TripHubAtAGlance
+                        :trip="trip"
+                        :train-timings="trainTimings"
                     />
-                    <CardHeader>
-                        <Skeleton class="h-5 w-32" />
-                    </CardHeader>
-                    <CardContent class="space-y-3">
-                        <Skeleton class="h-4 w-3/4" />
-                        <Skeleton class="h-24 w-full" />
-                        <Skeleton class="h-4 w-1/2" />
-                    </CardContent>
-                </Card>
-                <TripWeatherCard v-else :weather="weather" />
+                </div>
+
+                <div class="xl:col-span-3">
+                    <Card
+                        v-if="weather === undefined"
+                        class="card-vibrant h-full"
+                    >
+                        <div
+                            class="h-1.5 bg-gradient-to-r from-sky-400 via-cyan-500 to-indigo-500"
+                        />
+                        <CardHeader>
+                            <Skeleton class="h-5 w-32" />
+                        </CardHeader>
+                        <CardContent class="space-y-3">
+                            <Skeleton class="h-4 w-3/4" />
+                            <Skeleton class="h-24 w-full" />
+                            <Skeleton class="h-4 w-1/2" />
+                        </CardContent>
+                    </Card>
+                    <TripWeatherCard v-else :weather="weather" />
+                </div>
             </div>
         </div>
 
-        <TripHubItinerarySection
-            :trip="trip"
-            :ai-configured="aiConfigured"
-            :can-edit="canEdit"
-        />
-
-        <TripChatPanel
-            v-if="aiConfigured"
-            :trip="trip"
-            :ai-configured="aiConfigured"
-            :rag-coverage="ragCoverage"
-            :can-edit="canEdit"
-        />
-
-        <section
-            v-if="
-                trip.trip_scope === 'domestic' ||
-                (trainTimings !== undefined && trainTimings != null)
-            "
-            class="space-y-4"
-        >
-            <h2 class="section-heading">Train timings</h2>
-            <Card v-if="trainTimings === undefined" class="card-vibrant">
-                <div
-                    class="h-1.5 bg-gradient-to-r from-orange-400 via-amber-500 to-rose-500"
-                />
-                <CardHeader>
-                    <Skeleton class="h-5 w-40" />
-                </CardHeader>
-                <CardContent class="space-y-3">
-                    <Skeleton class="h-9 w-full" />
-                    <Skeleton class="h-32 w-full" />
-                </CardContent>
-            </Card>
-            <TripHubTrainTimings
-                v-else
-                :trip-id="trip.id"
-                :train-timings="trainTimings"
+        <div v-if="activeTab === 'itinerary'" class="space-y-8">
+            <TripHubItinerarySection
+                :trip="trip"
+                :ai-configured="aiConfigured"
+                :can-edit="canEdit"
             />
-        </section>
+        </div>
 
-        <section v-if="hasExtras" class="space-y-4">
-            <h2 class="section-heading">Notes &amp; budget</h2>
-            <TripHubPracticalSection :trip="trip" />
-        </section>
+        <div v-if="activeTab === 'assistant'" class="space-y-8">
+            <TripChatPanel
+                v-if="aiConfigured"
+                :trip="trip"
+                :ai-configured="aiConfigured"
+                :rag-coverage="ragCoverage"
+                :can-edit="canEdit"
+            />
+        </div>
 
-        <TripHubUsefulLinks :trip="trip" />
+        <div v-if="activeTab === 'trains'" class="space-y-8">
+            <section
+                v-if="
+                    trip.trip_scope === 'domestic' ||
+                    (trainTimings !== undefined && trainTimings != null)
+                "
+                class="space-y-4"
+            >
+                <h2 class="section-heading">Train timings</h2>
+                <Card v-if="trainTimings === undefined" class="card-vibrant">
+                    <div
+                        class="h-1.5 bg-gradient-to-r from-orange-400 via-amber-500 to-rose-500"
+                    />
+                    <CardHeader>
+                        <Skeleton class="h-5 w-40" />
+                    </CardHeader>
+                    <CardContent class="space-y-3">
+                        <Skeleton class="h-9 w-full" />
+                        <Skeleton class="h-32 w-full" />
+                    </CardContent>
+                </Card>
+                <TripHubTrainTimings
+                    v-else
+                    :trip-id="trip.id"
+                    :train-timings="trainTimings"
+                />
+            </section>
+        </div>
+
+        <div v-if="activeTab === 'hotels'" class="space-y-8">
+            <TripHubHotels
+                v-if="hotels !== null"
+                :trip-id="trip.id"
+                :hotels="hotels"
+            />
+        </div>
+
+        <div v-if="activeTab === 'expenses'" class="space-y-8">
+            <TripHubExpenses
+                v-if="expenses !== null"
+                :trip-id="trip.id"
+                :expenses="expenses"
+            />
+        </div>
+
+        <div v-if="activeTab === 'notes'" class="space-y-8">
+            <section v-if="hasExtras" class="space-y-4">
+                <h2 class="section-heading">Notes &amp; budget</h2>
+                <TripHubPracticalSection :trip="trip" />
+            </section>
+        </div>
+
+        <div v-if="activeTab === 'links'" class="space-y-8">
+            <TripHubUsefulLinks :trip="trip" />
+        </div>
     </div>
 </template>

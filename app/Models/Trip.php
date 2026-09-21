@@ -148,6 +148,9 @@ class Trip extends Model
     {
         static::deleting(function (Trip $trip): void {
             app(TripCoverImageService::class)->deleteForTrip($trip);
+            TripExpenseEntry::withTrashed()->where('trip_id', (string) $trip->id)->forceDelete();
+            TripExpenseActivity::query()->where('trip_id', (string) $trip->id)->delete();
+            TripExpenseSheet::query()->where('trip_id', (string) $trip->id)->delete();
         });
     }
 
@@ -378,6 +381,11 @@ class Trip extends Model
     public function isRoadTrip(): bool
     {
         return $this->type === TripType::Road;
+    }
+
+    public function expenseSheet(): ?TripExpenseSheet
+    {
+        return TripExpenseSheet::query()->where('trip_id', (string) $this->id)->first();
     }
 
     public function isOwnedBy(User $user): bool

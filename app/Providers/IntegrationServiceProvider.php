@@ -6,6 +6,7 @@ use App\Contracts\Ai\ChatAssistant;
 use App\Contracts\Ai\EmbeddingService;
 use App\Contracts\Ai\TravelAssistant;
 use App\Contracts\Ai\TripGenerator;
+use App\Contracts\Hotels\HotelsService;
 use App\Contracts\Maps\PlacesService;
 use App\Contracts\Maps\RoutingService;
 use App\Contracts\TripCovers\TripCoverGenerator;
@@ -15,6 +16,8 @@ use App\Services\Ai\Gemini\GeminiEmbeddingService;
 use App\Services\Ai\Gemini\GeminiTravelAssistant;
 use App\Services\Ai\Gemini\GeminiTripCoverGenerator;
 use App\Services\Ai\Gemini\GeminiTripGenerator;
+use App\Services\Hotels\Geoapify\GeoapifyHotelsService;
+use App\Services\Hotels\TripHotelsService;
 use App\Services\Maps\Geoapify\GeoapifyAutocomplete;
 use App\Services\Maps\Geoapify\GeoapifyClient;
 use App\Services\Maps\Geoapify\GeoapifyPlacesService;
@@ -51,6 +54,7 @@ class IntegrationServiceProvider extends ServiceProvider
         $this->app->singleton(TripTrainHaltsService::class);
         $this->app->singleton(TripRouteResolver::class);
         $this->app->singleton(OpenWeatherMapClient::class);
+        $this->app->singleton(TripHotelsService::class);
 
         $this->registerMapsServices();
         $this->registerWeatherServices();
@@ -66,6 +70,7 @@ class IntegrationServiceProvider extends ServiceProvider
             'geoapify' => [
                 RoutingService::class => GeoapifyRoutingService::class,
                 PlacesService::class => GeoapifyPlacesService::class,
+                HotelsService::class => GeoapifyHotelsService::class,
             ],
             'google' => [
                 // GeocodingService::class => GoogleGeocodingService::class,
