@@ -53,4 +53,19 @@ return [
         'chunk_overlap_characters' => (int) env('TRIPPILOT_RAG_CHUNK_OVERLAP_CHARACTERS', 200),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Open Trips
+    |--------------------------------------------------------------------------
+    |
+    | Any user can publish a trip publicly as an "open trip" for others to
+    | discover, contact and request to join. This caps how many a single
+    | user may keep active (published and not yet past) at once.
+    |
+    */
+
+    'open_trips' => [
+        'max_active_per_user' => (int) env('TRIPPILOT_OPEN_TRIPS_MAX_ACTIVE_PER_USER', 3),
+    ],
+
 ];

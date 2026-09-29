@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    Compass,
     LayoutGrid,
     BookOpen,
     ListChecks,
     Map,
     MapPinned,
+    Megaphone,
     MessageCircle,
     Shield,
     ShieldCheck,
@@ -28,11 +30,13 @@ import { dashboard } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as knowledgeIndex } from '@/routes/admin/knowledge';
 import { settings as superSettings } from '@/routes/admin/super';
+import { index as tripReportsIndex } from '@/routes/admin/trip-reports';
 import { index as adminTripsIndex } from '@/routes/admin/trips';
 import { index as usersIndex } from '@/routes/admin/users';
 import { index as assistantIndex } from '@/routes/assistant';
+import { index as openTripsIndex } from '@/routes/open-trips';
 import { index as roadTripsIndex } from '@/routes/road-trips';
-import { index as tripsIndex } from '@/routes/trips';
+import { groupTours as groupToursIndex, index as tripsIndex } from '@/routes/trips';
 import type { Auth, NavItem } from '@/types';
 
 const page = usePage<{ auth: Auth }>();
@@ -54,9 +58,22 @@ const mainNavItems: NavItem[] = [
         icon: MapPinned,
     },
     {
+        title: 'Group Tours',
+        href: groupToursIndex(),
+        icon: Megaphone,
+    },
+    {
         title: 'Travel assistant',
         href: assistantIndex(),
         icon: MessageCircle,
+    },
+];
+
+const publicNavItems: NavItem[] = [
+    {
+        title: 'Discover',
+        href: openTripsIndex(),
+        icon: Compass,
     },
 ];
 
@@ -88,6 +105,11 @@ const adminNavItems = computed<NavItem[]>(() => {
             href: adminTripsIndex(),
             icon: ListChecks,
         },
+        {
+            title: 'Reported Trips',
+            href: tripReportsIndex(),
+            icon: ShieldCheck,
+        },
     ];
 
     if (user.role === 'super_admin') {
@@ -118,6 +140,7 @@ const adminNavItems = computed<NavItem[]>(() => {
 
         <SidebarContent>
             <NavMain :items="mainNavItems" label="Platform" />
+            <NavMain :items="publicNavItems" label="Public" />
             <NavMain
                 v-if="adminNavItems.length"
                 :items="adminNavItems"

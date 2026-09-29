@@ -61,6 +61,9 @@ import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import { useTripRouteStops } from '@/composables/useTripRouteStops';
 import { cn } from '@/lib/utils';
 import { edit, index as roadTripsIndex } from '@/routes/road-trips';
+import { leave as leaveTrip } from '@/routes/trips';
+import { index as inquiriesIndex } from '@/routes/trips/inquiries';
+import { index as joinRequestsIndex } from '@/routes/trips/join-requests';
 import type { TripExpenses } from '@/types/expenses';
 import type { TripHotels } from '@/types/hotel';
 import {
@@ -347,6 +350,43 @@ onUnmounted(() => {
     <Head :title="trip.title" />
 
     <div class="flex flex-1 flex-col gap-5 p-4 md:p-6">
+        <div
+            v-if="trip.is_owner && trip.visibility === 'public'"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-4"
+        >
+            <div class="flex items-center gap-2">
+                <Badge variant="secondary">Open trip</Badge>
+                <span class="text-sm text-muted-foreground">
+                    This trip is public. Manage inquiries and join requests below.
+                </span>
+            </div>
+            <div class="flex gap-2">
+                <Button variant="outline" size="sm" as-child>
+                    <Link :href="inquiriesIndex(trip.id)">Inquiries</Link>
+                </Button>
+                <Button variant="outline" size="sm" as-child>
+                    <Link :href="joinRequestsIndex(trip.id)">Join requests</Link>
+                </Button>
+            </div>
+        </div>
+
+        <div
+            v-if="trip.is_member"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-4"
+        >
+            <div class="flex items-center gap-2">
+                <Badge variant="secondary">Member</Badge>
+                <span class="text-sm text-muted-foreground">
+                    You joined this trip as a member.
+                </span>
+            </div>
+            <Form v-bind="leaveTrip.form(trip.id)" v-slot="{ processing }">
+                <Button type="submit" variant="outline" size="sm" :disabled="processing">
+                    Leave trip
+                </Button>
+            </Form>
+        </div>
+
         <TripCoverPlaceholder
             v-if="!trip.cover_image_url"
             :exhausted="Boolean(trip.cover_image_exhausted)"

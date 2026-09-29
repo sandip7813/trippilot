@@ -5,13 +5,26 @@ use App\Http\Controllers\Auth\SendRegistrationOtpController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocationSearchController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OpenTripController;
+use App\Http\Controllers\OpenTripSettingsController;
 use App\Http\Controllers\RoadTripController;
 use App\Http\Controllers\TripCollaboratorController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TripExpenseController;
+use App\Http\Controllers\TripInquiryController;
+use App\Http\Controllers\TripJoinRequestController;
+use App\Http\Controllers\TripMembershipController;
+use App\Http\Controllers\TripReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
+
+// Public "Discover" listing and open-trip overview. Reachable by guests, so
+// every response here must go through OpenTripPresenter's whitelist.
+Route::middleware('throttle:60,1')->group(function () {
+    Route::get('open-trips', [OpenTripController::class, 'index'])->name('open-trips.index');
+    Route::get('open-trips/{trip}', [OpenTripController::class, 'show'])->name('open-trips.show');
+});
 
 Route::middleware('guest')->group(function () {
     Route::post('register/otp', SendRegistrationOtpController::class)
@@ -49,6 +62,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('trips/{trip}/trains/live', [TripController::class, 'trainLiveStatus'])
         ->middleware('throttle:20,1')
         ->name('trips.trains.live');
+    Route::get('trips/group-tours', [TripController::class, 'groupTours'])
+        ->name('trips.group-tours');
     Route::resource('trips', TripController::class);
     Route::post('trips/{trip}/collaborators', [TripCollaboratorController::class, 'store'])
         ->middleware('throttle:10,1')
@@ -59,6 +74,41 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('trips/{trip}/collaborators/{email}', [TripCollaboratorController::class, 'destroy'])
         ->where('email', '.*')
         ->name('trips.collaborators.destroy');
+
+    Route::post('trips/{trip}/publish', [OpenTripSettingsController::class, 'publish'])
+        ->middleware('throttle:10,1')
+        ->name('trips.publish');
+    Route::post('trips/{trip}/unpublish', [OpenTripSettingsController::class, 'unpublish'])
+        ->name('trips.unpublish');
+    Route::put('trips/{trip}/open-trip', [OpenTripSettingsController::class, 'updateDetails'])
+        ->name('trips.open-trip.update');
+    Route::put('trips/{trip}/expense-sheet-visibility', [OpenTripSettingsController::class, 'updateExpenseSheetVisibility'])
+        ->name('trips.expense-sheet-visibility.update');
+
+    Route::get('trips/{trip}/inquiries', [TripInquiryController::class, 'index'])->name('trips.inquiries.index');
+    Route::post('trips/{trip}/inquiries', [TripInquiryController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('trips.inquiries.store');
+    Route::post('trips/{trip}/inquiries/{inquiry}/reply', [TripInquiryController::class, 'reply'])
+        ->middleware('throttle:20,1')
+        ->name('trips.inquiries.reply');
+
+    Route::get('trips/{trip}/join-requests', [TripJoinRequestController::class, 'index'])->name('trips.join-requests.index');
+    Route::post('trips/{trip}/join-requests', [TripJoinRequestController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('trips.join-requests.store');
+    Route::delete('trips/{trip}/join-requests/{joinRequest}', [TripJoinRequestController::class, 'destroy'])
+        ->name('trips.join-requests.destroy');
+    Route::post('trips/{trip}/join-requests/{joinRequest}/accept', [TripJoinRequestController::class, 'accept'])
+        ->name('trips.join-requests.accept');
+    Route::post('trips/{trip}/join-requests/{joinRequest}/decline', [TripJoinRequestController::class, 'decline'])
+        ->name('trips.join-requests.decline');
+
+    Route::delete('trips/{trip}/leave', [TripMembershipController::class, 'leave'])->name('trips.leave');
+
+    Route::post('trips/{trip}/report', [TripReportController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('trips.report');
 
     Route::prefix('trips/{trip}/expenses')->name('trips.expenses.')->controller(TripExpenseController::class)->group(function () {
         Route::post('sheet', 'storeSheet')->name('sheet.store');

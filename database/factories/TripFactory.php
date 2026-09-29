@@ -2,9 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Enums\ExpenseSheetVisibility;
+use App\Enums\OpenTripCostModel;
 use App\Enums\TripCollaboratorRole;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
+use App\Enums\TripVisibility;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -112,6 +115,39 @@ class TripFactory extends Factory
                     'added_at' => now()->toIso8601String(),
                 ],
             ],
+        ]);
+    }
+
+    /**
+     * A published open trip, with a sensible default group details block.
+     */
+    public function openTrip(): static
+    {
+        return $this->state(fn (): array => [
+            'visibility' => TripVisibility::Public,
+            'published_at' => now(),
+            'open_trip' => [
+                'category' => 'trek',
+                'max_group_size' => 8,
+                'join_deadline' => now()->addWeeks(2)->toIso8601String(),
+                'difficulty' => 'moderate',
+                'requirements' => 'Basic fitness, own trekking gear.',
+                'meeting_point' => 'Base camp gate',
+                'rules' => 'Respect the group schedule.',
+                'cost_model' => OpenTripCostModel::CostSharing->value,
+                'cost_amount' => 6000.0,
+                'cost_currency' => 'INR',
+                'cost_inclusions' => 'Guide, permits, shared camping.',
+                'share_itinerary_with_members' => true,
+                'member_names_visible' => false,
+            ],
+        ]);
+    }
+
+    public function expenseSheetShared(): static
+    {
+        return $this->state(fn (): array => [
+            'expense_sheet_visibility' => ExpenseSheetVisibility::Shared,
         ]);
     }
 

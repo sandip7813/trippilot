@@ -40,6 +40,17 @@ class UpdateRoadTripRequest extends FormRequest
         $this->validateMultiCityTrip($validator);
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'start_date.required' => 'Pick a start date.',
+            'end_date.required' => 'Pick an end date.',
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $this->merge([

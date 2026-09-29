@@ -142,6 +142,23 @@ export function compareIsoDates(left: string, right: string): number {
     return left.localeCompare(right);
 }
 
+/**
+ * Shift an ISO date (YYYY-MM-DD) by a number of days (negative to go back).
+ * Returns null if the input isn't a valid ISO date.
+ */
+export function addDaysToIso(iso: string, days: number): string | null {
+    const parsed = parseIsoDate(iso);
+
+    if (!parsed) {
+        return null;
+    }
+
+    const date = new Date(parsed.year, parsed.month - 1, parsed.day);
+    date.setDate(date.getDate() + days);
+
+    return buildIsoDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
+
 export function daysInMonth(year: number, month: number): number {
     return new Date(year, month, 0).getDate();
 }

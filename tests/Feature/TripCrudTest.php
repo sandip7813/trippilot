@@ -1,6 +1,9 @@
 <?php
 
+use App\Enums\TripCollaboratorRole;
 use App\Models\Trip;
+use App\Models\TripInquiry;
+use App\Models\TripJoinRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 
@@ -194,7 +197,7 @@ test('trip creation validates required fields', function () {
 
     $this->actingAs($user)
         ->post(route('trips.store'), [])
-        ->assertSessionHasErrors(['title', 'type', 'travelers', 'origin', 'destination']);
+        ->assertSessionHasErrors(['title', 'type', 'travelers', 'origin', 'destination', 'start_date', 'end_date']);
 });
 
 test('users can view their own trip', function () {
@@ -288,6 +291,55 @@ test('trips index filters favorites', function () {
         ->assertInertia(fn ($page) => $page
             ->has('trips.data', 1)
             ->where('trips.data.0.title', 'Favorite'));
+});
+
+test('group tours lists only the users own open trips', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    Trip::factory()->forUser($user)->create(['title' => 'Private trip']);
+    Trip::factory()->forUser($user)->openTrip()->create(['title' => 'My Open Trip']);
+    Trip::factory()->forUser($other)->openTrip()->create(['title' => 'Other Open Trip']);
+
+    $this->actingAs($user)
+        ->get(route('trips.group-tours'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('GroupTours/Index')
+            ->has('owned.data', 1)
+            ->where('owned.data.0.title', 'My Open Trip'));
+});
+
+test('group tours lists requested, joined, and contacted open trips', function () {
+    $user = User::factory()->create();
+    $owner = User::factory()->create();
+
+    $requestedTrip = Trip::factory()->forUser($owner)->openTrip()->create(['title' => 'Requested Trek']);
+    TripJoinRequest::factory()->forTrip($requestedTrip)->forUser($user)->create();
+
+    $acceptedTrip = Trip::factory()->forUser($owner)->openTrip()->create(['title' => 'Accepted Trek']);
+    TripJoinRequest::factory()->forTrip($acceptedTrip)->forUser($user)->accepted()->create();
+
+    $joinedTrip = Trip::factory()->forUser($owner)->openTrip()
+        ->withCollaborator($user, TripCollaboratorRole::Member)
+        ->create(['title' => 'Joined Trek']);
+
+    $contactedTrip = Trip::factory()->forUser($owner)->openTrip()->create(['title' => 'Contacted Trek']);
+    TripInquiry::factory()->forTrip($contactedTrip)->fromSender($user)->create(['subject' => 'Any spots left?']);
+
+    $this->actingAs($user)
+        ->get(route('trips.group-tours'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('GroupTours/Index')
+            ->has('requested', 1)
+            ->where('requested.0.trip.title', 'Requested Trek')
+            ->where('requested.0.status', 'pending')
+            ->has('joined', 1)
+            ->where('joined.0.title', 'Joined Trek')
+            ->has('contacted', 1)
+            ->where('contacted.0.trip.title', 'Contacted Trek')
+            ->where('contacted.0.subject', 'Any spots left?'));
 });
 
 test('trip creation rejects start dates in the past', function () {

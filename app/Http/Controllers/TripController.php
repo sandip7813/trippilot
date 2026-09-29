@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Trips\GenerateTripItinerary;
+use App\Actions\Trips\PublishOpenTrip;
 use App\Actions\Trips\SendTripChatMessage;
 use App\Actions\Trips\SyncTripCoverImage;
 use App\Enums\TravelStyle;
+use App\Enums\TripJoinRequestStatus;
 use App\Enums\TripPhase;
 use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
@@ -17,18 +19,24 @@ use App\Http\Requests\StoreTripRequest;
 use App\Http\Requests\UpdateTripRequest;
 use App\Http\Requests\UploadTripCoverImageRequest;
 use App\Models\Trip;
+use App\Models\TripInquiry;
+use App\Models\TripJoinRequest;
+use App\Models\User;
 use App\Services\Expenses\ExpenseSheetPresenter;
 use App\Services\Hotels\TripHotelsService;
 use App\Services\Trains\TripTrainHaltsService;
 use App\Services\Trains\TripTrainService;
+use App\Services\Trips\OpenTripPresenter;
 use App\Services\Trips\TripAiContextBuilder;
 use App\Services\Trips\TripCoverImageService;
 use App\Services\Weather\TripWeatherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class TripController extends Controller
 {
@@ -70,6 +78,93 @@ class TripController extends Controller
         ]);
     }
 
+    public function groupTours(Request $request, OpenTripPresenter $presenter): Response
+    {
+        $user = $request->user();
+
+        $owned = Trip::query()
+            ->forUser($user->id)
+            ->published()
+            ->active()
+            ->orderBy('start_date')
+            ->orderByDesc('created_at')
+            ->paginate(9)
+            ->withQueryString()
+            ->through(fn (Trip $trip): array => $trip->toFrontend());
+
+        $joinRequests = TripJoinRequest::query()
+            ->where('user_id', $user->id)
+            ->where('status', '!=', TripJoinRequestStatus::Accepted->value)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $inquiries = TripInquiry::query()
+            ->where('sender_id', $user->id)
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $joinedTrips = Trip::query()
+            ->sharedWithUser($user->id)
+            ->get()
+            ->filter(fn (Trip $trip): bool => $trip->isMember($user));
+
+        $requestedTrips = Trip::query()
+            ->whereIn('id', $joinRequests->pluck('trip_id')->unique()->all())
+            ->get()
+            ->keyBy(fn (Trip $trip): string => (string) $trip->id);
+
+        $contactedTrips = Trip::query()
+            ->whereIn('id', $inquiries->pluck('trip_id')->unique()->all())
+            ->get()
+            ->keyBy(fn (Trip $trip): string => (string) $trip->id);
+
+        $requested = $joinRequests
+            ->map(function (TripJoinRequest $joinRequest) use ($requestedTrips, $presenter): ?array {
+                $trip = $requestedTrips->get($joinRequest->trip_id);
+
+                if ($trip === null) {
+                    return null;
+                }
+
+                return [
+                    'trip' => $presenter->overview($trip),
+                    'status' => $joinRequest->status->value,
+                    'status_label' => $joinRequest->status->label(),
+                    'requested_at' => $joinRequest->created_at?->toIso8601String(),
+                ];
+            })
+            ->filter()
+            ->values();
+
+        $joined = $joinedTrips
+            ->map(fn (Trip $trip): array => $presenter->overview($trip))
+            ->values();
+
+        $contacted = $inquiries
+            ->map(function (TripInquiry $inquiry) use ($contactedTrips, $presenter): ?array {
+                $trip = $contactedTrips->get($inquiry->trip_id);
+
+                if ($trip === null) {
+                    return null;
+                }
+
+                return [
+                    'trip' => $presenter->overview($trip),
+                    'subject' => $inquiry->subject,
+                    'contacted_at' => $inquiry->created_at?->toIso8601String(),
+                ];
+            })
+            ->filter()
+            ->values();
+
+        return Inertia::render('GroupTours/Index', [
+            'owned' => $owned,
+            'requested' => $requested,
+            'joined' => $joined,
+            'contacted' => $contacted,
+        ]);
+    }
+
     public function create(Request $request): Response
     {
         return Inertia::render('Trips/Create', [
@@ -80,9 +175,10 @@ class TripController extends Controller
         ]);
     }
 
-    public function store(StoreTripRequest $request, SyncTripCoverImage $syncTripCoverImage): RedirectResponse
+    public function store(StoreTripRequest $request, SyncTripCoverImage $syncTripCoverImage, PublishOpenTrip $publishOpenTrip): RedirectResponse
     {
-        $validated = $request->validated();
+        $validated = Arr::except($request->validated(), ['make_open_trip']);
+        $makeOpenTrip = $request->boolean('make_open_trip');
 
         $locations = $this->prepareTripLocations($validated);
 
@@ -102,12 +198,35 @@ class TripController extends Controller
 
         $syncTripCoverImage($trip, onlyIfMissing: true);
 
+        if ($makeOpenTrip) {
+            return $this->publishAndRedirectToOpenTripSetup($trip, $request->user(), $publishOpenTrip);
+        }
+
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => __('Trip created. Your destination cover will appear shortly.'),
         ]);
 
         return to_route('trips.show', $trip);
+    }
+
+    private function publishAndRedirectToOpenTripSetup(Trip $trip, User $owner, PublishOpenTrip $publishOpenTrip): RedirectResponse
+    {
+        try {
+            $publishOpenTrip->publish($trip, $owner);
+
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => __('Trip created and published. Fill in the group details below so travelers know what to expect.'),
+            ]);
+        } catch (RuntimeException $exception) {
+            Inertia::flash('toast', [
+                'type' => 'warning',
+                'message' => __('Trip created, but not published yet: :reason Finish the group details below and publish when ready.', ['reason' => $exception->getMessage()]),
+            ]);
+        }
+
+        return to_route('trips.edit', $trip);
     }
 
     public function show(Trip $trip, TripWeatherService $tripWeather, TripTrainService $tripTrains, TripHotelsService $tripHotels, TripAiContextBuilder $tripAiContext): Response

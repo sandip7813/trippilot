@@ -34,6 +34,10 @@ createInertiaApp({
     layout: (name) => {
         switch (true) {
             case name === 'Welcome':
+            case name.startsWith('OpenTrips/'):
+                // Public pages, reachable by guests: they build their own
+                // header instead of the authenticated AppLayout (sidebar,
+                // NavUser, etc.), which assumes a logged-in user.
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\OpenTripDetailsValidationRules;
 use App\Concerns\RoadTripValidationRules;
 use App\Concerns\TripValidationRules;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,6 +11,7 @@ use Illuminate\Validation\Validator;
 
 class StoreRoadTripRequest extends FormRequest
 {
+    use OpenTripDetailsValidationRules;
     use RoadTripValidationRules;
     use TripValidationRules;
 
@@ -26,12 +28,26 @@ class StoreRoadTripRequest extends FormRequest
         return [
             ...Arr::except($this->tripRules(), ['type']),
             ...$this->roadProfileRules(),
+            'make_open_trip' => ['sometimes', 'boolean'],
+            'open_trip' => ['sometimes', 'array'],
+            ...$this->openTripDetailsRules('open_trip.'),
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $this->validateMultiCityTrip($validator);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'start_date.required' => 'Pick a start date.',
+            'end_date.required' => 'Pick an end date.',
+        ];
     }
 
     protected function prepareForValidation(): void

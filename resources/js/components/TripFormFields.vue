@@ -24,8 +24,18 @@ const props = defineProps<{
     showStatus?: boolean;
 }>();
 
+/**
+ * Optional two-way binding for the start date, so a parent (e.g. the
+ * open-trip fields alongside this form) can derive things like a
+ * join-deadline cap. Falls back to its own local ref when unbound.
+ */
+const startDateIso = defineModel<string>('startDate', { default: '' });
+
+if (!startDateIso.value && props.trip?.start_date) {
+    startDateIso.value = props.trip.start_date;
+}
+
 const selectedType = ref(props.trip?.type ?? 'vacation');
-const startDateIso = ref(props.trip?.start_date ?? '');
 const endDateIso = ref(props.trip?.end_date ?? '');
 const originLocation = ref<TripLocation | null>(
     props.trip?.origin ?? props.defaultOrigin ?? null,
@@ -254,15 +264,15 @@ watch(isMultiCity, (enabled) => {
 
         <div class="grid gap-4 sm:grid-cols-2">
             <div class="grid gap-2">
-                <Label id="start_date-label" for="start_date">Start date</Label>
-                <input type="hidden" name="start_date" :value="startDateIso" />
+                <Label id="start_date-label" for="start_date">Start date *</Label>
+                <input type="hidden" name="start_date" :value="startDateIso" required />
                 <DatePickerField
                     id="start_date"
                     v-model="startDateIso"
                     :min="minStartDate"
                 />
                 <p class="text-xs text-muted-foreground">
-                    Click to pick a date. Today or later{{
+                    Required. Today or later{{
                         trip ? ', unless keeping an existing date' : ''
                     }}.
                 </p>
@@ -270,15 +280,15 @@ watch(isMultiCity, (enabled) => {
             </div>
 
             <div class="grid gap-2">
-                <Label id="end_date-label" for="end_date">End date</Label>
-                <input type="hidden" name="end_date" :value="endDateIso" />
+                <Label id="end_date-label" for="end_date">End date *</Label>
+                <input type="hidden" name="end_date" :value="endDateIso" required />
                 <DatePickerField
                     id="end_date"
                     v-model="endDateIso"
                     :min="minEndDate"
                 />
                 <p class="text-xs text-muted-foreground">
-                    Click to pick a date on or after the start date.
+                    Required. On or after the start date.
                 </p>
                 <InputError :message="errors.end_date" />
             </div>

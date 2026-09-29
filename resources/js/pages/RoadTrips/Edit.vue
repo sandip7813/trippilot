@@ -3,6 +3,7 @@ import { Form, Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import RoadTripController from '@/actions/App/Http/Controllers/RoadTripController';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
+import OpenTripSettings from '@/components/OpenTripSettings.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import RoadTripFormFields from '@/components/road-trips/RoadTripFormFields.vue';
 import { Button } from '@/components/ui/button';
@@ -76,5 +77,7 @@ defineOptions({
                 </Button>
             </div>
         </Form>
+
+        <OpenTripSettings v-if="trip.is_owner" :trip="trip" />
     </div>
 </template>

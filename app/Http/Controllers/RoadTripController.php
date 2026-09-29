@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Trips\PublishOpenTrip;
 use App\Actions\Trips\SyncTripCoverImage;
 use App\Enums\DrivingPace;
 use App\Enums\FoodPreference;
@@ -28,8 +29,10 @@ use App\Services\Trips\TripCoverImageService;
 use App\Services\Weather\TripWeatherService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class RoadTripController extends Controller
 {
@@ -72,8 +75,10 @@ class RoadTripController extends Controller
         StoreRoadTripRequest $request,
         SyncTripCoverImage $syncTripCoverImage,
         RoadTripRouteService $routeService,
+        PublishOpenTrip $publishOpenTrip,
     ): RedirectResponse {
-        $validated = $request->validated();
+        $validated = Arr::except($request->validated(), ['make_open_trip']);
+        $makeOpenTrip = $request->boolean('make_open_trip');
         $locations = $this->prepareTripLocations($validated);
 
         $trip = Trip::query()->create([
@@ -98,6 +103,20 @@ class RoadTripController extends Controller
         } catch (RoadTripException $exception) {
             $toastType = 'warning';
             $toastMessage = __('Road trip created, but the route could not be calculated yet.');
+        }
+
+        if ($makeOpenTrip) {
+            try {
+                $publishOpenTrip->publish($trip, $request->user());
+                $toastMessage .= ' '.__('Published — fill in the group details below.');
+            } catch (RuntimeException $exception) {
+                $toastType = 'warning';
+                $toastMessage = __('Road trip created, but not published yet: :reason Finish the group details below and publish when ready.', ['reason' => $exception->getMessage()]);
+            }
+
+            Inertia::flash('toast', ['type' => $toastType, 'message' => $toastMessage]);
+
+            return to_route('road-trips.edit', $trip);
         }
 
         Inertia::flash('toast', [
