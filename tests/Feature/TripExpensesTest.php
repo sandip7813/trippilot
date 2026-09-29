@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ExpenseSheetVisibility;
 use App\Enums\TripCollaboratorRole;
 use App\Mail\TripExpenseReportMail;
 use App\Mail\TripExpenseSheetReopenedMail;
@@ -100,7 +101,10 @@ test('viewers and strangers cannot change the sheet', function () {
     [$owner, $trip] = expenseTrip();
     $sheet = expenseSheet($trip, $owner);
     $viewer = User::factory()->create();
-    $trip->update(['collaborators' => [['user_id' => $viewer->id, 'email' => $viewer->email, 'role' => TripCollaboratorRole::Viewer->value, 'status' => 'accepted', 'added_at' => now()->toIso8601String()]]]);
+    $trip->update([
+        'expense_sheet_visibility' => ExpenseSheetVisibility::Shared,
+        'collaborators' => [['user_id' => $viewer->id, 'email' => $viewer->email, 'role' => TripCollaboratorRole::Viewer->value, 'status' => 'accepted', 'added_at' => now()->toIso8601String()]],
+    ]);
 
     $this->actingAs($viewer)->post(route('trips.expenses.entries.store', $trip), paymentPayload($sheet))->assertForbidden();
     $this->actingAs($viewer)->get(route('trips.expenses.export.csv', $trip))->assertOk();
@@ -176,7 +180,10 @@ test('an editor can change someone elses entry and it is flagged in the activity
     [$owner, $trip] = expenseTrip();
     $sheet = expenseSheet($trip, $owner);
     $editor = User::factory()->create();
-    $trip->update(['collaborators' => [['user_id' => $editor->id, 'email' => $editor->email, 'role' => TripCollaboratorRole::Editor->value, 'status' => 'accepted', 'added_at' => now()->toIso8601String()]]]);
+    $trip->update([
+        'expense_sheet_visibility' => ExpenseSheetVisibility::Shared,
+        'collaborators' => [['user_id' => $editor->id, 'email' => $editor->email, 'role' => TripCollaboratorRole::Editor->value, 'status' => 'accepted', 'added_at' => now()->toIso8601String()]],
+    ]);
 
     $this->actingAs($owner)->post(route('trips.expenses.entries.store', $trip), paymentPayload($sheet))->assertSessionHasNoErrors();
     $entry = TripExpenseEntry::query()->first();

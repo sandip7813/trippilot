@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Concerns\OpenTripDetailsValidationRules;
 use App\Concerns\TripValidationRules;
 use App\Enums\TripStatus;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,6 +11,7 @@ use Illuminate\Validation\Validator;
 
 class StoreTripRequest extends FormRequest
 {
+    use OpenTripDetailsValidationRules;
     use TripValidationRules;
 
     public function authorize(): bool
@@ -25,6 +27,9 @@ class StoreTripRequest extends FormRequest
         return [
             ...$this->tripRules(),
             'status' => ['sometimes', Rule::enum(TripStatus::class)],
+            'make_open_trip' => ['sometimes', 'boolean'],
+            'open_trip' => ['sometimes', 'array'],
+            ...$this->openTripDetailsRules('open_trip.'),
         ];
     }
 
@@ -47,6 +52,8 @@ class StoreTripRequest extends FormRequest
             'destination.label.required' => 'Pick a destination from the search suggestions.',
             'destination.lat.required' => 'Pick a destination from the search suggestions.',
             'destination.lng.required' => 'Pick a destination from the search suggestions.',
+            'start_date.required' => 'Pick a start date.',
+            'end_date.required' => 'Pick an end date.',
         ];
     }
 }

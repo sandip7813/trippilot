@@ -76,23 +76,29 @@ class TripExpenseController extends Controller
 
     public function storeEntry(ExpenseEntryRequest $request, Trip $trip, SaveExpenseEntry $saveExpenseEntry): RedirectResponse
     {
-        $sheet = $this->openSheet($trip);
+        $this->authorize('createExpenseEntry', $trip);
+        $sheet = $this->sheetFor($trip);
+        abort_if($sheet->isSettled(), 423, __('This expense sheet is settled. Reopen it to make changes.'));
 
         return $this->attempt(fn () => $saveExpenseEntry($trip, $sheet, $request->user(), $request->validated()));
     }
 
     public function updateEntry(ExpenseEntryRequest $request, Trip $trip, string $entry, SaveExpenseEntry $saveExpenseEntry): RedirectResponse
     {
-        $sheet = $this->openSheet($trip);
+        $sheet = $this->sheetFor($trip);
         $entryModel = $this->entryFor($sheet, $entry);
+        $this->authorize('manageExpenseEntry', [$trip, $entryModel]);
+        abort_if($sheet->isSettled(), 423, __('This expense sheet is settled. Reopen it to make changes.'));
 
         return $this->attempt(fn () => $saveExpenseEntry($trip, $sheet, $request->user(), $request->validated(), $entryModel));
     }
 
     public function destroyEntry(Request $request, Trip $trip, string $entry, DeleteExpenseEntry $deleteExpenseEntry): RedirectResponse
     {
-        $sheet = $this->openSheet($trip);
+        $sheet = $this->sheetFor($trip);
         $entryModel = $this->entryFor($sheet, $entry);
+        $this->authorize('manageExpenseEntry', [$trip, $entryModel]);
+        abort_if($sheet->isSettled(), 423, __('This expense sheet is settled. Reopen it to make changes.'));
 
         return $this->attempt(fn () => $deleteExpenseEntry($trip, $request->user(), $entryModel));
     }

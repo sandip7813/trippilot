@@ -45,6 +45,8 @@ class UpdateTripRequest extends FormRequest
             'destination.label.required' => 'Pick a destination from the search suggestions.',
             'destination.lat.required' => 'Pick a destination from the search suggestions.',
             'destination.lng.required' => 'Pick a destination from the search suggestions.',
+            'start_date.required' => 'Pick a start date.',
+            'end_date.required' => 'Pick an end date.',
         ];
     }
 

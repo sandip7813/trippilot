@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Calendar, ChevronLeft, ChevronRight } from '@lucide/vue';
-import { onClickOutside } from '@vueuse/core';
 import { computed, ref } from 'vue';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     buildIsoDate,
     compareIsoDates,
@@ -17,6 +17,8 @@ const props = withDefaults(
     defineProps<{
         id: string;
         min?: string;
+        max?: string;
+        disabled?: boolean;
         placeholder?: string;
     }>(),
     {
@@ -27,14 +29,9 @@ const props = withDefaults(
 const model = defineModel<string>({ default: '' });
 
 const open = ref(false);
-const rootRef = ref<HTMLElement | null>(null);
 
 const viewYear = ref(new Date().getFullYear());
 const viewMonth = ref(new Date().getMonth() + 1);
-
-onClickOutside(rootRef, () => {
-    open.value = false;
-});
 
 const displayValue = computed(() => isoToDisplay(model.value));
 
@@ -51,11 +48,17 @@ type CalendarCell = {
 function syncViewToModel(): void {
     const parsed = model.value ? parseIsoDate(model.value) : null;
     const minParsed = props.min ? parseIsoDate(props.min) : null;
+    const maxParsed = props.max ? parseIsoDate(props.max) : null;
     const todayParsed = parseIsoDate(isoToday());
 
     if (parsed) {
         viewYear.value = parsed.year;
         viewMonth.value = parsed.month;
+    } else if (props.max && props.max < isoToday() && maxParsed) {
+        // Today's out of range (e.g. the trip starts too soon) — open on
+        // the last month that still has selectable days.
+        viewYear.value = maxParsed.year;
+        viewMonth.value = maxParsed.month;
     } else if (minParsed) {
         viewYear.value = minParsed.year;
         viewMonth.value = minParsed.month;
@@ -65,16 +68,26 @@ function syncViewToModel(): void {
     }
 }
 
-function toggleOpen(): void {
-    if (!open.value) {
+function onOpenChange(value: boolean): void {
+    if (props.disabled) {
+        open.value = false;
+
+        return;
+    }
+
+    if (value) {
         syncViewToModel();
     }
 
-    open.value = !open.value;
+    open.value = value;
 }
 
 function isDisabled(iso: string): boolean {
-    return props.min ? compareIsoDates(iso, props.min) < 0 : false;
+    if (props.min && compareIsoDates(iso, props.min) < 0) {
+        return true;
+    }
+
+    return Boolean(props.max) && compareIsoDates(iso, props.max as string) > 0;
 }
 
 function selectDate(iso: string): void {
@@ -158,38 +171,37 @@ function selectToday(): void {
         selectDate(today);
     }
 }
-
-function onKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-        open.value = false;
-    }
-}
 </script>
 
 <template>
-    <div ref="rootRef" class="relative">
-        <button
-            :id="id"
-            type="button"
-            :aria-labelledby="`${id}-label`"
-            :aria-expanded="open"
-            aria-haspopup="dialog"
-            class="flex h-9 w-full cursor-pointer items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
-            @click="toggleOpen"
-            @keydown="onKeydown"
-        >
-            <span :class="displayValue ? '' : 'text-muted-foreground'">
-                {{ displayValue || placeholder }}
-            </span>
-            <Calendar class="size-4 shrink-0 text-muted-foreground" />
-        </button>
+    <Popover :open="open" @update:open="onOpenChange">
+        <PopoverTrigger as-child>
+            <button
+                :id="id"
+                type="button"
+                :disabled="disabled"
+                :aria-labelledby="`${id}-label`"
+                aria-haspopup="dialog"
+                class="flex h-9 w-full cursor-pointer items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+            >
+                <span :class="displayValue ? '' : 'text-muted-foreground'">
+                    {{ displayValue || placeholder }}
+                </span>
+                <Calendar class="size-4 shrink-0 text-muted-foreground" />
+            </button>
+        </PopoverTrigger>
 
-        <div
-            v-if="open"
-            role="dialog"
-            aria-modal="true"
+        <!--
+            Teleported to <body> and positioned by Floating UI (via reka-ui),
+            so it always has room to render fully and flips side/alignment
+            near viewport edges — it never gets clipped by a narrow or
+            overflow-hidden form column.
+        -->
+        <PopoverContent
             :aria-label="`Choose date for ${id}`"
-            class="absolute top-full right-0 left-0 z-50 mt-1 w-full min-w-64 rounded-md border border-border bg-popover p-3 text-popover-foreground shadow-lg"
+            align="start"
+            :collision-padding="12"
+            class="w-64 p-3"
         >
             <div class="mb-3 flex items-center justify-between">
                 <button
@@ -280,6 +292,6 @@ function onKeydown(event: KeyboardEvent): void {
                     Today
                 </button>
             </div>
-        </div>
-    </div>
+        </PopoverContent>
+    </Popover>
 </template>

@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\KnowledgeDocumentController;
 use App\Http\Controllers\Admin\Super\SettingsController;
 use App\Http\Controllers\Admin\TripController as AdminTripController;
+use App\Http\Controllers\Admin\TripReportController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +19,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('trips', [AdminTripController::class, 'index'])->name('trips.index');
     Route::patch('trips/{trip}/status', [AdminTripController::class, 'updateStatus'])->name('trips.status');
     Route::delete('trips/{trip}', [AdminTripController::class, 'destroy'])->name('trips.destroy');
+
+    Route::get('trip-reports', [TripReportController::class, 'index'])->name('trip-reports.index');
+    Route::post('trip-reports/{report}/takedown', [TripReportController::class, 'takedown'])->name('trip-reports.takedown');
+    Route::post('trip-reports/{report}/dismiss', [TripReportController::class, 'dismiss'])->name('trip-reports.dismiss');
 
     Route::resource('knowledge', KnowledgeDocumentController::class)
         ->except(['show']);

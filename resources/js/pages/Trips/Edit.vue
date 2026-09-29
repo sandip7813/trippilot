@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
+import OpenTripSettings from '@/components/OpenTripSettings.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import TripFormFields from '@/components/TripFormFields.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -39,7 +40,10 @@ defineOptions({
 <template>
     <Head :title="`Edit ${trip.title}`" />
 
-    <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-4 md:p-6">
+    <div
+        class="mx-auto flex w-full flex-1 flex-col gap-6 p-4 transition-[max-width] md:p-6"
+        :class="trip.is_owner ? 'max-w-5xl' : 'max-w-2xl'"
+    >
         <PageHeader
             title="Edit trip"
             :description="`Update details for ${trip.title}`"
@@ -73,45 +77,49 @@ defineOptions({
             </AlertDescription>
         </Alert>
 
-        <Form
-            v-bind="TripController.update.form(trip.id)"
-            v-slot="{ errors, processing }"
-            class="space-y-6"
-        >
-            <FormSavingOverlay :show="processing" message="Saving changes..." />
+        <div class="grid gap-6" :class="trip.is_owner ? 'lg:grid-cols-2' : ''">
+            <Form
+                v-bind="TripController.update.form(trip.id)"
+                v-slot="{ errors, processing }"
+                class="space-y-6"
+            >
+                <FormSavingOverlay :show="processing" message="Saving changes..." />
 
-            <Card class="card-vibrant overflow-hidden">
-                <div class="brand-gradient h-1.5" />
-                <CardContent class="space-y-6 pt-6">
-                    <TripFormFields
-                        :trip="trip"
-                        :trip-types="tripTypes"
-                        :trip-statuses="tripStatuses"
-                        :travel-styles="travelStyles"
-                        :errors="errors"
-                        show-status
-                    />
+                <Card class="card-vibrant overflow-hidden">
+                    <div class="brand-gradient h-1.5" />
+                    <CardContent class="space-y-6 pt-6">
+                        <TripFormFields
+                            :trip="trip"
+                            :trip-types="tripTypes"
+                            :trip-statuses="tripStatuses"
+                            :travel-styles="travelStyles"
+                            :errors="errors"
+                            show-status
+                        />
 
-                    <input
-                        type="hidden"
-                        name="is_favorite"
-                        :value="trip.is_favorite ? '1' : '0'"
-                    />
-                </CardContent>
-            </Card>
+                        <input
+                            type="hidden"
+                            name="is_favorite"
+                            :value="trip.is_favorite ? '1' : '0'"
+                        />
+                    </CardContent>
+                </Card>
 
-            <div class="flex items-center gap-3">
-                <Button type="submit" :disabled="processing">
-                    <Spinner v-if="processing" class="mr-2" />
-                    Save changes
-                </Button>
-                <Button variant="outline" as-child>
-                    <Link :href="show(trip.id)">
-                        <ArrowLeft class="mr-2 size-4" />
-                        Cancel
-                    </Link>
-                </Button>
-            </div>
-        </Form>
+                <div class="flex items-center gap-3">
+                    <Button type="submit" :disabled="processing">
+                        <Spinner v-if="processing" class="mr-2" />
+                        Save changes
+                    </Button>
+                    <Button variant="outline" as-child>
+                        <Link :href="show(trip.id)">
+                            <ArrowLeft class="mr-2 size-4" />
+                            Cancel
+                        </Link>
+                    </Button>
+                </div>
+            </Form>
+
+            <OpenTripSettings v-if="trip.is_owner" :trip="trip" />
+        </div>
     </div>
 </template>

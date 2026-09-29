@@ -67,11 +67,11 @@ trait TripValidationRules
             'type' => [$required, Rule::enum(TripType::class)],
             'travel_style' => ['nullable', Rule::enum(TravelStyle::class)],
             'start_date' => [
-                'nullable',
+                $required,
                 'date',
                 ...($updating ? [] : ['after_or_equal:today']),
             ],
-            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'end_date' => [$required, 'date', 'after_or_equal:start_date'],
             'budget' => ['nullable', 'numeric', 'min:0'],
             'travelers' => [$required, 'integer', 'min:1', 'max:50'],
             'notes' => ['nullable', 'string', 'max:5000'],

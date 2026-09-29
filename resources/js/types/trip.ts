@@ -119,6 +119,7 @@ export type Trip = {
     id: string;
     user_id: number;
     is_owner: boolean;
+    is_member?: boolean;
     collaborator_role: TripCollaboratorRole | null;
     collaborators: TripCollaborator[];
     owner: { name: string | null; email: string | null } | null;
@@ -158,8 +159,30 @@ export type Trip = {
     } | null;
     itinerary: TripItinerary;
     chat_messages?: TripChatMessage[];
+    visibility?: 'private' | 'public' | null;
+    published_at?: string | null;
+    expense_sheet_visibility?: 'private' | 'shared' | null;
+    open_trip?: OpenTripDetails | null;
     created_at: string | null;
     updated_at: string | null;
+};
+
+export type OpenTripCostModel = 'cost_sharing' | 'fixed_price' | 'pay_own';
+
+export type OpenTripDetails = {
+    category: string | null;
+    max_group_size: number | null;
+    join_deadline: string | null;
+    difficulty: string | null;
+    requirements: string | null;
+    meeting_point: string | null;
+    rules: string | null;
+    cost_model: OpenTripCostModel | null;
+    cost_amount: number | null;
+    cost_currency: string | null;
+    cost_inclusions: string | null;
+    share_itinerary_with_members: boolean | null;
+    member_names_visible: boolean | null;
 };
 
 export type TripOption = {
@@ -180,7 +203,7 @@ export type TripCounts = {
     shared: number;
 };
 
-export type TripCollaboratorRole = 'viewer' | 'editor';
+export type TripCollaboratorRole = 'viewer' | 'editor' | 'member';
 
 export type TripCollaboratorStatus = 'pending' | 'accepted';
 

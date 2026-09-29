@@ -36,8 +36,19 @@ const profile = computed(
         },
 );
 
-const startDateIso = ref(props.trip?.start_date ?? '');
+/**
+ * Optional two-way binding for the start date, so a parent (e.g. the
+ * open-trip fields alongside this form) can derive things like a
+ * join-deadline cap. Falls back to its own local ref when unbound.
+ */
+const startDateIso = defineModel<string>('startDate', { default: '' });
+
+if (!startDateIso.value && props.trip?.start_date) {
+    startDateIso.value = props.trip.start_date;
+}
+
 const endDateIso = ref(props.trip?.end_date ?? '');
+
 const originLocation = ref<TripLocation | null>(
     props.trip?.origin ?? props.defaultOrigin ?? null,
 );
@@ -389,8 +400,8 @@ watch(isMultiCity, (enabled) => {
 
         <div class="grid gap-4 sm:grid-cols-2">
             <div class="grid gap-2">
-                <Label id="start_date-label" for="start_date">Start date</Label>
-                <input type="hidden" name="start_date" :value="startDateIso" />
+                <Label id="start_date-label" for="start_date">Start date *</Label>
+                <input type="hidden" name="start_date" :value="startDateIso" required />
                 <DatePickerField
                     id="start_date"
                     v-model="startDateIso"
@@ -400,8 +411,8 @@ watch(isMultiCity, (enabled) => {
             </div>
 
             <div class="grid gap-2">
-                <Label id="end_date-label" for="end_date">End date</Label>
-                <input type="hidden" name="end_date" :value="endDateIso" />
+                <Label id="end_date-label" for="end_date">End date *</Label>
+                <input type="hidden" name="end_date" :value="endDateIso" required />
                 <DatePickerField
                     id="end_date"
                     v-model="endDateIso"

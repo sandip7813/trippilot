@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ExpenseSheetVisibility;
+use App\Enums\OpenTripCostModel;
 use App\Enums\TravelStyle;
 use App\Enums\TripCollaboratorRole;
 use App\Enums\TripCoverSource;
@@ -10,6 +12,7 @@ use App\Enums\TripRouteMode;
 use App\Enums\TripScope;
 use App\Enums\TripStatus;
 use App\Enums\TripType;
+use App\Enums\TripVisibility;
 use App\Services\Trips\TripCoverImageService;
 use App\Services\Trips\TripRouteResolver;
 use Carbon\CarbonInterface;
@@ -55,6 +58,24 @@ use MongoDB\Laravel\Eloquent\Model;
  * @property list<array<string, mixed>>|null $chat_messages
  * @property list<int>|null $reminders_sent
  * @property list<array{user_id: int|null, email: string, role: string, status: string, added_at: string|null}>|null $collaborators
+ * @property TripVisibility|null $visibility
+ * @property Carbon|null $published_at
+ * @property ExpenseSheetVisibility|null $expense_sheet_visibility
+ * @property array{
+ *     category: string|null,
+ *     max_group_size: int|null,
+ *     join_deadline: string|null,
+ *     difficulty: string|null,
+ *     requirements: string|null,
+ *     meeting_point: string|null,
+ *     rules: string|null,
+ *     cost_model: string|null,
+ *     cost_amount: float|null,
+ *     cost_currency: string|null,
+ *     cost_inclusions: string|null,
+ *     share_itinerary_with_members: bool|null,
+ *     member_names_visible: bool|null,
+ * }|null $open_trip
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -106,6 +127,10 @@ class Trip extends Model
         'chat_messages',
         'collaborators',
         'reminders_sent',
+        'visibility',
+        'published_at',
+        'expense_sheet_visibility',
+        'open_trip',
     ];
 
     /**
@@ -119,6 +144,8 @@ class Trip extends Model
         ['trip_scope' => 1],
         ['created_at' => -1],
         ['collaborators.user_id' => 1],
+        ['visibility' => 1],
+        ['published_at' => -1],
     ];
 
     /**
@@ -141,6 +168,9 @@ class Trip extends Model
             'cover_image_exhausted' => 'boolean',
             'cover_image_source_index' => 'integer',
             'cover_image_version' => 'integer',
+            'visibility' => TripVisibility::class,
+            'published_at' => 'datetime',
+            'expense_sheet_visibility' => ExpenseSheetVisibility::class,
         ];
     }
 
@@ -450,6 +480,247 @@ class Trip extends Model
         return $this->isOwnedBy($user) || $this->collaboratorRole($user) === TripCollaboratorRole::Editor;
     }
 
+    public function isMember(User $user): bool
+    {
+        return $this->collaboratorRole($user) === TripCollaboratorRole::Member;
+    }
+
+    public function isPublic(): bool
+    {
+        return $this->visibility === TripVisibility::Public;
+    }
+
+    /**
+     * A public trip whose end date has already passed. Still viewable, but
+     * joining is closed while contact stays open.
+     */
+    public function isPastTrip(): bool
+    {
+        return $this->end_date !== null && $this->end_date->isPast();
+    }
+
+    public function expenseSheetVisibility(): ExpenseSheetVisibility
+    {
+        return $this->expense_sheet_visibility ?? ExpenseSheetVisibility::Private;
+    }
+
+    public function isExpenseSheetSharedWith(User $user): bool
+    {
+        if ($this->isOwnedBy($user)) {
+            return true;
+        }
+
+        return $this->expenseSheetVisibility() === ExpenseSheetVisibility::Shared
+            && $this->isCollaborator($user);
+    }
+
+    /**
+     * @return array{
+     *     category: string|null,
+     *     max_group_size: int|null,
+     *     join_deadline: string|null,
+     *     difficulty: string|null,
+     *     requirements: string|null,
+     *     meeting_point: string|null,
+     *     rules: string|null,
+     *     cost_model: string|null,
+     *     cost_amount: float|null,
+     *     cost_currency: string|null,
+     *     cost_inclusions: string|null,
+     *     share_itinerary_with_members: bool|null,
+     *     member_names_visible: bool|null,
+     * }
+     */
+    public function openTripDetails(): array
+    {
+        return self::coerceStructuredArray($this->getAttribute('open_trip')) ?? [];
+    }
+
+    public function openTripCostModel(): ?OpenTripCostModel
+    {
+        return OpenTripCostModel::tryFrom((string) ($this->openTripDetails()['cost_model'] ?? ''));
+    }
+
+    /**
+     * Route/map data safe to show to any viewer of an open trip — a public
+     * listing's whole point is to advertise where it goes, so unlike the
+     * rest of the public overview this includes coordinates, not just
+     * labels. Mirrors the owner's "At a glance" route panel: the same
+     * city-chain labels and per-stop timeline (with nights/arrival/
+     * departure dates) computed by TripRouteResolver, plus map pins.
+     *
+     * @return array{
+     *     chain: list<string>,
+     *     timeline: list<array<string, mixed>>,
+     *     map_points: list<array{sequence: int, label: string, lat: float, lng: float, kind: string}>,
+     * }
+     */
+    public function publicRouteOverview(): array
+    {
+        $summary = $this->routeSummaryForFrontend() ?? [];
+
+        $origin = self::normalizeLocation($this->getAttribute('origin'));
+        $destination = self::normalizeLocation($this->getAttribute('destination'));
+        $returnsToOrigin = $this->returnsToOriginForFrontend();
+
+        $mapPoints = [];
+        $sequence = 0;
+
+        if ($origin !== null && $origin['lat'] !== null) {
+            $mapPoints[] = [
+                'sequence' => $sequence++,
+                'label' => $origin['label'],
+                'lat' => $origin['lat'],
+                'lng' => $origin['lng'],
+                'kind' => 'origin',
+            ];
+        }
+
+        foreach ($this->waypointsForFrontend() as $waypoint) {
+            $location = $waypoint['location'] ?? null;
+
+            if (is_array($location) && ($location['lat'] ?? null) !== null) {
+                $mapPoints[] = [
+                    'sequence' => $sequence++,
+                    'label' => $location['label'],
+                    'lat' => $location['lat'],
+                    'lng' => $location['lng'],
+                    'kind' => 'stay',
+                ];
+            }
+        }
+
+        if ($destination !== null && $destination['lat'] !== null) {
+            $mapPoints[] = [
+                'sequence' => $sequence++,
+                'label' => $destination['label'],
+                'lat' => $destination['lat'],
+                'lng' => $destination['lng'],
+                'kind' => 'stay',
+            ];
+        }
+
+        if ($returnsToOrigin && $origin !== null && $origin['lat'] !== null && count($mapPoints) > 1) {
+            $mapPoints[] = [
+                'sequence' => $sequence++,
+                'label' => $origin['label'],
+                'lat' => $origin['lat'],
+                'lng' => $origin['lng'],
+                'kind' => 'return',
+            ];
+        }
+
+        return [
+            'chain' => $summary['route_display_points'] ?? [],
+            'timeline' => $summary['route_stops'] ?? [],
+            'map_points' => $mapPoints,
+        ];
+    }
+
+    /**
+     * Itinerary preview safe to show to any viewer of an open trip, only
+     * when the owner opted in via the same flag used to share it with
+     * accepted members. The budget breakdown stays private regardless.
+     *
+     * @return array{days: list<array<string, mixed>>, summary: string, packing_list: list<string>}|null
+     */
+    public function publicItineraryOverview(): ?array
+    {
+        if (! $this->sharesItineraryWithMembers()) {
+            return null;
+        }
+
+        $itinerary = $this->itineraryForFrontend();
+
+        if ($itinerary['days'] === [] && $itinerary['summary'] === '') {
+            return null;
+        }
+
+        return [
+            'days' => $itinerary['days'],
+            'summary' => $itinerary['summary'],
+            'packing_list' => $itinerary['packing_list'],
+        ];
+    }
+
+    /**
+     * Fields the owner must fill in before a trip can be published. Kept
+     * deliberately small: enough for a listing to make sense to a visitor,
+     * without demanding every optional detail. Difficulty is intentionally
+     * not required.
+     *
+     * @return list<string> human-readable labels of the missing fields
+     */
+    public function missingRequiredOpenTripFields(): array
+    {
+        $details = $this->openTripDetails();
+
+        $required = [
+            'category' => 'category',
+            'max_group_size' => 'max group size',
+            'cost_model' => 'cost model',
+        ];
+
+        return collect($required)
+            ->reject(fn (string $label, string $field): bool => filled($details[$field] ?? null))
+            ->values()
+            ->all();
+    }
+
+    public function sharesItineraryWithMembers(): bool
+    {
+        return (bool) ($this->openTripDetails()['share_itinerary_with_members'] ?? true);
+    }
+
+    public function memberNamesVisible(): bool
+    {
+        return (bool) ($this->openTripDetails()['member_names_visible'] ?? false);
+    }
+
+    public function maxGroupSize(): ?int
+    {
+        $size = $this->openTripDetails()['max_group_size'] ?? null;
+
+        return $size !== null ? (int) $size : null;
+    }
+
+    /**
+     * Count of accepted members, excluding the owner.
+     */
+    public function acceptedMemberCount(): int
+    {
+        return collect($this->collaboratorEntries())
+            ->where('status', 'accepted')
+            ->where('role', TripCollaboratorRole::Member->value)
+            ->count();
+    }
+
+    public function hasOpenSeats(): bool
+    {
+        $max = $this->maxGroupSize();
+
+        return $max === null || $this->acceptedMemberCount() < $max;
+    }
+
+    /**
+     * Whether joining is currently open: public, not past, not full, and
+     * before the join deadline (when one is set).
+     */
+    public function isJoinable(): bool
+    {
+        if (! $this->isPublic() || $this->isPastTrip() || ! $this->hasOpenSeats()) {
+            return false;
+        }
+
+        $deadline = $this->openTripDetails()['join_deadline'] ?? null;
+
+        if ($deadline === null) {
+            return true;
+        }
+
+        return ! Carbon::parse($deadline)->isPast();
+    }
+
     /**
      * @return list<array{user_id: int|null, name: string|null, email: string, role: string, role_label: string, status: string, added_at: string|null}>
      */
@@ -481,6 +752,36 @@ class Trip extends Model
                     'added_at' => $entry['added_at'] ?? null,
                 ];
             })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The owner sees full collaborator details (including email). Members
+     * see only first names of other accepted members, and only once the
+     * owner turns that on; everyone else sees nothing.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function collaboratorsVisibleTo(bool $isOwner, bool $isMember): array
+    {
+        if ($isOwner) {
+            return $this->collaboratorsForFrontend();
+        }
+
+        if (! $isMember || ! $this->memberNamesVisible()) {
+            return [];
+        }
+
+        $entries = collect($this->collaboratorEntries())
+            ->where('status', 'accepted')
+            ->pluck('user_id')
+            ->filter();
+
+        return User::query()
+            ->whereIn('id', $entries)
+            ->get()
+            ->map(fn (User $user): array => ['name' => $user->first_name])
             ->values()
             ->all();
     }
@@ -541,6 +842,37 @@ class Trip extends Model
     {
         return $query->where('user_id', '!=', $userId)
             ->where('collaborators.user_id', $userId);
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('visibility', TripVisibility::Public->value);
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeUpcomingOrOngoing(Builder $query): Builder
+    {
+        $today = Carbon::today();
+
+        return $query->where(fn (Builder $query) => $query
+            ->whereNull('end_date')
+            ->orWhere('end_date', '>=', $today));
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopePastTrips(Builder $query): Builder
+    {
+        return $query->where('end_date', '<', Carbon::today());
     }
 
     /**
@@ -623,13 +955,19 @@ class Trip extends Model
         $destination = self::normalizeLocation($this->getAttribute('destination'));
         $viewer ??= auth()->user();
         $isOwner = $viewer !== null && $this->isOwnedBy($viewer);
+        $isMember = $viewer !== null && $this->isMember($viewer);
 
         return [
             'id' => (string) $this->id,
             'user_id' => $this->user_id,
             'is_owner' => $isOwner,
+            'is_member' => $isMember,
+            'visibility' => $isOwner ? ($this->visibility?->value ?? 'private') : null,
+            'published_at' => $isOwner ? $this->published_at?->toIso8601String() : null,
+            'expense_sheet_visibility' => $isOwner ? $this->expenseSheetVisibility()->value : null,
+            'open_trip' => $isOwner ? $this->openTripDetails() : null,
             'collaborator_role' => $viewer ? $this->collaboratorRole($viewer)?->value : null,
-            'collaborators' => $isOwner ? $this->collaboratorsForFrontend() : [],
+            'collaborators' => $this->collaboratorsVisibleTo($isOwner, $isMember),
             'owner' => (! $isOwner && $viewer !== null) ? $this->ownerForFrontend() : null,
             'type' => $this->type->value,
             'type_label' => $this->type->label(),
@@ -646,12 +984,12 @@ class Trip extends Model
             'trip_scope_label' => $this->trip_scope?->label(),
             'start_date' => $this->start_date?->toDateString(),
             'end_date' => $this->end_date?->toDateString(),
-            'budget' => $this->budget,
+            'budget' => $isMember ? null : $this->budget,
             'travelers' => $this->travelers,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
             'is_favorite' => $this->is_favorite,
-            'notes' => $this->notes,
+            'notes' => $isMember ? null : $this->notes,
             'cover_image_url' => $this->coverImageUrl(),
             'cover_image_thumb_url' => $this->coverImageThumbUrl(),
             'cover_image_version' => (int) ($this->cover_image_version ?? 0),
@@ -659,8 +997,8 @@ class Trip extends Model
             'cover_image_source_label' => $this->coverSourceLabel(),
             'cover_image_exhausted' => (bool) ($this->cover_image_exhausted ?? false),
             'cover_image_attribution' => $this->cover_image_attribution,
-            'itinerary' => $this->itineraryForFrontend(),
-            'chat_messages' => $this->chatMessagesForFrontend(),
+            'itinerary' => ($isMember && ! $this->sharesItineraryWithMembers()) ? Trip::emptyItinerary() : $this->itineraryForFrontend(),
+            'chat_messages' => $isMember ? [] : $this->chatMessagesForFrontend(),
             'road_profile' => $this->isRoadTrip() ? $this->roadProfileForFrontend() : null,
             'stops' => $this->isRoadTrip() ? $this->stopsForFrontend() : [],
             'route' => $this->isRoadTrip() ? $this->routeForFrontend() : null,
