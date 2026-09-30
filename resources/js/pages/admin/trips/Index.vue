@@ -111,7 +111,11 @@ defineOptions({
 
         <Card>
             <CardContent class="p-4">
-                <Form :action="tripsIndex()" method="get" class="grid gap-4 md:grid-cols-4">
+                <Form
+                    :action="tripsIndex()"
+                    method="get"
+                    class="grid gap-4 md:grid-cols-4"
+                >
                     <div class="grid gap-2">
                         <Label for="search">Search</Label>
                         <Input
@@ -239,9 +243,8 @@ defineOptions({
                                 @change="
                                     updateStatus(
                                         trip,
-                                        (
-                                            $event.target as HTMLSelectElement
-                                        ).value,
+                                        ($event.target as HTMLSelectElement)
+                                            .value,
                                     )
                                 "
                             >

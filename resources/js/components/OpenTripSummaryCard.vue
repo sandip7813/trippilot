@@ -24,19 +24,25 @@ defineProps<{
 </script>
 
 <template>
-    <Card class="card-vibrant h-full overflow-hidden transition hover:shadow-lg">
+    <Card
+        class="card-vibrant h-full overflow-hidden transition hover:shadow-lg"
+    >
         <div
-            class="h-28 w-full bg-cover bg-center brand-gradient"
-            :style="trip.cover_image_thumb_url
-                ? { backgroundImage: `url(${trip.cover_image_thumb_url})` }
-                : undefined"
+            class="brand-gradient h-28 w-full bg-cover bg-center"
+            :style="
+                trip.cover_image_thumb_url
+                    ? { backgroundImage: `url(${trip.cover_image_thumb_url})` }
+                    : undefined
+            "
         />
         <div class="flex flex-col gap-2 p-4">
             <div class="flex items-center justify-between gap-2">
-                <Badge variant="outline" class="text-xs">{{ trip.type_label }}</Badge>
+                <Badge variant="outline" class="text-xs">{{
+                    trip.type_label
+                }}</Badge>
                 <slot name="badge" />
             </div>
-            <h3 class="truncate text-sm font-semibold leading-snug">
+            <h3 class="truncate text-sm leading-snug font-semibold">
                 <Link :href="href" class="transition-colors hover:text-primary">
                     {{ trip.title }}
                 </Link>
@@ -54,7 +60,10 @@ defineProps<{
                     formatDisplayDateRange(trip.start_date, trip.end_date)
                 }}</span>
             </p>
-            <p v-if="trip.organizer" class="truncate text-xs text-muted-foreground">
+            <p
+                v-if="trip.organizer"
+                class="truncate text-xs text-muted-foreground"
+            >
                 By {{ trip.organizer.name }}
             </p>
             <slot name="meta" />

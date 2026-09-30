@@ -21,7 +21,7 @@ class GeminiTripGenerator implements TripGenerator
     public function generate(string $prompt, array $context = []): GeneratedItinerary
     {
         if (! filled(config('integrations.ai.drivers.gemini.api_key'))) {
-            throw new AiGenerationException('Gemini API key is not configured.');
+            throw new AiGenerationException('AI features are not available right now.');
         }
 
         $response = $this->client->post(

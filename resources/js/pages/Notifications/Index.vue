@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Bell, CalendarClock, CheckCheck, ChevronRight, UserPlus } from '@lucide/vue';
+import {
+    Bell,
+    CalendarClock,
+    CheckCheck,
+    ChevronRight,
+    UserPlus,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -8,7 +14,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatRelativeTime } from '@/lib/dates';
 import { cn } from '@/lib/utils';
-import { index as notificationsIndex, read, readAll } from '@/routes/notifications';
+import {
+    index as notificationsIndex,
+    read,
+    readAll,
+} from '@/routes/notifications';
 import type { Paginated } from '@/types/admin';
 
 type AppNotification = {
@@ -37,7 +47,9 @@ const groupLabel = (iso: string | null): string => {
     const date = new Date(iso);
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    const days = Math.floor((startOfToday.getTime() - date.getTime()) / 86400000);
+    const days = Math.floor(
+        (startOfToday.getTime() - date.getTime()) / 86400000,
+    );
 
     if (date >= startOfToday) {
         return 'Today';
@@ -109,7 +121,11 @@ defineOptions({
             <Link
                 v-for="tab in tabs"
                 :key="tab.key"
-                :href="notificationsIndex({ query: tab.key === 'all' ? {} : { filter: tab.key } })"
+                :href="
+                    notificationsIndex({
+                        query: tab.key === 'all' ? {} : { filter: tab.key },
+                    })
+                "
                 role="tab"
                 :aria-selected="filter === tab.key"
                 :class="
@@ -144,7 +160,11 @@ defineOptions({
             No unread notifications.
         </p>
 
-        <section v-for="[label, group] in groups" :key="label" class="space-y-2">
+        <section
+            v-for="[label, group] in groups"
+            :key="label"
+            class="space-y-2"
+        >
             <h2
                 class="px-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
             >
@@ -172,7 +192,10 @@ defineOptions({
                             )
                         "
                     >
-                        <component :is="kindMeta[notification.kind].icon" class="size-5" />
+                        <component
+                            :is="kindMeta[notification.kind].icon"
+                            class="size-5"
+                        />
                     </span>
 
                     <div class="min-w-0 flex-1">
@@ -204,7 +227,9 @@ defineOptions({
                         </p>
                         <div class="mt-3 flex flex-wrap items-center gap-3">
                             <span class="text-xs text-muted-foreground/80">
-                                {{ formatRelativeTime(notification.created_at) }}
+                                {{
+                                    formatRelativeTime(notification.created_at)
+                                }}
                             </span>
                             <Link
                                 v-if="notification.url"
@@ -218,7 +243,11 @@ defineOptions({
                             </Link>
                             <Link
                                 v-if="!notification.read"
-                                :href="read(notification.id, { query: { stay: 1 } })"
+                                :href="
+                                    read(notification.id, {
+                                        query: { stay: 1 },
+                                    })
+                                "
                                 method="patch"
                                 as="button"
                                 preserve-scroll

@@ -182,3 +182,41 @@ test('an invalid open_trip field at creation surfaces as a nested validation err
         ])
         ->assertSessionHasErrors('open_trip.max_group_size');
 });
+
+test('planning mode, travel style, and budget are not required when creating an open trip', function () {
+    $owner = User::factory()->create();
+
+    $payload = baseTripPayload();
+    unset($payload['type']);
+
+    $this->actingAs($owner)
+        ->post(route('trips.store'), [
+            ...$payload,
+            'make_open_trip' => true,
+            'open_trip' => [
+                'category' => 'vacation',
+                'max_group_size' => 6,
+                'cost_model' => 'cost_sharing',
+            ],
+        ])
+        ->assertSessionDoesntHaveErrors(['type', 'travel_style', 'budget'])
+        ->assertRedirect();
+
+    $trip = Trip::query()->where('user_id', $owner->id)->first();
+
+    expect($trip)->not->toBeNull()
+        ->and($trip->type->value)->toBe('vacation')
+        ->and($trip->travel_style)->toBeNull()
+        ->and($trip->budget)->toBeNull();
+});
+
+test('planning mode is still required when not creating an open trip', function () {
+    $owner = User::factory()->create();
+
+    $payload = baseTripPayload();
+    unset($payload['type']);
+
+    $this->actingAs($owner)
+        ->post(route('trips.store'), $payload)
+        ->assertSessionHasErrors('type');
+});

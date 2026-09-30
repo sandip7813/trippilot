@@ -83,7 +83,10 @@ defineOptions({
                 v-slot="{ errors, processing }"
                 class="space-y-6"
             >
-                <FormSavingOverlay :show="processing" message="Saving changes..." />
+                <FormSavingOverlay
+                    :show="processing"
+                    message="Saving changes..."
+                />
 
                 <Card class="card-vibrant overflow-hidden">
                     <div class="brand-gradient h-1.5" />

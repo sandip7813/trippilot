@@ -185,6 +185,7 @@ class TripController extends Controller
         $trip = Trip::query()->create([
             ...$validated,
             ...$locations,
+            'type' => $validated['type'] ?? TripType::Vacation->value,
             'user_id' => $request->user()->id,
             'status' => $request->enum('status', TripStatus::class) ?? TripStatus::Draft,
             'is_favorite' => false,
@@ -438,7 +439,7 @@ class TripController extends Controller
 
         if (! filled(config('integrations.ai.drivers.gemini.api_key'))) {
             return back()->withErrors([
-                'ai' => __('AI generation is not configured. Add GEMINI_API_KEY to your environment.'),
+                'ai' => __('AI itinerary generation is not available right now.'),
             ]);
         }
 
@@ -461,7 +462,7 @@ class TripController extends Controller
 
         if (! filled(config('integrations.ai.drivers.gemini.api_key'))) {
             return back()->withErrors([
-                'ai' => __('AI chat is not configured. Add GEMINI_API_KEY to your environment.'),
+                'ai' => __('Trip chat is not available right now.'),
             ]);
         }
 

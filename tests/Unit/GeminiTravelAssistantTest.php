@@ -77,4 +77,4 @@ test('gemini travel assistant throws when api key is missing', function () {
     $assistant = new GeminiTravelAssistant(app(GeminiClient::class));
 
     $assistant->chat('Hello?', [], []);
-})->throws(AiGenerationException::class, 'Gemini API key is not configured.');
+})->throws(AiGenerationException::class, 'AI features are not available right now.');

@@ -70,7 +70,9 @@ const tripStartDate = ref('');
                             <span class="font-medium text-foreground">
                                 Make this an open trip
                             </span>
-                            <span class="mt-1 block text-sm text-muted-foreground">
+                            <span
+                                class="mt-1 block text-sm text-muted-foreground"
+                            >
                                 List it publicly so other travelers — bikers,
                                 road-trippers — can discover it, contact you,
                                 and request to join. Fill in the group details
@@ -82,7 +84,10 @@ const tripStartDate = ref('');
                 </CardContent>
             </Card>
 
-            <div class="grid gap-6" :class="makeOpenTrip ? 'lg:grid-cols-2' : ''">
+            <div
+                class="grid gap-6"
+                :class="makeOpenTrip ? 'lg:grid-cols-2' : ''"
+            >
                 <Card class="card-vibrant overflow-hidden">
                     <div class="brand-gradient h-1.5" />
                     <CardContent class="space-y-6 pt-6">

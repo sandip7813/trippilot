@@ -15,7 +15,12 @@ type Report = {
     message: string | null;
     created_at: string | null;
     reporter_name: string | null;
-    trip: { id: string; title: string; is_public: boolean; show_url: string } | null;
+    trip: {
+        id: string;
+        title: string;
+        is_public: boolean;
+        show_url: string;
+    } | null;
 };
 
 defineProps<{
@@ -40,33 +45,63 @@ defineProps<{
             description="Reports travelers file against public trips show up here for review."
         />
 
-        <Card v-for="report in reports" :key="report.id" class="card-vibrant overflow-hidden">
+        <Card
+            v-for="report in reports"
+            :key="report.id"
+            class="card-vibrant overflow-hidden"
+        >
             <div class="brand-gradient h-1" />
             <CardContent class="space-y-3 pt-6">
                 <div class="flex items-center justify-between">
-                    <h2 class="font-semibold">{{ report.trip?.title ?? 'Deleted trip' }}</h2>
+                    <h2 class="font-semibold">
+                        {{ report.trip?.title ?? 'Deleted trip' }}
+                    </h2>
                     <Badge variant="secondary">{{ report.reason }}</Badge>
                 </div>
-                <p v-if="report.message" class="text-sm">{{ report.message }}</p>
+                <p v-if="report.message" class="text-sm">
+                    {{ report.message }}
+                </p>
                 <p class="text-xs text-muted-foreground">
                     Reported by {{ report.reporter_name ?? 'a user' }}
                 </p>
 
                 <div class="flex flex-wrap items-center gap-2">
-                    <Button v-if="report.trip" variant="outline" size="sm" as-child>
+                    <Button
+                        v-if="report.trip"
+                        variant="outline"
+                        size="sm"
+                        as-child
+                    >
                         <Link :href="report.trip.show_url" target="_blank">
                             <ExternalLink class="mr-2 size-4" />
                             View trip
                         </Link>
                     </Button>
-                    <Form v-if="report.trip" v-bind="takedown.form(report.id)" v-slot="{ processing }">
-                        <Button type="submit" variant="destructive" size="sm" :disabled="processing">
+                    <Form
+                        v-if="report.trip"
+                        v-bind="takedown.form(report.id)"
+                        v-slot="{ processing }"
+                    >
+                        <Button
+                            type="submit"
+                            variant="destructive"
+                            size="sm"
+                            :disabled="processing"
+                        >
                             <Spinner v-if="processing" class="mr-2" />
                             Unpublish trip
                         </Button>
                     </Form>
-                    <Form v-bind="dismiss.form(report.id)" v-slot="{ processing }">
-                        <Button type="submit" variant="ghost" size="sm" :disabled="processing">
+                    <Form
+                        v-bind="dismiss.form(report.id)"
+                        v-slot="{ processing }"
+                    >
+                        <Button
+                            type="submit"
+                            variant="ghost"
+                            size="sm"
+                            :disabled="processing"
+                        >
                             <Spinner v-if="processing" class="mr-2" />
                             Dismiss
                         </Button>

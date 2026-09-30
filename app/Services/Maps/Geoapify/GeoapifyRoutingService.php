@@ -22,7 +22,7 @@ class GeoapifyRoutingService implements RoutingService
         }
 
         if (! filled(config('integrations.maps.drivers.geoapify.api_key'))) {
-            throw new RoadTripException('Geoapify API key is not configured.');
+            throw new RoadTripException('Route calculation is not available right now.');
         }
 
         $waypointParam = collect($waypoints)

@@ -51,12 +51,18 @@ const { trip, inquiries } = defineProps<{
             description="When someone contacts you about this trip, their message shows up here."
         />
 
-        <Card v-for="inquiry in inquiries" :key="inquiry.id" class="card-vibrant overflow-hidden">
+        <Card
+            v-for="inquiry in inquiries"
+            :key="inquiry.id"
+            class="card-vibrant overflow-hidden"
+        >
             <div class="brand-gradient h-1" />
             <CardContent class="space-y-4 pt-6">
                 <div class="flex items-center justify-between">
                     <h2 class="font-semibold">{{ inquiry.subject }}</h2>
-                    <span class="text-xs text-muted-foreground">{{ inquiry.sender_name }}</span>
+                    <span class="text-xs text-muted-foreground">{{
+                        inquiry.sender_name
+                    }}</span>
                 </div>
 
                 <div class="space-y-3">
@@ -90,7 +96,11 @@ const { trip, inquiries } = defineProps<{
                             <Spinner v-if="processing" class="mr-2" />
                             Reply
                         </Button>
-                        <span v-if="recentlySuccessful" class="text-sm text-muted-foreground">Sent.</span>
+                        <span
+                            v-if="recentlySuccessful"
+                            class="text-sm text-muted-foreground"
+                            >Sent.</span
+                        >
                     </div>
                 </Form>
             </CardContent>

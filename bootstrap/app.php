@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\HandleAppearance;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            EnsurePasswordIsChanged::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

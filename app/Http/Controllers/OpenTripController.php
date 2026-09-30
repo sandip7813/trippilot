@@ -6,7 +6,9 @@ use App\Enums\TripJoinRequestStatus;
 use App\Models\Trip;
 use App\Models\TripJoinRequest;
 use App\Services\Trips\OpenTripPresenter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -42,6 +44,59 @@ class OpenTripController extends Controller
             'trips' => $trips,
             'showPast' => $showPast,
             'filters' => $request->only(['category', 'destination']),
+        ]);
+    }
+
+    /**
+     * Autocomplete for the home page search: destinations and trip titles
+     * among upcoming published trips that match the typed text.
+     */
+    public function suggestions(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:80'],
+        ]);
+
+        $term = trim($validated['q']);
+
+        $trips = Trip::query()
+            ->published()
+            ->active()
+            ->upcomingOrOngoing()
+            ->where(fn ($query) => $query
+                ->where('destination.label', 'like', "%{$term}%")
+                ->orWhere('title', 'like', "%{$term}%"))
+            ->orderBy('start_date')
+            ->limit(50)
+            ->get();
+
+        $destinations = $trips
+            ->map(fn (Trip $trip): ?string => Trip::normalizeLocation($trip->getAttribute('destination'))['label'] ?? null)
+            ->filter(fn (?string $label): bool => $label !== null && Str::contains($label, $term, ignoreCase: true))
+            ->countBy()
+            ->sortDesc()
+            ->take(5)
+            ->map(fn (int $count, string $label): array => [
+                'label' => $label,
+                'name' => trim(Str::before($label, ',')),
+                'trip_count' => $count,
+            ])
+            ->values();
+
+        $matchingTrips = $trips
+            ->filter(fn (Trip $trip): bool => Str::contains((string) $trip->title, $term, ignoreCase: true))
+            ->take(4)
+            ->map(fn (Trip $trip): array => [
+                'id' => (string) $trip->id,
+                'title' => $trip->title,
+                'destination' => Trip::normalizeLocation($trip->getAttribute('destination'))['label'] ?? null,
+                'start_date' => $trip->start_date?->toDateString(),
+            ])
+            ->values();
+
+        return response()->json([
+            'destinations' => $destinations,
+            'trips' => $matchingTrips,
         ]);
     }
 

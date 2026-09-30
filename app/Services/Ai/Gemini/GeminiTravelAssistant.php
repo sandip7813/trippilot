@@ -24,7 +24,7 @@ class GeminiTravelAssistant implements TravelAssistant
     public function chat(string $message, array $history, array $context = []): AssistantChatResponse
     {
         if (! filled(config('integrations.ai.drivers.gemini.api_key'))) {
-            throw new AiGenerationException('Gemini API key is not configured.');
+            throw new AiGenerationException('AI features are not available right now.');
         }
 
         $response = $this->client->post(

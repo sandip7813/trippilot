@@ -26,7 +26,7 @@ class TripTrainHaltsService
         if (! filled(config('integrations.trains.drivers.railradar.api_key'))) {
             return [
                 'available' => false,
-                'message' => 'Train halts are unavailable without a RailRadar API key.',
+                'message' => 'Train halt details are not available right now.',
             ];
         }
 

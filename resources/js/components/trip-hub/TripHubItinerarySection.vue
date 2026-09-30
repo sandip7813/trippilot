@@ -63,7 +63,7 @@ const canGenerate = computed(
 
 const generateHint = computed((): string => {
     if (!props.aiConfigured) {
-        return 'Add GEMINI_API_KEY to your environment to enable AI generation.';
+        return 'AI itinerary generation is not available right now.';
     }
 
     if (!locationLabel(props.trip.destination)) {
@@ -220,8 +220,7 @@ function nextDay(): void {
             />
 
             <p v-if="!hasItinerary" class="text-sm text-muted-foreground">
-                No days planned yet. Generate a personalized itinerary with
-                Gemini.
+                No days planned yet. Generate a personalized itinerary with AI.
             </p>
 
             <p

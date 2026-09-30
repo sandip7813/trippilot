@@ -91,7 +91,7 @@ test('gemini trip generator throws when api key is missing', function () {
     $generator = new GeminiTripGenerator(app(GeminiClient::class));
 
     $generator->generate('', []);
-})->throws(AiGenerationException::class, 'Gemini API key is not configured.');
+})->throws(AiGenerationException::class, 'AI features are not available right now.');
 
 test('gemini trip generator uses fallback packing list when ai omits it', function () {
     config([

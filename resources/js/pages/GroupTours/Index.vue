@@ -117,7 +117,9 @@ function requestStatusVariant(
                 >
                     <component :is="tab.icon" class="size-4" />
                     {{ tab.label }}
-                    <span class="rounded-full bg-primary/10 px-1.5 text-xs text-primary">
+                    <span
+                        class="rounded-full bg-primary/10 px-1.5 text-xs text-primary"
+                    >
                         {{ tabCount(tab.key) }}
                     </span>
                 </TabsTrigger>
@@ -169,9 +171,13 @@ function requestStatusVariant(
                                 :class="tripCardAccent(index)"
                             />
 
-                            <div class="flex min-w-0 flex-1 flex-col justify-between p-4">
+                            <div
+                                class="flex min-w-0 flex-1 flex-col justify-between p-4"
+                            >
                                 <div>
-                                    <h3 class="truncate text-base leading-tight font-semibold">
+                                    <h3
+                                        class="truncate text-base leading-tight font-semibold"
+                                    >
                                         <Link
                                             :href="show(trip.id)"
                                             class="transition-colors hover:text-primary"
@@ -192,9 +198,11 @@ function requestStatusVariant(
                                     </p>
 
                                     <div class="mt-2.5 flex flex-wrap gap-1.5">
-                                        <Badge variant="outline" class="text-xs">{{
-                                            trip.type_label
-                                        }}</Badge>
+                                        <Badge
+                                            variant="outline"
+                                            class="text-xs"
+                                            >{{ trip.type_label }}</Badge
+                                        >
                                         <Badge
                                             variant="secondary"
                                             class="bg-teal-500/10 text-xs text-teal-700 dark:text-teal-300"
@@ -203,7 +211,9 @@ function requestStatusVariant(
                                         </Badge>
                                     </div>
 
-                                    <div class="mt-2.5 space-y-1 text-sm text-muted-foreground">
+                                    <div
+                                        class="mt-2.5 space-y-1 text-sm text-muted-foreground"
+                                    >
                                         <p class="flex items-center gap-2">
                                             <Calendar
                                                 class="size-3.5 shrink-0 text-sky-600 dark:text-sky-400"
@@ -227,8 +237,14 @@ function requestStatusVariant(
                                 </div>
 
                                 <div class="mt-3 flex gap-2">
-                                    <Button size="sm" as-child class="min-w-0 flex-1">
-                                        <Link :href="show(trip.id)">View trip</Link>
+                                    <Button
+                                        size="sm"
+                                        as-child
+                                        class="min-w-0 flex-1"
+                                    >
+                                        <Link :href="show(trip.id)"
+                                            >View trip</Link
+                                        >
                                     </Button>
                                 </div>
                             </div>
@@ -265,7 +281,8 @@ function requestStatusVariant(
                         </template>
                         <template v-if="entry.requested_at" #meta>
                             <p class="text-xs text-muted-foreground">
-                                Requested {{ formatRelativeTime(entry.requested_at) }}
+                                Requested
+                                {{ formatRelativeTime(entry.requested_at) }}
                             </p>
                         </template>
                     </OpenTripSummaryCard>
@@ -320,8 +337,12 @@ function requestStatusVariant(
                             <p class="truncate text-xs text-muted-foreground">
                                 {{ entry.subject }}
                             </p>
-                            <p v-if="entry.contacted_at" class="text-xs text-muted-foreground">
-                                Contacted {{ formatRelativeTime(entry.contacted_at) }}
+                            <p
+                                v-if="entry.contacted_at"
+                                class="text-xs text-muted-foreground"
+                            >
+                                Contacted
+                                {{ formatRelativeTime(entry.contacted_at) }}
                             </p>
                         </template>
                     </OpenTripSummaryCard>

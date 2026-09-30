@@ -39,7 +39,9 @@ const messagesContainer = ref<HTMLElement | null>(null);
 const messageInput = ref('');
 
 const messages = computed(() => props.activeConversation?.messages ?? []);
-const canChat = computed(() => props.aiConfigured && props.activeConversation !== null);
+const canChat = computed(
+    () => props.aiConfigured && props.activeConversation !== null,
+);
 
 watch(
     messages,
@@ -60,7 +62,7 @@ function scrollToLatest(): void {
 
 function messageClasses(message: AssistantMessage): string {
     return cn(
-        'max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap',
+        'max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap shadow-sm',
         message.role === 'user'
             ? 'ml-auto bg-primary text-primary-foreground'
             : 'mr-auto border border-border/60 bg-muted/30 text-foreground',
@@ -76,9 +78,7 @@ function deleteConversation(conversationId: string): void {
         return;
     }
 
-    router.delete(
-        AssistantConversationController.destroy.url(conversationId),
-    );
+    router.delete(AssistantConversationController.destroy.url(conversationId));
 }
 </script>
 
@@ -99,7 +99,9 @@ function deleteConversation(conversationId: string): void {
             </template>
         </PageHeader>
 
-        <div class="grid min-h-[32rem] flex-1 gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        <div
+            class="grid min-h-[32rem] flex-1 gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]"
+        >
             <Card class="border-sidebar-border/70 dark:border-sidebar-border">
                 <CardHeader class="pb-3">
                     <CardTitle class="text-sm font-semibold">History</CardTitle>
@@ -130,7 +132,9 @@ function deleteConversation(conversationId: string): void {
                                     : 'text-foreground'
                             "
                         >
-                            <span class="truncate">{{ conversation.title }}</span>
+                            <span class="truncate">{{
+                                conversation.title
+                            }}</span>
                         </Link>
                         <Button
                             type="button"
@@ -145,13 +149,16 @@ function deleteConversation(conversationId: string): void {
                 </CardContent>
             </Card>
 
-            <Card class="card-vibrant flex min-h-[32rem] flex-col overflow-hidden">
+            <Card
+                class="card-vibrant flex min-h-[32rem] flex-col overflow-hidden"
+            >
                 <div class="brand-gradient h-1.5 opacity-90" />
                 <CardHeader class="border-b border-border/60 pb-4">
                     <div class="flex flex-wrap items-center gap-2">
                         <CardTitle class="text-lg font-bold">
                             {{
-                                activeConversation?.title ?? 'Start a conversation'
+                                activeConversation?.title ??
+                                'Start a conversation'
                             }}
                         </CardTitle>
                         <Badge
@@ -165,7 +172,7 @@ function deleteConversation(conversationId: string): void {
                         {{
                             aiConfigured
                                 ? 'General travel Q&A with knowledge-base context when available.'
-                                : 'Add GEMINI_API_KEY to your environment to use the assistant.'
+                                : 'The travel assistant is not available right now.'
                         }}
                     </p>
                 </CardHeader>
@@ -175,7 +182,9 @@ function deleteConversation(conversationId: string): void {
                         v-if="!activeConversation"
                         class="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center"
                     >
-                        <MessageCircle class="size-12 text-muted-foreground/60" />
+                        <MessageCircle
+                            class="size-12 text-muted-foreground/60"
+                        />
                         <div class="space-y-2">
                             <p class="font-medium">Ask TripPilot anything</p>
                             <p class="max-w-md text-sm text-muted-foreground">
@@ -211,8 +220,8 @@ function deleteConversation(conversationId: string): void {
                                 <p>{{ message.content }}</p>
                                 <div
                                     v-if="
-                                        message.role === 'assistant'
-                                            && message.rag_sources?.length
+                                        message.role === 'assistant' &&
+                                        message.rag_sources?.length
                                     "
                                     class="mt-3 flex flex-wrap gap-2"
                                 >
@@ -269,7 +278,11 @@ function deleteConversation(conversationId: string): void {
                                 <Button
                                     type="submit"
                                     class="self-end"
-                                    :disabled="!canChat || processing || !messageInput.trim()"
+                                    :disabled="
+                                        !canChat ||
+                                        processing ||
+                                        !messageInput.trim()
+                                    "
                                 >
                                     <Spinner v-if="processing" />
                                     <Send v-else class="size-4" />

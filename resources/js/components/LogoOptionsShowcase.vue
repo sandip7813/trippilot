@@ -105,8 +105,8 @@ const activeLogo = computed((): LogoVariant => {
         </label>
     </div>
     <p v-if="selectable" class="mt-4 text-xs text-muted-foreground">
-        Choose a logo mark for the sidebar, auth pages, and landing page.
-        Save settings to apply it across the app.
+        Choose a logo mark for the sidebar, auth pages, and landing page. Save
+        settings to apply it across the app.
     </p>
     <p v-else class="mt-4 text-xs text-muted-foreground">
         Set

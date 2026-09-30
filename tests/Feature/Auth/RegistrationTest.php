@@ -1,8 +1,9 @@
 <?php
 
-use App\Mail\RegistrationOtpMail;
+use App\Mail\RegistrationPasswordMail;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Fortify\Features;
 
@@ -16,117 +17,147 @@ test('registration screen can be rendered', function () {
     $response->assertOk();
 });
 
-test('new users can register after email otp verification', function () {
+test('new users register without a password and receive a one-time password by email', function () {
     Mail::fake();
 
-    $this->from(route('register'))
-        ->post(route('register.otp'), [
-            'email' => 'test@example.com',
-        ]);
-
-    $otp = null;
-
-    Mail::assertSent(RegistrationOtpMail::class, function (RegistrationOtpMail $mail) use (&$otp) {
-        $otp = $mail->code;
-
-        return true;
-    });
-
     $response = $this->post(route('register.store'), [
         'first_name' => 'Test',
         'last_name' => 'User',
         'email' => 'test@example.com',
-        'password' => 'password',
-        'password_confirmation' => 'password',
-        'otp' => $otp,
+        'mobile_number' => '9876543210',
     ]);
 
-    $this->assertAuthenticated();
-    expect(auth()->user())
-        ->email->toBe('test@example.com')
-        ->name->toBe('Test User')
-        ->email_verified_at->not->toBeNull();
-    $response->assertRedirect(route('dashboard', absolute: false));
-});
-
-test('registration fails without a valid otp', function () {
-    $response = $this->post(route('register.store'), [
-        'first_name' => 'Test',
-        'last_name' => 'User',
-        'email' => 'test@example.com',
-        'password' => 'password',
-        'password_confirmation' => 'password',
-        'otp' => '000000',
-    ]);
-
-    $response->assertSessionHasErrors('otp');
+    $response->assertRedirect(route('login'));
+    $response->assertSessionHas('status');
     $this->assertGuest();
-    expect(User::query()->where('email', 'test@example.com')->exists())->toBeFalse();
+
+    $user = User::query()->where('email', 'test@example.com')->firstOrFail();
+
+    expect($user)
+        ->name->toBe('Test User')
+        ->mobile_number->toBe('9876543210')
+        ->must_change_password->toBeTrue()
+        ->email_verified_at->toBeNull();
+
+    Mail::assertSent(RegistrationPasswordMail::class, function (RegistrationPasswordMail $mail) use ($user) {
+        return $mail->hasTo('test@example.com')
+            && strlen($mail->password) === 12
+            && Hash::check($mail->password, $user->password);
+    });
 });
 
-test('otp status survives a failed registration attempt on redisplay', function () {
+test('registration requires first name, last name, mobile number and email', function () {
     Mail::fake();
 
-    $this->from(route('register'))
-        ->post(route('register.otp'), [
-            'email' => 'test@example.com',
-        ]);
+    $response = $this->post(route('register.store'), []);
+
+    $response->assertSessionHasErrors(['first_name', 'last_name', 'mobile_number', 'email']);
+    $this->assertGuest();
+    Mail::assertNothingSent();
+});
+
+test('registration fails for an email that is already taken', function () {
+    Mail::fake();
+    User::factory()->create(['email' => 'test@example.com']);
+
+    $response = $this->post(route('register.store'), [
+        'first_name' => 'Test',
+        'last_name' => 'User',
+        'email' => 'test@example.com',
+        'mobile_number' => '9876543210',
+    ]);
+
+    $response->assertSessionHasErrors('email');
+    Mail::assertNothingSent();
+});
+
+function enableRecaptcha(): void
+{
+    config([
+        'recaptcha.enabled' => true,
+        'recaptcha.site_key' => 'test-site-key',
+        'recaptcha.secret_key' => 'test-secret',
+        'recaptcha.action' => 'register',
+        'recaptcha.score_threshold' => 0.5,
+    ]);
+}
+
+test('registration screen passes the recaptcha site key when recaptcha is configured', function () {
+    enableRecaptcha();
+
+    $this->get(route('register'))
+        ->assertInertia(fn ($page) => $page
+            ->component('auth/Register')
+            ->where('recaptcha.enabled', true)
+            ->where('recaptcha.siteKey', 'test-site-key'));
+});
+
+test('registration screen disables recaptcha when keys are missing', function () {
+    config(['recaptcha.enabled' => true, 'recaptcha.site_key' => null, 'recaptcha.secret_key' => null]);
+
+    $this->get(route('register'))
+        ->assertInertia(fn ($page) => $page->where('recaptcha.enabled', false));
+});
+
+test('registration succeeds with a valid recaptcha token', function () {
+    enableRecaptcha();
+    Mail::fake();
+    Http::fake([
+        'www.google.com/recaptcha/api/siteverify' => Http::response([
+            'success' => true,
+            'score' => 0.9,
+            'action' => 'register',
+        ]),
+    ]);
 
     $this->post(route('register.store'), [
         'first_name' => 'Test',
         'last_name' => 'User',
         'email' => 'test@example.com',
-        'password' => 'password',
-        'password_confirmation' => 'password',
-        'otp' => '000000',
-    ])->assertSessionHasErrors('otp');
+        'mobile_number' => '9876543210',
+        'g-recaptcha-response' => 'valid-token',
+    ])->assertSessionHasNoErrors()->assertRedirect(route('login'));
 
-    $response = $this->get(route('register'));
-
-    $response->assertInertia(fn ($page) => $page
-        ->where('otpStatus.sent', true)
-        ->where('otpStatus.email', 'test@example.com'));
+    expect(User::query()->where('email', 'test@example.com')->exists())->toBeTrue();
+    Http::assertSent(fn ($request) => $request['response'] === 'valid-token'
+        && $request['secret'] === 'test-secret');
 });
 
-test('otp status expires once the code is no longer pending', function () {
+test('registration is rejected without a recaptcha token', function () {
+    enableRecaptcha();
     Mail::fake();
+    Http::fake();
 
-    $this->from(route('register'))
-        ->post(route('register.otp'), [
-            'email' => 'test@example.com',
-        ]);
-
-    Cache::flush();
-
-    $response = $this->get(route('register'));
-
-    $response->assertInertia(fn ($page) => $page
-        ->where('otpStatus.sent', false)
-        ->where('otpStatus.email', null));
-});
-
-test('resending a code too soon shows a friendly error instead of a 429 page', function () {
-    Mail::fake();
-
-    $this->from(route('register'))
-        ->post(route('register.otp'), ['email' => 'test@example.com']);
-
-    $response = $this->from(route('register'))
-        ->post(route('register.otp'), ['email' => 'test@example.com']);
-
-    $response->assertSessionHasErrors('email');
-    $response->assertRedirect(route('register'));
-});
-
-test('registration fails without otp', function () {
-    $response = $this->post(route('register.store'), [
+    $this->post(route('register.store'), [
         'first_name' => 'Test',
         'last_name' => 'User',
         'email' => 'test@example.com',
-        'password' => 'password',
-        'password_confirmation' => 'password',
+        'mobile_number' => '9876543210',
+    ])->assertSessionHasErrors('g-recaptcha-response');
+
+    expect(User::query()->where('email', 'test@example.com')->exists())->toBeFalse();
+    Mail::assertNothingSent();
+});
+
+test('registration is rejected when recaptcha scores the request as a bot', function () {
+    enableRecaptcha();
+    Mail::fake();
+    Http::fake([
+        'www.google.com/recaptcha/api/siteverify' => Http::response([
+            'success' => true,
+            'score' => 0.1,
+            'action' => 'register',
+        ]),
     ]);
 
-    $response->assertSessionHasErrors('otp');
-    $this->assertGuest();
+    $this->post(route('register.store'), [
+        'first_name' => 'Test',
+        'last_name' => 'User',
+        'email' => 'test@example.com',
+        'mobile_number' => '9876543210',
+        'g-recaptcha-response' => 'bot-token',
+    ])->assertSessionHasErrors('g-recaptcha-response');
+
+    expect(User::query()->where('email', 'test@example.com')->exists())->toBeFalse();
+    Mail::assertNothingSent();
 });

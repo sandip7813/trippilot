@@ -1,6 +1,7 @@
 import { createInertiaApp } from '@inertiajs/vue3';
 import { createApp, createSSRApp, h } from 'vue';
 import type { DefineComponent } from 'vue';
+import NavigationLoader from '@/components/NavigationLoader.vue';
 import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
@@ -25,9 +26,10 @@ createInertiaApp({
         return page();
     },
     setup({ el, App, props, plugin }) {
+        const render = () => [h(App, props), h(NavigationLoader)];
         const app = el?.hasAttribute('data-server-rendered')
-            ? createSSRApp({ render: () => h(App, props) })
-            : createApp({ render: () => h(App, props) });
+            ? createSSRApp({ render })
+            : createApp({ render });
 
         app.use(plugin).mount(el);
     },

@@ -10,19 +10,23 @@ use Illuminate\Translation\PotentiallyTranslatedString;
 class Recaptcha implements ValidationRule
 {
     /**
+     * Whether signups must pass reCAPTCHA. Both keys are required: without a
+     * site key the form cannot request a token, so enforcing it server-side
+     * would block every signup.
+     */
+    public static function isActive(): bool
+    {
+        return (bool) config('recaptcha.enabled')
+            && filled(config('recaptcha.site_key'))
+            && filled(config('recaptcha.secret_key'));
+    }
+
+    /**
      * @param  Closure(string, ?string=): PotentiallyTranslatedString  $fail
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (! config('recaptcha.enabled')) {
-            return;
-        }
-
-        $secretKey = config('recaptcha.secret_key');
-
-        if (blank($secretKey)) {
-            $fail('Captcha verification is not configured.');
-
+        if (! self::isActive()) {
             return;
         }
 
@@ -33,7 +37,7 @@ class Recaptcha implements ValidationRule
         }
 
         $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-            'secret' => $secretKey,
+            'secret' => config('recaptcha.secret_key'),
             'response' => $value,
             'remoteip' => request()->ip(),
         ]);

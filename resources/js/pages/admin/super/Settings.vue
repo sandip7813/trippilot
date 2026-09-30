@@ -96,7 +96,8 @@ defineOptions({
                     <CardDescription>
                         Live status based on the active driver and stored API
                         keys. Values saved here override
-                        <code class="rounded bg-muted px-1 font-mono text-[11px]"
+                        <code
+                            class="rounded bg-muted px-1 font-mono text-[11px]"
                             >.env</code
                         >
                         for this app instance.
@@ -146,7 +147,11 @@ defineOptions({
                 </CardHeader>
                 <CardContent class="space-y-4">
                     <div class="flex items-start gap-3">
-                        <input type="hidden" name="recaptcha_enabled" value="0" />
+                        <input
+                            type="hidden"
+                            name="recaptcha_enabled"
+                            value="0"
+                        />
                         <input
                             id="recaptcha_enabled"
                             type="checkbox"
@@ -170,15 +175,14 @@ defineOptions({
                             </p>
                             <p
                                 v-if="
-                                    integrations.recaptcha_enabled
-                                        && !integrations.recaptcha_configured
+                                    integrations.recaptcha_enabled &&
+                                    !integrations.recaptcha_configured
                                 "
                                 class="text-xs font-medium text-amber-600 dark:text-amber-400"
                             >
-                                reCAPTCHA is enabled but
-                                RECAPTCHA_SITE_KEY / RECAPTCHA_SECRET_KEY are
-                                missing, so signup will skip captcha until keys
-                                are added.
+                                reCAPTCHA is enabled but RECAPTCHA_SITE_KEY /
+                                RECAPTCHA_SECRET_KEY are missing, so signup will
+                                skip captcha until keys are added.
                             </p>
                         </div>
                     </div>
@@ -293,7 +297,11 @@ defineOptions({
                     </div>
 
                     <div class="flex items-center gap-3 md:col-span-2">
-                        <input type="hidden" name="trip_covers_enabled" value="0" />
+                        <input
+                            type="hidden"
+                            name="trip_covers_enabled"
+                            value="0"
+                        />
                         <input
                             id="trip_covers_enabled"
                             type="checkbox"
@@ -319,7 +327,9 @@ defineOptions({
                             name="trip_covers_use_gemini_prompt"
                             value="1"
                             :class="checkboxClass"
-                            :checked="integrations.trip_covers_use_gemini_prompt"
+                            :checked="
+                                integrations.trip_covers_use_gemini_prompt
+                            "
                         />
                         <Label for="trip_covers_use_gemini_prompt"
                             >Enhance cover prompts with Gemini</Label
@@ -348,7 +358,11 @@ defineOptions({
                     </div>
 
                     <div class="flex items-center gap-3 md:col-span-2">
-                        <input type="hidden" name="gemini_image_enabled" value="0" />
+                        <input
+                            type="hidden"
+                            name="gemini_image_enabled"
+                            value="0"
+                        />
                         <input
                             id="gemini_image_enabled"
                             type="checkbox"

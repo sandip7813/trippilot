@@ -10,7 +10,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { formatRelativeTime } from '@/lib/dates';
 import { cn } from '@/lib/utils';
-import { index as notificationsIndex, read, readAll } from '@/routes/notifications';
+import {
+    index as notificationsIndex,
+    read,
+    readAll,
+} from '@/routes/notifications';
 
 const page = usePage();
 
@@ -42,7 +46,9 @@ const kindIcons = {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end" class="w-[22rem] overflow-hidden p-0">
-            <div class="flex items-center justify-between border-b border-border/60 px-4 py-3">
+            <div
+                class="flex items-center justify-between border-b border-border/60 px-4 py-3"
+            >
                 <div class="flex items-center gap-2">
                     <h2 class="text-sm font-semibold">Notifications</h2>
                     <span
@@ -67,7 +73,9 @@ const kindIcons = {
                 v-if="recent.length === 0"
                 class="flex flex-col items-center gap-2 px-6 py-10 text-center"
             >
-                <div class="flex size-10 items-center justify-center rounded-full bg-muted">
+                <div
+                    class="flex size-10 items-center justify-center rounded-full bg-muted"
+                >
                     <Bell class="size-5 text-muted-foreground" />
                 </div>
                 <p class="text-sm font-medium">You're all caught up</p>
@@ -76,7 +84,10 @@ const kindIcons = {
                 </p>
             </div>
 
-            <div v-else class="max-h-96 divide-y divide-border/50 overflow-y-auto">
+            <div
+                v-else
+                class="max-h-96 divide-y divide-border/50 overflow-y-auto"
+            >
                 <DropdownMenuItem
                     v-for="notification in recent"
                     :key="notification.id"
@@ -110,7 +121,9 @@ const kindIcons = {
                             />
                         </span>
                         <span class="min-w-0 flex-1">
-                            <span class="flex items-start justify-between gap-2">
+                            <span
+                                class="flex items-start justify-between gap-2"
+                            >
                                 <span
                                     :class="
                                         cn(
@@ -128,11 +141,17 @@ const kindIcons = {
                                     class="mt-1.5 size-2 shrink-0 rounded-full bg-primary"
                                 />
                             </span>
-                            <span class="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">
+                            <span
+                                class="mt-0.5 line-clamp-2 block text-xs text-muted-foreground"
+                            >
                                 {{ notification.message }}
                             </span>
-                            <span class="mt-1 block text-[11px] text-muted-foreground/80">
-                                {{ formatRelativeTime(notification.created_at) }}
+                            <span
+                                class="mt-1 block text-[11px] text-muted-foreground/80"
+                            >
+                                {{
+                                    formatRelativeTime(notification.created_at)
+                                }}
                             </span>
                         </span>
                     </Link>
