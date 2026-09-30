@@ -400,8 +400,15 @@ watch(isMultiCity, (enabled) => {
 
         <div class="grid gap-4 sm:grid-cols-2">
             <div class="grid gap-2">
-                <Label id="start_date-label" for="start_date">Start date *</Label>
-                <input type="hidden" name="start_date" :value="startDateIso" required />
+                <Label id="start_date-label" for="start_date"
+                    >Start date *</Label
+                >
+                <input
+                    type="hidden"
+                    name="start_date"
+                    :value="startDateIso"
+                    required
+                />
                 <DatePickerField
                     id="start_date"
                     v-model="startDateIso"
@@ -412,7 +419,12 @@ watch(isMultiCity, (enabled) => {
 
             <div class="grid gap-2">
                 <Label id="end_date-label" for="end_date">End date *</Label>
-                <input type="hidden" name="end_date" :value="endDateIso" required />
+                <input
+                    type="hidden"
+                    name="end_date"
+                    :value="endDateIso"
+                    required
+                />
                 <DatePickerField
                     id="end_date"
                     v-model="endDateIso"

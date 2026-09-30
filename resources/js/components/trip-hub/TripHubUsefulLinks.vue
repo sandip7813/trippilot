@@ -37,7 +37,7 @@ const mapUrl = computed(() => {
                 class="inline-flex items-center gap-2 text-primary hover:underline"
             >
                 <MapPin class="size-4 shrink-0" />
-                View destination on OpenStreetMap
+                View destination on map
                 <ExternalLink class="size-3.5 shrink-0" />
             </a>
             <a

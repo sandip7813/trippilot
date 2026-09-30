@@ -8,7 +8,12 @@ import { Label } from '@/components/ui/label';
 import { addDaysToIso, isoToday } from '@/lib/dates';
 import type { OpenTripDetails } from '@/types/trip';
 
-const { details, errors, namePrefix = '', tripStartDate } = defineProps<{
+const {
+    details,
+    errors,
+    namePrefix = '',
+    tripStartDate,
+} = defineProps<{
     details?: OpenTripDetails | null;
     errors: Record<string, string>;
     /**
@@ -63,15 +68,17 @@ const joinDeadlineMax = computed((): string | undefined => {
 });
 
 const joinDeadlineDisabled = computed(
-    () => joinDeadlineMax.value !== undefined && joinDeadlineMax.value < joinDeadlineMin.value,
+    () =>
+        joinDeadlineMax.value !== undefined &&
+        joinDeadlineMax.value < joinDeadlineMin.value,
 );
 </script>
 
 <template>
     <div class="space-y-4">
         <p class="text-sm text-muted-foreground">
-            Category, max group size, and cost model are required before you
-            can publish. Everything else is optional.
+            Category, max group size, and cost model are required before you can
+            publish. Everything else is optional.
         </p>
 
         <div class="grid gap-4 sm:grid-cols-2">
@@ -118,7 +125,9 @@ const joinDeadlineDisabled = computed(
             </div>
 
             <div class="grid gap-2">
-                <Label :for="fieldName('max_group_size')">Max group size *</Label>
+                <Label :for="fieldName('max_group_size')"
+                    >Max group size *</Label
+                >
                 <Input
                     :id="fieldName('max_group_size')"
                     :name="fieldName('max_group_size')"
@@ -131,14 +140,17 @@ const joinDeadlineDisabled = computed(
             </div>
 
             <div class="grid gap-2">
-                <Label :id="`${fieldName('join_deadline')}-label`" :for="fieldName('join_deadline')">
+                <Label
+                    :id="`${fieldName('join_deadline')}-label`"
+                    :for="fieldName('join_deadline')"
+                >
                     Join deadline
                 </Label>
                 <input
                     type="hidden"
                     :name="fieldName('join_deadline')"
                     :value="joinDeadlineIso"
-                >
+                />
                 <DatePickerField
                     :id="fieldName('join_deadline')"
                     v-model="joinDeadlineIso"
@@ -152,7 +164,11 @@ const joinDeadlineDisabled = computed(
                         to be at least 3 days before the start date).
                     </template>
                     <template v-else>
-                        Between today{{ tripStartDate ? ' and 3 days before the trip starts' : '' }}.
+                        Between today{{
+                            tripStartDate
+                                ? ' and 3 days before the trip starts'
+                                : ''
+                        }}.
                     </template>
                 </p>
                 <InputError :message="errors[errorKey('join_deadline')]" />
@@ -204,7 +220,9 @@ const joinDeadlineDisabled = computed(
                     class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 >
                     <option value="">Not set</option>
-                    <option value="cost_sharing">Cost sharing (estimate)</option>
+                    <option value="cost_sharing">
+                        Cost sharing (estimate)
+                    </option>
                     <option value="fixed_price">Fixed price</option>
                     <option value="pay_own">Everyone pays their own</option>
                 </select>
@@ -259,16 +277,26 @@ const joinDeadlineDisabled = computed(
                     field is always present and always a value Laravel
                     considers boolean.
                 -->
-                <input type="hidden" :name="fieldName('share_itinerary_with_members')" value="0">
+                <input
+                    type="hidden"
+                    :name="fieldName('share_itinerary_with_members')"
+                    value="0"
+                />
                 <Checkbox
                     :name="fieldName('share_itinerary_with_members')"
                     value="1"
-                    :default-checked="details?.share_itinerary_with_members ?? true"
+                    :default-checked="
+                        details?.share_itinerary_with_members ?? true
+                    "
                 />
                 Share the full itinerary with accepted members
             </Label>
             <Label class="flex items-center gap-2 font-normal">
-                <input type="hidden" :name="fieldName('member_names_visible')" value="0">
+                <input
+                    type="hidden"
+                    :name="fieldName('member_names_visible')"
+                    value="0"
+                />
                 <Checkbox
                     :name="fieldName('member_names_visible')"
                     value="1"

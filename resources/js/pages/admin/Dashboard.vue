@@ -141,7 +141,10 @@ defineOptions({
         />
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Link :href="usersIndex()" class="block transition-opacity hover:opacity-90">
+            <Link
+                :href="usersIndex()"
+                class="block transition-opacity hover:opacity-90"
+            >
                 <StatCard
                     label="Users"
                     :value="formatCount(stats.users.total)"
@@ -182,7 +185,9 @@ defineOptions({
             <Card class="border-sidebar-border/70 dark:border-sidebar-border">
                 <CardHeader>
                     <CardTitle class="text-base">Trips created</CardTitle>
-                    <CardDescription>Last 6 months · {{ tripHintScope }}</CardDescription>
+                    <CardDescription
+                        >Last 6 months · {{ tripHintScope }}</CardDescription
+                    >
                 </CardHeader>
                 <CardContent>
                     <div class="flex h-40 items-end gap-3">
@@ -191,12 +196,18 @@ defineOptions({
                             :key="month.label"
                             class="flex h-full flex-1 flex-col items-center justify-end gap-1"
                         >
-                            <span class="text-xs font-medium">{{ month.count }}</span>
+                            <span class="text-xs font-medium">{{
+                                month.count
+                            }}</span>
                             <div
                                 class="w-full rounded-t bg-sky-500"
-                                :style="{ height: percent(month.count, maxMonth) }"
+                                :style="{
+                                    height: percent(month.count, maxMonth),
+                                }"
                             />
-                            <span class="text-xs text-muted-foreground">{{ month.label }}</span>
+                            <span class="text-xs text-muted-foreground">{{
+                                month.label
+                            }}</span>
                         </div>
                     </div>
                 </CardContent>
@@ -214,7 +225,10 @@ defineOptions({
                     >
                         No destinations yet.
                     </p>
-                    <div v-for="item in analytics.trips.top_destinations" :key="item.label">
+                    <div
+                        v-for="item in analytics.trips.top_destinations"
+                        :key="item.label"
+                    >
                         <div class="mb-1 flex justify-between gap-2 text-sm">
                             <span class="truncate">{{ item.label }}</span>
                             <span class="font-medium">{{ item.count }}</span>
@@ -222,7 +236,9 @@ defineOptions({
                         <div class="h-2 rounded-full bg-muted">
                             <div
                                 class="h-2 rounded-full bg-teal-500"
-                                :style="{ width: percent(item.count, maxDestination) }"
+                                :style="{
+                                    width: percent(item.count, maxDestination),
+                                }"
                             />
                         </div>
                     </div>
@@ -233,7 +249,9 @@ defineOptions({
         <Card class="border-sidebar-border/70 dark:border-sidebar-border">
             <CardHeader>
                 <CardTitle class="text-base">AI requests per day</CardTitle>
-                <CardDescription>Last {{ analytics.ai.period_days }} days</CardDescription>
+                <CardDescription
+                    >Last {{ analytics.ai.period_days }} days</CardDescription
+                >
             </CardHeader>
             <CardContent>
                 <div class="flex h-32 items-end gap-0.5">
@@ -256,7 +274,10 @@ defineOptions({
             <Card class="border-sidebar-border/70 dark:border-sidebar-border">
                 <CardHeader>
                     <CardTitle class="text-base">Usage by feature</CardTitle>
-                    <CardDescription>Last {{ analytics.ai.period_days }} days</CardDescription>
+                    <CardDescription
+                        >Last
+                        {{ analytics.ai.period_days }} days</CardDescription
+                    >
                 </CardHeader>
                 <CardContent class="space-y-3">
                     <p
@@ -265,18 +286,24 @@ defineOptions({
                     >
                         No AI usage recorded yet.
                     </p>
-                    <div v-for="item in analytics.ai.by_feature" :key="item.feature">
+                    <div
+                        v-for="item in analytics.ai.by_feature"
+                        :key="item.feature"
+                    >
                         <div class="mb-1 flex justify-between gap-2 text-sm">
                             <span>{{ item.label }}</span>
                             <span class="text-muted-foreground">
-                                {{ formatCount(item.requests) }} req · {{ formatCount(item.tokens) }} tokens ·
+                                {{ formatCount(item.requests) }} req ·
+                                {{ formatCount(item.tokens) }} tokens ·
                                 {{ formatCost(item.cost_usd) }}
                             </span>
                         </div>
                         <div class="h-2 rounded-full bg-muted">
                             <div
                                 class="h-2 rounded-full bg-violet-500"
-                                :style="{ width: percent(item.requests, maxFeature) }"
+                                :style="{
+                                    width: percent(item.requests, maxFeature),
+                                }"
                             />
                         </div>
                     </div>
@@ -286,7 +313,10 @@ defineOptions({
             <Card class="border-sidebar-border/70 dark:border-sidebar-border">
                 <CardHeader>
                     <CardTitle class="text-base">Top AI users</CardTitle>
-                    <CardDescription>Last {{ analytics.ai.period_days }} days</CardDescription>
+                    <CardDescription
+                        >Last
+                        {{ analytics.ai.period_days }} days</CardDescription
+                    >
                 </CardHeader>
                 <CardContent class="space-y-3">
                     <p
@@ -302,16 +332,18 @@ defineOptions({
                     >
                         <div class="min-w-0">
                             <p class="truncate font-medium">{{ user.name }}</p>
-                            <p class="truncate text-xs text-muted-foreground">{{ user.email }}</p>
+                            <p class="truncate text-xs text-muted-foreground">
+                                {{ user.email }}
+                            </p>
                         </div>
                         <span class="shrink-0 text-muted-foreground">
-                            {{ formatCount(user.requests) }} req · {{ formatCost(user.cost_usd) }}
+                            {{ formatCount(user.requests) }} req ·
+                            {{ formatCost(user.cost_usd) }}
                         </span>
                     </div>
                 </CardContent>
             </Card>
         </div>
-
 
         <Card class="border-sidebar-border/70 dark:border-sidebar-border">
             <CardHeader>

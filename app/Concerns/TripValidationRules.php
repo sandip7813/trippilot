@@ -62,9 +62,14 @@ trait TripValidationRules
     {
         $required = $updating ? 'sometimes' : 'required';
 
+        // Planning mode isn't meaningful when the trip is being created as an
+        // open trip — the open-trip category covers that instead — so it,
+        // travel style, and budget are all skippable in that flow.
+        $typeRequired = $this->boolean('make_open_trip') ? 'nullable' : $required;
+
         return [
             'title' => [$required, 'string', 'max:255'],
-            'type' => [$required, Rule::enum(TripType::class)],
+            'type' => [$typeRequired, Rule::enum(TripType::class)],
             'travel_style' => ['nullable', Rule::enum(TravelStyle::class)],
             'start_date' => [
                 $required,

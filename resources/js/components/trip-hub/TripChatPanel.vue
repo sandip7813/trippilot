@@ -52,7 +52,7 @@ const coverageHint = computed((): string => {
 
 const chatHint = computed((): string => {
     if (!props.aiConfigured) {
-        return 'Add GEMINI_API_KEY to your environment to chat with TripPilot.';
+        return 'Trip chat is not available right now.';
     }
 
     if (!props.canEdit) {

@@ -288,7 +288,7 @@ class RoadTripController extends Controller
         }
 
         if (! filled(config('integrations.ai.drivers.gemini.api_key'))) {
-            return back()->withErrors(['ai' => __('AI is not configured. Add GEMINI_API_KEY to your environment.')]);
+            return back()->withErrors(['ai' => __('AI features are not available right now.')]);
         }
 
         try {

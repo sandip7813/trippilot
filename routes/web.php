@@ -1,8 +1,9 @@
 <?php
 
 use App\Http\Controllers\Assistant\AssistantConversationController;
-use App\Http\Controllers\Auth\SendRegistrationOtpController;
+use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LocationSearchController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OpenTripController;
@@ -17,19 +18,21 @@ use App\Http\Controllers\TripMembershipController;
 use App\Http\Controllers\TripReportController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', HomeController::class)->name('home');
 
 // Public "Discover" listing and open-trip overview. Reachable by guests, so
 // every response here must go through OpenTripPresenter's whitelist.
 Route::middleware('throttle:60,1')->group(function () {
     Route::get('open-trips', [OpenTripController::class, 'index'])->name('open-trips.index');
+    Route::get('open-trips/suggestions', [OpenTripController::class, 'suggestions'])->name('open-trips.suggestions');
     Route::get('open-trips/{trip}', [OpenTripController::class, 'show'])->name('open-trips.show');
 });
 
-Route::middleware('guest')->group(function () {
-    Route::post('register/otp', SendRegistrationOtpController::class)
-        ->middleware('throttle:registration-otp')
-        ->name('register.otp');
+Route::middleware('auth')->group(function () {
+    Route::get('password/change', [ForcePasswordChangeController::class, 'edit'])->name('password.change');
+    Route::put('password/change', [ForcePasswordChangeController::class, 'update'])
+        ->middleware('throttle:6,1')
+        ->name('password.change.update');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

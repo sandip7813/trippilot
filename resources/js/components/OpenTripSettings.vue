@@ -23,12 +23,16 @@ function togglePublish() {
     publishing.value = true;
     const action = isPublic() ? unpublish(trip.id) : publish(trip.id);
 
-    router.post(action.url, {}, {
-        preserveScroll: true,
-        onFinish: () => {
-            publishing.value = false;
+    router.post(
+        action.url,
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                publishing.value = false;
+            },
         },
-    });
+    );
 }
 
 function toggleExpenseSheetVisibility() {
@@ -50,12 +54,21 @@ function toggleExpenseSheetVisibility() {
             </CardTitle>
         </CardHeader>
         <CardContent class="space-y-6">
-            <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
+            <div
+                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
+            >
                 <div>
                     <div class="flex items-center gap-2">
-                        <component :is="isPublic() ? Globe : Lock" class="size-4 text-muted-foreground" />
+                        <component
+                            :is="isPublic() ? Globe : Lock"
+                            class="size-4 text-muted-foreground"
+                        />
                         <span class="font-medium">
-                            {{ isPublic() ? 'Public — anyone can discover this trip' : 'Private — only you and collaborators' }}
+                            {{
+                                isPublic()
+                                    ? 'Public — anyone can discover this trip'
+                                    : 'Private — only you and collaborators'
+                            }}
                         </span>
                     </div>
                     <p class="mt-1 text-sm text-muted-foreground">
@@ -89,24 +102,34 @@ function toggleExpenseSheetVisibility() {
                         <Spinner v-if="processing" class="mr-2" />
                         Save group details
                     </Button>
-                    <span v-if="recentlySuccessful" class="text-sm text-muted-foreground">Saved.</span>
+                    <span
+                        v-if="recentlySuccessful"
+                        class="text-sm text-muted-foreground"
+                        >Saved.</span
+                    >
                 </div>
             </Form>
 
-            <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
+            <div
+                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
+            >
                 <div>
                     <p class="font-medium">Expense sheet visibility</p>
                     <p class="mt-1 text-sm text-muted-foreground">
                         <Badge variant="secondary" class="mr-1">
                             {{ isSheetShared() ? 'Shared' : 'Private' }}
                         </Badge>
-                        {{ isSheetShared()
-                            ? 'Collaborators can see the expense sheet based on their role.'
-                            : 'Only you can see the expense sheet.' }}
+                        {{
+                            isSheetShared()
+                                ? 'Collaborators can see the expense sheet based on their role.'
+                                : 'Only you can see the expense sheet.'
+                        }}
                     </p>
                 </div>
                 <Button variant="outline" @click="toggleExpenseSheetVisibility">
-                    {{ isSheetShared() ? 'Make private' : 'Share with the trip' }}
+                    {{
+                        isSheetShared() ? 'Make private' : 'Share with the trip'
+                    }}
                 </Button>
             </div>
         </CardContent>

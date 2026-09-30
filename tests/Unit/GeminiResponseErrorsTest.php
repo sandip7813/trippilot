@@ -46,3 +46,19 @@ test('gemini trip generator surfaces quota errors to users', function () {
         'destination' => ['label' => 'Shimla, Himachal Pradesh, India'],
     ]);
 })->throws(AiGenerationException::class, 'daily limit');
+
+test('gemini response errors never expose the provider or configuration to users', function (int $status, string $apiMessage) {
+    $response = new Response(new GuzzleHttp\Psr7\Response($status, [], json_encode([
+        'error' => ['code' => $status, 'message' => $apiMessage],
+    ])));
+
+    expect(GeminiResponseErrors::message($response, 'fallback'))
+        ->not->toContain('Gemini')
+        ->not->toContain('API_KEY')
+        ->not->toContain('environment');
+})->with([
+    'quota' => [429, 'You exceeded your current quota'],
+    'bad key' => [403, 'API key not valid'],
+    'missing model' => [404, 'models/x is not found'],
+    'unavailable' => [503, 'The model is overloaded'],
+]);

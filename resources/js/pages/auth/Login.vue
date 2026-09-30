@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import { ArrowRight, Lock, Mail } from '@lucide/vue';
+import AuthStatus from '@/components/auth/AuthStatus.vue';
+import IconField from '@/components/auth/IconField.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -14,8 +17,8 @@ import { request } from '@/routes/password';
 
 defineOptions({
     layout: {
-        title: 'Log in to your account',
-        description: 'Enter your email and password below to log in',
+        title: 'Welcome back',
+        description: 'Log in to pick up where you left off.',
     },
 });
 
@@ -28,32 +31,30 @@ defineProps<{
 <template>
     <Head title="Log in" />
 
-    <div
-        v-if="status"
-        class="mb-4 text-center text-sm font-medium text-green-600"
-    >
-        {{ status }}
-    </div>
+    <AuthStatus :message="status" />
 
     <Form
         v-bind="store.form()"
         :reset-on-success="['password']"
         v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
+        class="flex flex-col gap-8"
     >
-        <div class="grid gap-6">
+        <div class="grid gap-5">
             <div class="grid gap-2">
                 <Label for="email">Email address</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    name="email"
-                    required
-                    autofocus
-                    :tabindex="1"
-                    autocomplete="email"
-                    placeholder="email@example.com"
-                />
+                <IconField :icon="Mail">
+                    <Input
+                        id="email"
+                        type="email"
+                        name="email"
+                        required
+                        autofocus
+                        :tabindex="1"
+                        autocomplete="email"
+                        placeholder="you@example.com"
+                        class="h-11 pl-10"
+                    />
+                </IconField>
                 <InputError :message="errors.email" />
             </div>
 
@@ -66,42 +67,52 @@ defineProps<{
                         class="text-sm"
                         :tabindex="5"
                     >
-                        Forgot your password?
+                        Forgot password?
                     </TextLink>
                 </div>
-                <PasswordInput
-                    id="password"
-                    name="password"
-                    required
-                    :tabindex="2"
-                    autocomplete="current-password"
-                    placeholder="Password"
-                />
+                <IconField :icon="Lock">
+                    <PasswordInput
+                        id="password"
+                        name="password"
+                        required
+                        :tabindex="2"
+                        autocomplete="current-password"
+                        placeholder="Enter your password"
+                        class="h-11 pl-10"
+                    />
+                </IconField>
                 <InputError :message="errors.password" />
             </div>
 
-            <div class="flex items-center justify-between">
-                <Label for="remember" class="flex items-center space-x-3">
-                    <Checkbox id="remember" name="remember" :tabindex="3" />
-                    <span>Remember me</span>
-                </Label>
-            </div>
+            <Label
+                for="remember"
+                class="flex w-fit items-center gap-3 font-normal text-muted-foreground"
+            >
+                <Checkbox id="remember" name="remember" :tabindex="3" />
+                Keep me logged in
+            </Label>
 
             <Button
                 type="submit"
-                class="mt-4 w-full"
+                size="lg"
+                class="mt-2 h-11 w-full text-base shadow-md shadow-primary/20"
                 :tabindex="4"
                 :disabled="processing"
                 data-test="login-button"
             >
                 <Spinner v-if="processing" />
                 Log in
+                <ArrowRight v-if="!processing" class="size-4" />
             </Button>
         </div>
 
-        <div class="text-center text-sm text-muted-foreground">
-            Don't have an account?
-            <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
+        <div
+            class="border-t border-border/70 pt-6 text-center text-sm text-muted-foreground"
+        >
+            New to TripPilot?
+            <TextLink :href="register()" :tabindex="6" class="font-medium"
+                >Create a free account</TextLink
+            >
         </div>
     </Form>
 </template>

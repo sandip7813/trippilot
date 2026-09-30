@@ -16,9 +16,9 @@ import TripController from '@/actions/App/Http/Controllers/TripController';
 import EmptyState from '@/components/EmptyState.vue';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import TripBadges from '@/components/TripBadges.vue';
 import TripPager from '@/components/TripPager.vue';
 import TripPhaseTabs from '@/components/TripPhaseTabs.vue';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -102,20 +102,6 @@ function openDeleteDialog(trip: Trip): void {
 function closeDeleteDialog(): void {
     deleteDialogOpen.value = false;
     tripToDelete.value = null;
-}
-
-function statusVariant(
-    status: Trip['status'],
-): 'default' | 'secondary' | 'outline' {
-    if (status === 'planned') {
-        return 'default';
-    }
-
-    if (status === 'archived') {
-        return 'outline';
-    }
-
-    return 'secondary';
 }
 
 function coverThumbUrl(trip: Trip): string | null {
@@ -294,30 +280,12 @@ function canEdit(trip: Trip): boolean {
                                 </Button>
                             </div>
 
-                            <div class="mt-2.5 flex flex-wrap gap-1.5">
-                                <Badge
-                                    :variant="statusVariant(trip.status)"
-                                    class="text-xs"
-                                    >{{ trip.status_label }}</Badge
-                                >
-                                <Badge variant="outline" class="text-xs">{{
-                                    trip.type_label
-                                }}</Badge>
-                                <Badge
-                                    v-if="trip.travel_style_label"
-                                    variant="secondary"
-                                    class="bg-violet-500/10 text-xs text-violet-700 dark:text-violet-300"
-                                >
-                                    {{ trip.travel_style_label }}
-                                </Badge>
-                                <Badge
-                                    v-if="!trip.is_owner"
-                                    variant="outline"
-                                    class="border-sky-500/30 bg-sky-500/5 text-xs"
-                                >
-                                    Invited · {{ trip.collaborator_role }}
-                                </Badge>
-                            </div>
+                            <TripBadges
+                                :trip="trip"
+                                size="sm"
+                                :show-scope="false"
+                                class="mt-2.5"
+                            />
 
                             <div
                                 class="mt-2.5 space-y-1 text-sm text-muted-foreground"

@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 beforeEach(function () {
     config([
         'recaptcha.enabled' => true,
+        'recaptcha.site_key' => 'test-site-key',
         'recaptcha.secret_key' => 'test-secret',
         'recaptcha.action' => 'register',
         'recaptcha.score_threshold' => 0.5,

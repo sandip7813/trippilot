@@ -9,29 +9,32 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class RegistrationOtpMail extends Mailable
+class RegistrationPasswordMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
-        public string $code,
-        public int $expiresInMinutes = 10,
+        public string $firstName,
+        public string $email,
+        public string $password,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your TripPilot verification code',
+            subject: 'Your TripPilot one-time password',
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            markdown: 'mail.auth.registration-otp',
+            markdown: 'mail.auth.registration-password',
             with: [
-                'code' => $this->code,
-                'expiresInMinutes' => $this->expiresInMinutes,
+                'firstName' => $this->firstName,
+                'email' => $this->email,
+                'password' => $this->password,
+                'loginUrl' => route('login'),
             ],
         );
     }

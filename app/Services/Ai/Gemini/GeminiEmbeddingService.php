@@ -16,7 +16,7 @@ class GeminiEmbeddingService implements EmbeddingService
     public function embed(string $text): array
     {
         if (! filled(config('integrations.ai.drivers.gemini.api_key'))) {
-            throw new AiGenerationException('Gemini API key is not configured.');
+            throw new AiGenerationException('AI features are not available right now.');
         }
 
         $normalized = trim($text);

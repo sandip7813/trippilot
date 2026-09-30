@@ -147,9 +147,8 @@ defineOptions({
                                 @change="
                                     updateRole(
                                         user,
-                                        (
-                                            $event.target as HTMLSelectElement
-                                        ).value,
+                                        ($event.target as HTMLSelectElement)
+                                            .value,
                                     )
                                 "
                             >
@@ -184,7 +183,10 @@ defineOptions({
             </p>
 
             <div class="flex flex-wrap gap-2">
-                <template v-for="link in users.links" :key="`${link.label}-${link.url}`">
+                <template
+                    v-for="link in users.links"
+                    :key="`${link.label}-${link.url}`"
+                >
                     <Button
                         v-if="link.url"
                         as-child
@@ -195,12 +197,7 @@ defineOptions({
                             <span v-html="link.label" />
                         </Link>
                     </Button>
-                    <Button
-                        v-else
-                        size="sm"
-                        variant="outline"
-                        disabled
-                    >
+                    <Button v-else size="sm" variant="outline" disabled>
                         <span v-html="link.label" />
                     </Button>
                 </template>

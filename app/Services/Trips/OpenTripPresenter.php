@@ -62,6 +62,45 @@ class OpenTripPresenter
     }
 
     /**
+     * Compact listing-card shape: the overview minus the route and itinerary
+     * payloads, for places that only render a teaser (e.g. the home page).
+     *
+     * @return array<string, mixed>
+     */
+    public function card(Trip $trip): array
+    {
+        $destination = Trip::normalizeLocation($trip->getAttribute('destination'));
+        $details = $trip->openTripDetails();
+        $costModel = $trip->openTripCostModel();
+        $maxGroupSize = $trip->maxGroupSize();
+        $memberCount = $trip->acceptedMemberCount();
+
+        return [
+            'id' => (string) $trip->id,
+            'title' => $trip->title,
+            'type' => $trip->type->value,
+            'type_label' => $trip->type->label(),
+            'destination' => $destination !== null ? ['label' => $destination['label']] : null,
+            'start_date' => $trip->start_date?->toDateString(),
+            'end_date' => $trip->end_date?->toDateString(),
+            'cover_image_thumb_url' => $trip->coverImageThumbUrl(),
+            'is_past' => $trip->isPastTrip(),
+            'is_joinable' => $trip->isJoinable(),
+            'organizer' => $this->organizer($trip),
+            'group' => [
+                'category' => $details['category'] ?? null,
+                'difficulty' => $details['difficulty'] ?? null,
+                'max_group_size' => $maxGroupSize,
+                'seats_left' => $maxGroupSize !== null ? max(0, $maxGroupSize - $memberCount) : null,
+                'member_count' => $memberCount,
+                'cost_model_label' => $costModel?->label(),
+                'cost_amount' => $costModel?->hasAmount() ? ($details['cost_amount'] ?? null) : null,
+                'cost_currency' => $costModel?->hasAmount() ? ($details['cost_currency'] ?? null) : null,
+            ],
+        ];
+    }
+
+    /**
      * @return array{name: string}|null
      */
     private function organizer(Trip $trip): ?array

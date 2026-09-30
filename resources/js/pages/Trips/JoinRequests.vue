@@ -22,18 +22,23 @@ type JoinRequestRow = {
 };
 
 const { trip, requests } = defineProps<{
-    trip: { id: string; title: string; max_group_size: number | null; seats_left: number | null };
+    trip: {
+        id: string;
+        title: string;
+        max_group_size: number | null;
+        seats_left: number | null;
+    };
     requests: JoinRequestRow[];
 }>();
 
 const badgeVariant = (status: string) => {
     if (status === 'accepted') {
-return 'default';
-}
+        return 'default';
+    }
 
     if (status === 'declined' || status === 'withdrawn') {
-return 'outline';
-}
+        return 'outline';
+    }
 
     return 'secondary';
 };
@@ -68,28 +73,47 @@ return 'outline';
             description="Requests from travelers who want to join this trip show up here."
         />
 
-        <Card v-for="request in requests" :key="request.id" class="card-vibrant overflow-hidden">
+        <Card
+            v-for="request in requests"
+            :key="request.id"
+            class="card-vibrant overflow-hidden"
+        >
             <div class="brand-gradient h-1" />
             <CardContent class="space-y-3 pt-6">
                 <div class="flex items-center justify-between">
                     <h2 class="font-semibold">{{ request.requester_name }}</h2>
-                    <Badge :variant="badgeVariant(request.status)">{{ request.status_label }}</Badge>
+                    <Badge :variant="badgeVariant(request.status)">{{
+                        request.status_label
+                    }}</Badge>
                 </div>
                 <p class="text-sm text-muted-foreground">
                     {{ request.travelers_count }} traveler(s)
                     <span v-if="request.phone"> · {{ request.phone }}</span>
                 </p>
-                <p v-if="request.message" class="text-sm">{{ request.message }}</p>
+                <p v-if="request.message" class="text-sm">
+                    {{ request.message }}
+                </p>
 
                 <div v-if="request.status === 'pending'" class="flex gap-2">
-                    <Form v-bind="accept.form([trip.id, request.id])" v-slot="{ processing }">
+                    <Form
+                        v-bind="accept.form([trip.id, request.id])"
+                        v-slot="{ processing }"
+                    >
                         <Button type="submit" size="sm" :disabled="processing">
                             <Spinner v-if="processing" class="mr-2" />
                             Accept
                         </Button>
                     </Form>
-                    <Form v-bind="decline.form([trip.id, request.id])" v-slot="{ processing }">
-                        <Button type="submit" size="sm" variant="outline" :disabled="processing">
+                    <Form
+                        v-bind="decline.form([trip.id, request.id])"
+                        v-slot="{ processing }"
+                    >
+                        <Button
+                            type="submit"
+                            size="sm"
+                            variant="outline"
+                            :disabled="processing"
+                        >
                             <Spinner v-if="processing" class="mr-2" />
                             Decline
                         </Button>

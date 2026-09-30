@@ -55,7 +55,7 @@ class AssistantConversationController extends Controller
 
         if (! filled(config('integrations.ai.drivers.gemini.api_key'))) {
             return back()->withErrors([
-                'message' => __('AI assistant is not configured. Add GEMINI_API_KEY to your environment.'),
+                'message' => __('The travel assistant is not available right now.'),
             ]);
         }
 

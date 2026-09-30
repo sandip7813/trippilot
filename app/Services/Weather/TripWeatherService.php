@@ -32,7 +32,7 @@ class TripWeatherService
             return [
                 'available' => false,
                 'reason' => 'driver_disabled',
-                'message' => 'Set WEATHER_DRIVER=open_meteo in your .env file to enable weather.',
+                'message' => 'Weather is not available right now.',
             ];
         }
 

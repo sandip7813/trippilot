@@ -29,7 +29,7 @@ class TripTrainService
             return [
                 'available' => false,
                 'reason' => 'driver_disabled',
-                'message' => 'Set TRAIN_DRIVER=railradar in your .env file to enable train timings.',
+                'message' => 'Train timings are not available right now.',
             ];
         }
 
@@ -37,7 +37,7 @@ class TripTrainService
             return [
                 'available' => false,
                 'reason' => 'driver_disabled',
-                'message' => 'Add RAILRADAR_API_KEY to your .env file to see Indian rail options.',
+                'message' => 'Train timings are not available right now.',
             ];
         }
 
@@ -577,14 +577,14 @@ class TripTrainService
         if (config('integrations.trains.driver') !== 'railradar') {
             return [
                 'available' => false,
-                'message' => 'Set TRAIN_DRIVER=railradar in your .env file to enable live train status.',
+                'message' => 'Live train status is not available right now.',
             ];
         }
 
         if (! filled(config('integrations.trains.drivers.railradar.api_key'))) {
             return [
                 'available' => false,
-                'message' => 'Add RAILRADAR_API_KEY to your .env file to see live train status.',
+                'message' => 'Live train status is not available right now.',
             ];
         }
 

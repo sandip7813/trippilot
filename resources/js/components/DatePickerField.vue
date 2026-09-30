@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { Calendar, ChevronLeft, ChevronRight } from '@lucide/vue';
 import { computed, ref } from 'vue';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import {
     buildIsoDate,
     compareIsoDates,

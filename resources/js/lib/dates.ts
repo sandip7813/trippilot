@@ -156,7 +156,11 @@ export function addDaysToIso(iso: string, days: number): string | null {
     const date = new Date(parsed.year, parsed.month - 1, parsed.day);
     date.setDate(date.getDate() + days);
 
-    return buildIsoDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+    return buildIsoDate(
+        date.getFullYear(),
+        date.getMonth() + 1,
+        date.getDate(),
+    );
 }
 
 export function daysInMonth(year: number, month: number): number {
@@ -176,7 +180,9 @@ export function formatRelativeTime(iso: string | null): string {
     }
 
     const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
-    const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+    const formatter = new Intl.RelativeTimeFormat(undefined, {
+        numeric: 'auto',
+    });
     const units: [Intl.RelativeTimeFormatUnit, number][] = [
         ['day', 86400],
         ['hour', 3600],
@@ -190,4 +196,38 @@ export function formatRelativeTime(iso: string | null): string {
     }
 
     return 'Just now';
+}
+
+/**
+ * Whole days from today until an ISO date (negative when it has passed).
+ */
+export function daysFromToday(iso: string | null | undefined): number | null {
+    const parsed = iso ? parseIsoDate(iso) : null;
+
+    if (!parsed) {
+        return null;
+    }
+
+    const target = new Date(parsed.year, parsed.month - 1, parsed.day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+/**
+ * Compact "12 Oct" style date for badges and chips.
+ */
+export function formatShortDate(iso: string | null | undefined): string {
+    const parsed = iso ? parseIsoDate(iso) : null;
+
+    if (!parsed) {
+        return '';
+    }
+
+    return new Date(
+        parsed.year,
+        parsed.month - 1,
+        parsed.day,
+    ).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }

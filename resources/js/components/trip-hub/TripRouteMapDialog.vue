@@ -111,7 +111,7 @@ const dialogDescription = computed(() => {
                     rel="noopener noreferrer"
                     class="text-primary hover:underline"
                 >
-                    Open full map on OpenStreetMap
+                    Open full map
                 </a>
             </div>
         </DialogContent>

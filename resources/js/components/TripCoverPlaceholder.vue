@@ -48,10 +48,10 @@ withDefaults(
                 <p class="max-w-md text-xs text-muted-foreground">
                     {{
                         pending
-                            ? 'Checking Wikipedia, Wikimedia Commons, Unsplash, and other sources.'
+                            ? 'Looking for a photo of this destination.'
                             : exhausted
                               ? 'Upload your own photo for this place.'
-                              : 'We search Wikipedia, Wikimedia Commons, Unsplash, and other sources.'
+                              : 'We look for a photo of this destination automatically.'
                     }}
                 </p>
             </div>

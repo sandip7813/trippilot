@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     Compass,
+    House,
     LayoutGrid,
     BookOpen,
     ListChecks,
@@ -26,7 +27,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { dashboard, home } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as knowledgeIndex } from '@/routes/admin/knowledge';
 import { settings as superSettings } from '@/routes/admin/super';
@@ -36,7 +37,10 @@ import { index as usersIndex } from '@/routes/admin/users';
 import { index as assistantIndex } from '@/routes/assistant';
 import { index as openTripsIndex } from '@/routes/open-trips';
 import { index as roadTripsIndex } from '@/routes/road-trips';
-import { groupTours as groupToursIndex, index as tripsIndex } from '@/routes/trips';
+import {
+    groupTours as groupToursIndex,
+    index as tripsIndex,
+} from '@/routes/trips';
 import type { Auth, NavItem } from '@/types';
 
 const page = usePage<{ auth: Auth }>();
@@ -70,6 +74,11 @@ const mainNavItems: NavItem[] = [
 ];
 
 const publicNavItems: NavItem[] = [
+    {
+        title: 'Home',
+        href: home(),
+        icon: House,
+    },
     {
         title: 'Discover',
         href: openTripsIndex(),

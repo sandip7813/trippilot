@@ -7,8 +7,10 @@ import {
     Car,
     Check,
     Clock,
+    Coins,
     Copy,
     EyeOff,
+    Globe,
     Map as MapIcon,
     MapPin,
     Maximize2,
@@ -20,6 +22,7 @@ import {
     Sparkles,
     Trash2,
     UserPlus,
+    UsersRound,
     X,
     Zap,
 } from '@lucide/vue';
@@ -38,6 +41,7 @@ import TripHubExpenses from '@/components/trip-hub/TripHubExpenses.vue';
 import TripHubHotels from '@/components/trip-hub/TripHubHotels.vue';
 import TripHubTabs from '@/components/trip-hub/TripHubTabs.vue';
 import type { TripHubTab } from '@/components/trip-hub/TripHubTabs.vue';
+import TripBadge from '@/components/TripBadge.vue';
 import TripCoverPlaceholder from '@/components/TripCoverPlaceholder.vue';
 import TripCoverRegenerateButton from '@/components/TripCoverRegenerateButton.vue';
 import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
@@ -355,9 +359,10 @@ onUnmounted(() => {
             class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-4"
         >
             <div class="flex items-center gap-2">
-                <Badge variant="secondary">Open trip</Badge>
+                <TripBadge tone="teal" :icon="Globe">Open trip</TripBadge>
                 <span class="text-sm text-muted-foreground">
-                    This trip is public. Manage inquiries and join requests below.
+                    This trip is public. Manage inquiries and join requests
+                    below.
                 </span>
             </div>
             <div class="flex gap-2">
@@ -365,7 +370,9 @@ onUnmounted(() => {
                     <Link :href="inquiriesIndex(trip.id)">Inquiries</Link>
                 </Button>
                 <Button variant="outline" size="sm" as-child>
-                    <Link :href="joinRequestsIndex(trip.id)">Join requests</Link>
+                    <Link :href="joinRequestsIndex(trip.id)"
+                        >Join requests</Link
+                    >
                 </Button>
             </div>
         </div>
@@ -375,13 +382,18 @@ onUnmounted(() => {
             class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-4"
         >
             <div class="flex items-center gap-2">
-                <Badge variant="secondary">Member</Badge>
+                <TripBadge tone="violet" :icon="UsersRound">Member</TripBadge>
                 <span class="text-sm text-muted-foreground">
                     You joined this trip as a member.
                 </span>
             </div>
             <Form v-bind="leaveTrip.form(trip.id)" v-slot="{ processing }">
-                <Button type="submit" variant="outline" size="sm" :disabled="processing">
+                <Button
+                    type="submit"
+                    variant="outline"
+                    size="sm"
+                    :disabled="processing"
+                >
                     Leave trip
                 </Button>
             </Form>
@@ -583,13 +595,14 @@ onUnmounted(() => {
                                     {{
                                         collaborator.name ?? collaborator.email
                                     }}
-                                    <Badge
+                                    <TripBadge
                                         v-if="collaborator.status === 'pending'"
-                                        variant="outline"
-                                        class="text-xs"
+                                        tone="amber"
+                                        size="sm"
+                                        dot
                                     >
-                                        Invited
-                                    </Badge>
+                                        Pending
+                                    </TripBadge>
                                 </p>
                                 <p
                                     class="truncate text-xs text-muted-foreground"
@@ -748,36 +761,34 @@ onUnmounted(() => {
                         </template>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-2 pt-1">
-                        <Badge variant="secondary" class="gap-1 font-normal">
-                            <Bike v-if="isBicycleTrip" class="size-3" />
-                            <Car v-else class="size-3" />
+                    <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                        <TripBadge :icon="isBicycleTrip ? Bike : Car">
                             {{ vehicleLabel }}
-                        </Badge>
-                        <Badge
+                        </TripBadge>
+                        <TripBadge
                             v-if="
                                 !isBicycleTrip && trip.road_profile?.fuel_type
                             "
-                            variant="outline"
-                            class="gap-1 font-normal"
+                            tone="emerald"
+                            :icon="Zap"
                         >
-                            <Zap class="size-3" />
                             {{ fuelLabel }}
-                        </Badge>
-                        <Badge
+                        </TripBadge>
+                        <TripBadge
                             v-if="hasRoute && trip.route!.has_tolls"
-                            variant="outline"
-                            class="font-normal"
+                            tone="amber"
+                            :icon="Coins"
                         >
                             Tolls on route
-                        </Badge>
-                        <Badge
+                        </TripBadge>
+                        <TripBadge
                             v-if="!trip.is_owner"
-                            variant="outline"
-                            class="font-normal"
+                            tone="teal"
+                            :icon="UserPlus"
+                            class="capitalize"
                         >
                             Invited · {{ trip.collaborator_role }}
-                        </Badge>
+                        </TripBadge>
                     </div>
 
                     <div
@@ -902,10 +913,10 @@ onUnmounted(() => {
         <div v-if="activeTab === 'route'" class="flex flex-col gap-5">
             <Alert v-if="!mapsConfigured">
                 <MapPin class="size-4" />
-                <AlertTitle>Maps not configured</AlertTitle>
+                <AlertTitle>Maps unavailable</AlertTitle>
                 <AlertDescription>
-                    Add GEOAPIFY_API_KEY to calculate routes and load amenities
-                    along your drive.
+                    Route calculation and amenities along your drive are not
+                    available right now.
                 </AlertDescription>
             </Alert>
 

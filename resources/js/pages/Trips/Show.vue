@@ -2,12 +2,14 @@
 import { Form, Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
+    Globe,
     Heart,
     Maximize2,
     Minimize2,
     Pencil,
     Trash2,
     UserPlus,
+    UsersRound,
     X,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
@@ -26,11 +28,12 @@ import TripHubTabs from '@/components/trip-hub/TripHubTabs.vue';
 import type { TripHubTab } from '@/components/trip-hub/TripHubTabs.vue';
 import TripHubTrainTimings from '@/components/trip-hub/TripHubTrainTimings.vue';
 import TripHubUsefulLinks from '@/components/trip-hub/TripHubUsefulLinks.vue';
+import TripBadge from '@/components/TripBadge.vue';
+import TripBadges from '@/components/TripBadges.vue';
 import TripCoverPlaceholder from '@/components/TripCoverPlaceholder.vue';
 import TripCoverRegenerateButton from '@/components/TripCoverRegenerateButton.vue';
 import TripCoverUploadButton from '@/components/TripCoverUploadButton.vue';
 import TripWeatherCard from '@/components/TripWeatherCard.vue';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
@@ -218,9 +221,10 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-4"
         >
             <div class="flex items-center gap-2">
-                <Badge variant="secondary">Open trip</Badge>
+                <TripBadge tone="teal" :icon="Globe">Open trip</TripBadge>
                 <span class="text-sm text-muted-foreground">
-                    This trip is public. Manage inquiries and join requests below.
+                    This trip is public. Manage inquiries and join requests
+                    below.
                 </span>
             </div>
             <div class="flex gap-2">
@@ -228,7 +232,9 @@ const { waitingForCover } = useTripCoverAutoRefresh();
                     <Link :href="inquiriesIndex(trip.id)">Inquiries</Link>
                 </Button>
                 <Button variant="outline" size="sm" as-child>
-                    <Link :href="joinRequestsIndex(trip.id)">Join requests</Link>
+                    <Link :href="joinRequestsIndex(trip.id)"
+                        >Join requests</Link
+                    >
                 </Button>
             </div>
         </div>
@@ -238,13 +244,18 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-4"
         >
             <div class="flex items-center gap-2">
-                <Badge variant="secondary">Member</Badge>
+                <TripBadge tone="violet" :icon="UsersRound">Member</TripBadge>
                 <span class="text-sm text-muted-foreground">
                     You joined this trip as a member.
                 </span>
             </div>
             <Form v-bind="leaveTrip.form(trip.id)" v-slot="{ processing }">
-                <Button type="submit" variant="outline" size="sm" :disabled="processing">
+                <Button
+                    type="submit"
+                    variant="outline"
+                    size="sm"
+                    :disabled="processing"
+                >
                     Leave trip
                 </Button>
             </Form>
@@ -539,38 +550,7 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             </Dialog>
         </div>
 
-        <div class="flex flex-wrap gap-2">
-            <Badge
-                class="bg-teal-500/15 text-teal-800 hover:bg-teal-500/20 dark:text-teal-200"
-                >{{ trip.status_label }}</Badge
-            >
-            <Badge
-                variant="outline"
-                class="border-violet-500/30 bg-violet-500/5"
-                >{{ trip.type_label }}</Badge
-            >
-            <Badge
-                v-if="trip.travel_style_label"
-                variant="secondary"
-                class="bg-amber-500/15 text-amber-800 dark:text-amber-200"
-            >
-                {{ trip.travel_style_label }}
-            </Badge>
-            <Badge
-                v-if="trip.trip_scope_label"
-                variant="outline"
-                class="border-sky-500/30 bg-sky-500/5"
-            >
-                {{ trip.trip_scope_label }}
-            </Badge>
-            <Badge
-                v-if="!trip.is_owner"
-                variant="outline"
-                class="border-sky-500/30 bg-sky-500/5"
-            >
-                Invited · {{ trip.collaborator_role }}
-            </Badge>
-        </div>
+        <TripBadges :trip="trip" />
 
         <div
             v-if="!trip.is_owner && trip.owner"
@@ -663,13 +643,14 @@ const { waitingForCover } = useTripCoverAutoRefresh();
                                 class="flex items-center gap-1.5 truncate text-sm font-medium"
                             >
                                 {{ collaborator.name ?? collaborator.email }}
-                                <Badge
+                                <TripBadge
                                     v-if="collaborator.status === 'pending'"
-                                    variant="outline"
-                                    class="text-xs"
+                                    tone="amber"
+                                    size="sm"
+                                    dot
                                 >
-                                    Invited
-                                </Badge>
+                                    Pending
+                                </TripBadge>
                             </p>
                             <p class="truncate text-xs text-muted-foreground">
                                 {{ collaborator.email }}
@@ -818,7 +799,10 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             />
         </div>
 
-        <div v-if="activeTab === 'open-trip' && trip.is_owner" class="space-y-8">
+        <div
+            v-if="activeTab === 'open-trip' && trip.is_owner"
+            class="space-y-8"
+        >
             <TripHubOpenTripSection :trip="trip" />
         </div>
 

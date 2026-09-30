@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Form, Head, useForm } from '@inertiajs/vue3';
-import { nextTick, ref } from 'vue';
+import { Head, useForm } from '@inertiajs/vue3';
+import { ArrowRight, Mail, MailCheck, Phone } from '@lucide/vue';
+import { ref } from 'vue';
+import IconField from '@/components/auth/IconField.vue';
 import InputError from '@/components/InputError.vue';
-import OtpInput from '@/components/OtpInput.vue';
-import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,249 +11,176 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useRecaptchaV3 } from '@/composables/useRecaptchaV3';
 import { login } from '@/routes';
-import { otp as sendRegistrationOtp, store } from '@/routes/register';
+import { store } from '@/routes/register';
 
 const props = defineProps<{
-    passwordRules: string;
     recaptcha: {
         enabled: boolean;
         siteKey: string | null;
-    };
-    otpStatus?: {
-        sent: boolean;
-        email: string | null;
     };
 }>();
 
 defineOptions({
     layout: {
-        title: 'Create an account',
-        description: 'Enter your details below to create your account',
+        title: 'Create your account',
+        description: 'Start planning in minutes. No credit card needed.',
     },
 });
 
-const email = ref(props.otpStatus?.email ?? '');
-const otp = ref('');
-const recaptchaToken = ref('');
-const skipRecaptchaOnce = ref(false);
-const captchaSubmitting = ref(false);
-const otpSendForm = useForm({ email: '' });
+const form = useForm({
+    first_name: '',
+    last_name: '',
+    mobile_number: '',
+    email: '',
+    'g-recaptcha-response': '',
+});
 
-const { execute: executeRecaptcha } = useRecaptchaV3(
-    () => props.recaptcha.siteKey,
+const captchaSubmitting = ref(false);
+
+const { execute: executeRecaptcha } = useRecaptchaV3(() =>
+    props.recaptcha.enabled ? props.recaptcha.siteKey : null,
 );
 
-function requestOtp(): void {
-    otpSendForm.email = email.value;
-    otpSendForm.post(sendRegistrationOtp(), {
-        preserveScroll: true,
-    });
-}
+/**
+ * reCAPTCHA v3 tokens expire after two minutes, so a fresh one is requested
+ * right before every submission instead of when the page loads.
+ */
+async function submit(): Promise<void> {
+    form.clearErrors('g-recaptcha-response');
 
-async function handleSubmit(event: Event): Promise<void> {
-    if (
-        !props.recaptcha.enabled ||
-        !props.recaptcha.siteKey ||
-        skipRecaptchaOnce.value
-    ) {
-        skipRecaptchaOnce.value = false;
+    if (props.recaptcha.enabled && props.recaptcha.siteKey) {
+        captchaSubmitting.value = true;
 
-        return;
+        try {
+            form['g-recaptcha-response'] = await executeRecaptcha('register');
+        } catch {
+            form.setError(
+                'g-recaptcha-response',
+                'Captcha could not be loaded. Please refresh the page and try again.',
+            );
+
+            return;
+        } finally {
+            captchaSubmitting.value = false;
+        }
     }
 
-    event.preventDefault();
-    captchaSubmitting.value = true;
-
-    try {
-        recaptchaToken.value = await executeRecaptcha('register');
-        skipRecaptchaOnce.value = true;
-        await nextTick();
-        (event.currentTarget as HTMLFormElement).requestSubmit();
-    } finally {
-        captchaSubmitting.value = false;
-    }
+    form.submit(store());
 }
 </script>
 
 <template>
-    <Head title="Register" />
+    <Head title="Sign up" />
 
-    <Form
-        v-bind="store.form()"
-        :reset-on-success="['password', 'password_confirmation', 'otp']"
-        v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
-        @submit="handleSubmit"
-    >
-        <input
-            type="hidden"
-            name="g-recaptcha-response"
-            :value="recaptchaToken"
-        />
-
-        <div class="grid gap-6">
-            <div class="grid gap-4 sm:grid-cols-2">
+    <form class="flex flex-col gap-8" @submit.prevent="submit">
+        <div class="grid gap-5">
+            <div class="grid gap-5 sm:grid-cols-2 sm:gap-4">
                 <div class="grid gap-2">
                     <Label for="first_name">First name</Label>
                     <Input
                         id="first_name"
+                        v-model="form.first_name"
                         type="text"
+                        name="first_name"
                         required
                         autofocus
                         :tabindex="1"
                         autocomplete="given-name"
-                        name="first_name"
-                        placeholder="First name"
+                        placeholder="Jane"
+                        class="h-11"
                     />
-                    <InputError :message="errors.first_name" />
+                    <InputError :message="form.errors.first_name" />
                 </div>
 
                 <div class="grid gap-2">
                     <Label for="last_name">Last name</Label>
                     <Input
                         id="last_name"
+                        v-model="form.last_name"
                         type="text"
+                        name="last_name"
                         required
                         :tabindex="2"
                         autocomplete="family-name"
-                        name="last_name"
-                        placeholder="Last name"
+                        placeholder="Doe"
+                        class="h-11"
                     />
-                    <InputError :message="errors.last_name" />
+                    <InputError :message="form.errors.last_name" />
                 </div>
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="mobile_number">Mobile number (optional)</Label>
-                <Input
-                    id="mobile_number"
-                    type="tel"
-                    :tabindex="3"
-                    autocomplete="tel"
-                    name="mobile_number"
-                    placeholder="Mobile number"
-                />
-                <InputError :message="errors.mobile_number" />
             </div>
 
             <div class="grid gap-2">
                 <Label for="email">Email address</Label>
-                <div class="flex flex-col gap-2 sm:flex-row">
+                <IconField :icon="Mail">
                     <Input
                         id="email"
-                        v-model="email"
+                        v-model="form.email"
                         type="email"
+                        name="email"
+                        required
+                        :tabindex="3"
+                        autocomplete="email"
+                        placeholder="you@example.com"
+                        class="h-11 pl-10"
+                    />
+                </IconField>
+                <InputError :message="form.errors.email" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="mobile_number">Mobile number</Label>
+                <IconField :icon="Phone">
+                    <Input
+                        id="mobile_number"
+                        v-model="form.mobile_number"
+                        type="tel"
+                        name="mobile_number"
                         required
                         :tabindex="4"
-                        autocomplete="email"
-                        name="email"
-                        placeholder="email@example.com"
-                        class="flex-1"
+                        autocomplete="tel"
+                        placeholder="+91 98765 43210"
+                        class="h-11 pl-10"
                     />
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        class="shrink-0"
-                        :disabled="otpSendForm.processing || !email"
-                        @click="requestOtp"
-                    >
-                        <Spinner v-if="otpSendForm.processing" />
-                        Send code
-                    </Button>
-                </div>
-                <InputError :message="errors.email" />
-                <InputError :message="otpSendForm.errors.email" />
-                <p
-                    v-if="otpStatus?.sent"
-                    class="text-sm font-medium text-green-600"
-                >
-                    Verification code sent to {{ otpStatus.email }}.
+                </IconField>
+                <InputError :message="form.errors.mobile_number" />
+            </div>
+
+            <div
+                class="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground"
+            >
+                <MailCheck class="mt-0.5 size-4 shrink-0 text-primary" />
+                <p>
+                    We'll email you a one-time password. You'll choose your own
+                    password the first time you log in.
                 </p>
             </div>
 
-            <div v-if="otpStatus?.sent || errors.otp" class="grid gap-2">
-                <Label for="otp">Email verification code</Label>
-                <OtpInput id="otp" v-model="otp" name="otp" autofocus />
-                <InputError :message="errors.otp" />
-                <p class="text-xs text-muted-foreground">
-                    Enter the code we emailed you. Codes expire after 10
-                    minutes.
-                </p>
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="password">Password</Label>
-                <PasswordInput
-                    id="password"
-                    required
-                    :tabindex="6"
-                    autocomplete="new-password"
-                    name="password"
-                    placeholder="Password"
-                    :passwordrules="passwordRules"
-                />
-                <InputError :message="errors.password" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="password_confirmation">Confirm password</Label>
-                <PasswordInput
-                    id="password_confirmation"
-                    required
-                    :tabindex="7"
-                    autocomplete="new-password"
-                    name="password_confirmation"
-                    placeholder="Confirm password"
-                    :passwordrules="passwordRules"
-                />
-                <InputError :message="errors.password_confirmation" />
-            </div>
-
-            <InputError :message="errors['g-recaptcha-response']" />
+            <InputError :message="form.errors['g-recaptcha-response']" />
 
             <Button
                 type="submit"
-                class="mt-2 w-full"
-                tabindex="8"
-                :disabled="processing || captchaSubmitting"
+                size="lg"
+                class="h-11 w-full text-base shadow-md shadow-primary/20"
+                :tabindex="5"
+                :disabled="form.processing || captchaSubmitting"
                 data-test="register-user-button"
             >
-                <Spinner v-if="processing || captchaSubmitting" />
+                <Spinner v-if="form.processing || captchaSubmitting" />
                 Create account
+                <ArrowRight
+                    v-if="!form.processing && !captchaSubmitting"
+                    class="size-4"
+                />
             </Button>
-
-            <p
-                v-if="recaptcha.enabled && recaptcha.siteKey"
-                class="text-center text-xs text-muted-foreground"
-            >
-                This site is protected by reCAPTCHA and the Google
-                <a
-                    href="https://policies.google.com/privacy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline underline-offset-4"
-                    >Privacy Policy</a
-                >
-                and
-                <a
-                    href="https://policies.google.com/terms"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline underline-offset-4"
-                    >Terms of Service</a
-                >
-                apply.
-            </p>
         </div>
 
-        <div class="text-center text-sm text-muted-foreground">
+        <div
+            class="border-t border-border/70 pt-6 text-center text-sm text-muted-foreground"
+        >
             Already have an account?
-            <TextLink
-                :href="login()"
-                class="underline underline-offset-4"
-                :tabindex="9"
+            <TextLink :href="login()" :tabindex="6" class="font-medium"
                 >Log in</TextLink
             >
         </div>
-    </Form>
+    </form>
 </template>
