@@ -48,6 +48,20 @@ test('profile information can be updated', function () {
     ]);
 });
 
+test('profile email must have a proper domain', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'email' => 'dfsdfds@asd',
+        ])
+        ->assertSessionHasErrors('email');
+
+    expect($user->refresh()->email)->not->toBe('dfsdfds@asd');
+});
+
 test('email verification status is unchanged when the email address is unchanged', function () {
     $user = User::factory()->create();
 

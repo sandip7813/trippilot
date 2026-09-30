@@ -10,6 +10,11 @@ use Illuminate\Translation\PotentiallyTranslatedString;
 class Recaptcha implements ValidationRule
 {
     /**
+     * @param  string|null  $action  The reCAPTCHA v3 action the token must carry; defaults to the signup action.
+     */
+    public function __construct(private ?string $action = null) {}
+
+    /**
      * Whether signups must pass reCAPTCHA. Both keys are required: without a
      * site key the form cannot request a token, so enforcing it server-side
      * would block every signup.
@@ -57,7 +62,7 @@ class Recaptcha implements ValidationRule
             return;
         }
 
-        $expectedAction = config('recaptcha.action');
+        $expectedAction = $this->action ?? config('recaptcha.action');
 
         if (($payload['action'] ?? '') !== $expectedAction) {
             $fail('Captcha verification failed. Please try again.');

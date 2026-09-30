@@ -4,7 +4,7 @@ import type { HTMLAttributes } from 'vue';
 import { computed } from 'vue';
 import TripPilotBrand from '@/components/TripPilotBrand.vue';
 import { cn } from '@/lib/utils';
-import { dashboard, home, login, register } from '@/routes';
+import { contact, dashboard, home, login, register } from '@/routes';
 import { index as openTripsIndex } from '@/routes/open-trips';
 import { index as tripsIndex } from '@/routes/trips';
 
@@ -34,6 +34,7 @@ const links = computed(() => [
               { title: 'Log in', href: login() },
               { title: 'Sign up', href: register() },
           ]),
+    { title: 'Contact', href: contact() },
 ]);
 </script>
 

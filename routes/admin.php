@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\KnowledgeDocumentController;
+use App\Http\Controllers\Admin\Super\ContactMessageController;
 use App\Http\Controllers\Admin\Super\SettingsController;
 use App\Http\Controllers\Admin\TripController as AdminTripController;
 use App\Http\Controllers\Admin\TripReportController;
@@ -32,4 +33,12 @@ Route::middleware(['auth', 'verified', 'super_admin'])->prefix('admin/super')->n
     Route::get('settings', SettingsController::class)->name('settings');
     Route::patch('settings/integrations', [SettingsController::class, 'updateIntegrations'])
         ->name('settings.integrations');
+
+    Route::get('contact-messages', [ContactMessageController::class, 'index'])->name('contact-messages.index');
+    Route::get('contact-messages/{contactMessage}', [ContactMessageController::class, 'show'])->name('contact-messages.show');
+    Route::post('contact-messages/{contactMessage}/reply', [ContactMessageController::class, 'reply'])
+        ->middleware('throttle:20,1')
+        ->name('contact-messages.reply');
+    Route::patch('contact-messages/{contactMessage}/status', [ContactMessageController::class, 'updateStatus'])
+        ->name('contact-messages.status');
 });

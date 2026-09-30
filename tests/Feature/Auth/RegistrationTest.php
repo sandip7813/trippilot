@@ -161,3 +161,17 @@ test('registration is rejected when recaptcha scores the request as a bot', func
     expect(User::query()->where('email', 'test@example.com')->exists())->toBeFalse();
     Mail::assertNothingSent();
 });
+
+test('registration rejects emails without a proper domain', function (string $email) {
+    Mail::fake();
+
+    $this->post(route('register.store'), [
+        'first_name' => 'Test',
+        'last_name' => 'User',
+        'email' => $email,
+        'mobile_number' => '9876543210',
+    ])->assertSessionHasErrors('email');
+
+    expect(User::query()->where('email', $email)->exists())->toBeFalse();
+    Mail::assertNothingSent();
+})->with(['dfsdfds@asd', 'user@localhost', 'user@domain.', 'no-at-sign.com']);

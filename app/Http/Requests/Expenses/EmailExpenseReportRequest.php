@@ -18,7 +18,7 @@ class EmailExpenseReportRequest extends FormRequest
     {
         return [
             'recipients' => ['required', 'array', 'min:1', 'max:5'],
-            'recipients.*' => ['required', 'email:rfc', 'max:190', 'distinct:ignore_case'],
+            'recipients.*' => ['required', 'email:rfc,filter', 'max:190', 'distinct:ignore_case'],
             'format' => ['required', 'in:csv,pdf'],
             'message' => ['nullable', 'string', 'max:500'],
         ];
