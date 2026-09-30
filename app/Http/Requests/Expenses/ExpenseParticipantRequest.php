@@ -18,7 +18,7 @@ class ExpenseParticipantRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email:rfc', 'max:190'],
+            'email' => ['required', 'email:rfc,filter', 'max:190'],
             'phone' => ['nullable', 'string', 'max:30'],
         ];
     }

@@ -50,3 +50,38 @@ export type AdminTrip = {
     };
     show_url: string;
 };
+
+export type ContactMessageStatus = 'new' | 'replied' | 'closed';
+
+export type AdminContactMessageSummary = {
+    id: number;
+    reference: string;
+    name: string;
+    email: string;
+    topic: string;
+    topic_label: string;
+    subject: string;
+    status: ContactMessageStatus;
+    status_label: string;
+    created_at: string | null;
+    replied_at: string | null;
+};
+
+export type AdminContactMessageListItem = AdminContactMessageSummary & {
+    excerpt: string;
+    replies_count: number;
+};
+
+export type AdminContactMessageReply = {
+    id: number;
+    body: string;
+    author_name: string;
+    created_at: string | null;
+};
+
+export type AdminContactMessage = AdminContactMessageSummary & {
+    message: string;
+    phone: string | null;
+    is_registered: boolean;
+    replies: AdminContactMessageReply[];
+};

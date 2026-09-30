@@ -21,10 +21,7 @@ class StoreTripCollaboratorRequest extends FormRequest
         return [
             'email' => [
                 'required',
-                'email:rfc',
-                // The bare "email" rule only checks RFC syntax, which allows
-                // single-label hosts (e.g. "user@yopmail") with no TLD.
-                'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/',
+                'email:rfc,filter',
             ],
             'role' => ['required', new Enum(TripCollaboratorRole::class)],
         ];

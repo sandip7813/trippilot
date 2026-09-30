@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Assistant\AssistantConversationController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LocationSearchController;
@@ -20,6 +22,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 
+Route::get('contact', [ContactController::class, 'show'])->name('contact');
+Route::post('contact', [ContactController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('contact.store');
+
 // Public "Discover" listing and open-trip overview. Reachable by guests, so
 // every response here must go through OpenTripPresenter's whitelist.
 Route::middleware('throttle:60,1')->group(function () {
@@ -29,6 +36,9 @@ Route::middleware('throttle:60,1')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('contact/messages', [ContactMessageController::class, 'index'])->name('contact.messages.index');
+    Route::get('contact/messages/{contactMessage}', [ContactMessageController::class, 'show'])->name('contact.messages.show');
+
     Route::get('password/change', [ForcePasswordChangeController::class, 'edit'])->name('password.change');
     Route::put('password/change', [ForcePasswordChangeController::class, 'update'])
         ->middleware('throttle:6,1')

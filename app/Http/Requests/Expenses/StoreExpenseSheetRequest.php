@@ -19,7 +19,7 @@ class StoreExpenseSheetRequest extends FormRequest
         return [
             'participants' => ['required', 'array', 'min:1', 'max:30'],
             'participants.*.name' => ['required', 'string', 'max:100'],
-            'participants.*.email' => ['required', 'email:rfc', 'max:190', 'distinct:ignore_case'],
+            'participants.*.email' => ['required', 'email:rfc,filter', 'max:190', 'distinct:ignore_case'],
             'participants.*.phone' => ['nullable', 'string', 'max:30'],
         ];
     }

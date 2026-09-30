@@ -4,7 +4,9 @@ import {
     Compass,
     House,
     LayoutGrid,
+    Mail,
     BookOpen,
+    Inbox,
     ListChecks,
     Map,
     MapPinned,
@@ -27,10 +29,11 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard, home } from '@/routes';
+import { contact, dashboard, home } from '@/routes';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as knowledgeIndex } from '@/routes/admin/knowledge';
 import { settings as superSettings } from '@/routes/admin/super';
+import { index as contactMessagesIndex } from '@/routes/admin/super/contact-messages';
 import { index as tripReportsIndex } from '@/routes/admin/trip-reports';
 import { index as adminTripsIndex } from '@/routes/admin/trips';
 import { index as usersIndex } from '@/routes/admin/users';
@@ -84,6 +87,11 @@ const publicNavItems: NavItem[] = [
         href: openTripsIndex(),
         icon: Compass,
     },
+    {
+        title: 'Contact',
+        href: contact(),
+        icon: Mail,
+    },
 ];
 
 const adminNavItems = computed<NavItem[]>(() => {
@@ -122,11 +130,18 @@ const adminNavItems = computed<NavItem[]>(() => {
     ];
 
     if (user.role === 'super_admin') {
-        items.push({
-            title: 'Super Admin',
-            href: superSettings(),
-            icon: ShieldCheck,
-        });
+        items.push(
+            {
+                title: 'Contact Messages',
+                href: contactMessagesIndex(),
+                icon: Inbox,
+            },
+            {
+                title: 'Super Admin',
+                href: superSettings(),
+                icon: ShieldCheck,
+            },
+        );
     }
 
     return items;

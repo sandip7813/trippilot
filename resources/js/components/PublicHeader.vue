@@ -6,6 +6,7 @@ import {
     LayoutGrid,
     LogIn,
     LogOut,
+    Mail,
     Menu,
     UserPlus,
 } from '@lucide/vue';
@@ -22,7 +23,7 @@ import {
 } from '@/components/ui/sheet';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { cn } from '@/lib/utils';
-import { dashboard, home, login, logout, register } from '@/routes';
+import { contact, dashboard, home, login, logout, register } from '@/routes';
 import { index as openTripsIndex } from '@/routes/open-trips';
 
 /**
@@ -53,6 +54,14 @@ const navItems = computed(() => [
         active: currentUrl.value.startsWith(openTripsIndex().url),
     },
 ]);
+
+/** Kept apart from `navItems` so it renders last, after the account actions. */
+const contactItem = computed(() => ({
+    title: 'Contact',
+    href: contact(),
+    icon: Mail,
+    active: isCurrentUrl(contact()),
+}));
 
 function navLinkClass(active: boolean): string {
     if (isOverlay.value) {
@@ -171,6 +180,16 @@ function handleLogout(): void {
                         <Link :href="register()">Get started free</Link>
                     </Button>
                 </template>
+
+                <Link
+                    :href="contactItem.href"
+                    class="ml-1 inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors"
+                    :class="navLinkClass(contactItem.active)"
+                    :aria-current="contactItem.active ? 'page' : undefined"
+                >
+                    <component :is="contactItem.icon" class="size-4" />
+                    {{ contactItem.title }}
+                </Link>
             </nav>
 
             <!-- Mobile -->
@@ -220,6 +239,19 @@ function handleLogout(): void {
                         >
                             <LayoutGrid class="size-4" />
                             Dashboard
+                        </Link>
+                        <Link
+                            :href="contactItem.href"
+                            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+                            :class="
+                                contactItem.active
+                                    ? 'bg-muted text-foreground'
+                                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                            "
+                            @click="mobileMenuOpen = false"
+                        >
+                            <component :is="contactItem.icon" class="size-4" />
+                            {{ contactItem.title }}
                         </Link>
                     </nav>
 
