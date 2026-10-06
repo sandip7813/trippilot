@@ -284,6 +284,10 @@ class Trip extends Model
      */
     public static function resolveTripScope(?array $origin, ?array $destination): ?TripScope
     {
+        if ($destination === null || self::locationCountryCode($destination) === null) {
+            return null;
+        }
+
         return self::resolveTripScopeFromLocations([$origin, $destination]);
     }
 
@@ -1154,7 +1158,7 @@ class Trip extends Model
             'end_date' => $this->dateValue($this->end_date) !== $this->normalizeDateInput($incoming),
             'origin' => $this->normalizedLocation($this->getAttribute('origin')) !== self::normalizeLocation($incoming),
             'destination' => $this->normalizedLocation($this->getAttribute('destination')) !== self::normalizeLocation($incoming),
-            'route_mode' => ($this->route_mode instanceof TripRouteMode ? $this->route_mode->value : TripRouteMode::Simple->value) !== (string) $incoming,
+            'route_mode' => ($this->route_mode instanceof TripRouteMode ? $this->route_mode->value : TripRouteMode::Simple->value) !== ($incoming instanceof TripRouteMode ? $incoming->value : (string) $incoming),
             'waypoints' => self::normalizeWaypoints($this->getAttribute('waypoints')) !== self::normalizeWaypoints(is_array($incoming) ? $incoming : null),
             'returns_to_origin' => (bool) ($this->returns_to_origin ?? true) !== (bool) $incoming,
             default => false,
