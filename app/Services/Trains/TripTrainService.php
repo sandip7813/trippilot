@@ -131,10 +131,15 @@ class TripTrainService
 
                 $fromStation = $this->stationResolver->resolve($from);
                 $toStation = $this->stationResolver->resolve($to);
-                $legRailhead = $this->railheadResolver->forLocation($to);
+                $isReturnLeg = ($travelLeg['direction'] ?? '') === 'return';
+                $legRailhead = $this->railheadResolver->forLocation($isReturnLeg ? $from : $to);
 
-                if ($toStation === null && $legRailhead !== null) {
-                    $toStation = $legRailhead['station'];
+                if ($legRailhead !== null) {
+                    if ($isReturnLeg) {
+                        $fromStation ??= $legRailhead['station'];
+                    } else {
+                        $toStation ??= $legRailhead['station'];
+                    }
                 }
 
                 if ($fromStation === null || $toStation === null) {
