@@ -6,17 +6,20 @@ import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import LocationField from '@/components/LocationField.vue';
+import MobileNumberField from '@/components/MobileNumberField.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
+import type { CountryDialCodeOption } from '@/types';
 import type { TripLocation } from '@/types/trip';
 
-const { mustVerifyEmail, status, homeCity } = defineProps<{
+const { mustVerifyEmail, status, homeCity, countryDialCodes } = defineProps<{
     mustVerifyEmail: boolean;
     status?: string;
     homeCity?: TripLocation | null;
+    countryDialCodes: CountryDialCodeOption[];
 }>();
 
 defineOptions({
@@ -34,6 +37,8 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 
 const homeCityLocation = ref<TripLocation | null>(homeCity ?? null);
+const mobileCountryCode = ref(user.value.mobile_country_code ?? '+91');
+const mobileNumber = ref(user.value.mobile_number ?? '');
 </script>
 
 <template>
@@ -83,19 +88,12 @@ const homeCityLocation = ref<TripLocation | null>(homeCity ?? null);
                 </div>
             </div>
 
-            <div class="grid gap-2">
-                <Label for="mobile_number">Mobile number (optional)</Label>
-                <Input
-                    id="mobile_number"
-                    type="tel"
-                    class="mt-1 block w-full"
-                    name="mobile_number"
-                    :default-value="user.mobile_number ?? ''"
-                    autocomplete="tel"
-                    placeholder="Mobile number"
-                />
-                <InputError class="mt-2" :message="errors.mobile_number" />
-            </div>
+            <MobileNumberField
+                v-model:country-code="mobileCountryCode"
+                v-model:mobile-number="mobileNumber"
+                :country-dial-codes="countryDialCodes"
+                :error="errors.mobile_number ?? errors.mobile_country_code"
+            />
 
             <div class="grid gap-2">
                 <Label for="email">Email address</Label>

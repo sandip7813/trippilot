@@ -37,6 +37,59 @@ class TripRouteResolver
             ->all();
     }
 
+    /**
+     * Distinct mapped places the trip stays in: each waypoint (not for road
+     * trips, whose waypoints are drive-through stops) and the destination.
+     * The origin is dropped when it is only the home leg of a multi-stop
+     * trip. Places without saved coordinates are skipped.
+     *
+     * @return list<array{label: string, lat: float, lng: float, country_code: string|null}>
+     */
+    public function stayLocations(Trip $trip): array
+    {
+        $candidates = [];
+
+        if (! $trip->isRoadTrip()) {
+            foreach ($this->normalizedWaypoints($trip) as $waypoint) {
+                $candidates[] = $waypoint['location'];
+            }
+        }
+
+        $candidates[] = Trip::normalizeLocation($trip->getAttribute('destination'));
+
+        $locations = [];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate === null || $candidate['lat'] === null || $candidate['lng'] === null) {
+                continue;
+            }
+
+            $locations[$this->coordinateKey($candidate['lat'], $candidate['lng'])] ??= [
+                'label' => (string) $candidate['label'],
+                'lat' => $candidate['lat'],
+                'lng' => $candidate['lng'],
+                'country_code' => $candidate['country_code'],
+            ];
+        }
+
+        $origin = Trip::normalizeLocation($trip->getAttribute('origin'));
+
+        if ($origin !== null && $origin['lat'] !== null && $origin['lng'] !== null && count($locations) > 1) {
+            unset($locations[$this->coordinateKey($origin['lat'], $origin['lng'])]);
+        }
+
+        return array_values($locations);
+    }
+
+    /**
+     * Coordinates rounded to ~1 km, for de-duplicating places and building
+     * cache keys.
+     */
+    public function coordinateKey(float $latitude, float $longitude): string
+    {
+        return number_format($latitude, 2, '.', '').','.number_format($longitude, 2, '.', '');
+    }
+
     public function routeMode(Trip $trip): TripRouteMode
     {
         $waypoints = $this->normalizedWaypoints($trip);

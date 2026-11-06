@@ -18,12 +18,15 @@ import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import LocationCoordinatesAlert from '@/components/LocationCoordinatesAlert.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import TripChatPanel from '@/components/trip-hub/TripChatPanel.vue';
+import TripHubAirports from '@/components/trip-hub/TripHubAirports.vue';
 import TripHubAtAGlance from '@/components/trip-hub/TripHubAtAGlance.vue';
 import TripHubExpenses from '@/components/trip-hub/TripHubExpenses.vue';
 import TripHubHotels from '@/components/trip-hub/TripHubHotels.vue';
 import TripHubItinerarySection from '@/components/trip-hub/TripHubItinerarySection.vue';
 import TripHubOpenTripSection from '@/components/trip-hub/TripHubOpenTripSection.vue';
 import TripHubPracticalSection from '@/components/trip-hub/TripHubPracticalSection.vue';
+import TripHubPublicTransport from '@/components/trip-hub/TripHubPublicTransport.vue';
+import TripHubRouteOverview from '@/components/trip-hub/TripHubRouteOverview.vue';
 import TripHubTabs from '@/components/trip-hub/TripHubTabs.vue';
 import type { TripHubTab } from '@/components/trip-hub/TripHubTabs.vue';
 import TripHubTrainTimings from '@/components/trip-hub/TripHubTrainTimings.vue';
@@ -58,6 +61,7 @@ import { index as joinRequestsIndex } from '@/routes/trips/join-requests';
 import type { TripExpenses } from '@/types/expenses';
 import type { TripHotels } from '@/types/hotel';
 import type { TripTrainTimings } from '@/types/train';
+import type { TripAirports, TripPublicTransport } from '@/types/transport';
 import { locationHasCoordinates, locationRouteLabel } from '@/types/trip';
 import type { RagCoverage, Trip, TripCollaborator } from '@/types/trip';
 import type { TripWeather } from '@/types/weather';
@@ -71,6 +75,8 @@ const props = defineProps<{
     weather?: TripWeather | null;
     trainTimings?: TripTrainTimings | null;
     hotels?: TripHotels | null;
+    airports?: TripAirports | null;
+    publicTransport?: TripPublicTransport | null;
     expenses?: TripExpenses | null;
 }>();
 
@@ -123,20 +129,34 @@ const showTrainTimings = computed(
         (props.trainTimings !== undefined && props.trainTimings != null),
 );
 
+/**
+ * Only the owner sees the open trip summary, and only once the trip is
+ * published; publishing itself is done from the edit page.
+ */
+const isPublishedOpenTrip = computed(
+    () => props.trip.is_owner && props.trip.visibility === 'public',
+);
+
 const activeTab = ref('overview');
 
 const detailTabs = computed<TripHubTab[]>(() => [
     { id: 'overview', label: 'Overview' },
     { id: 'itinerary', label: 'Itinerary' },
-    ...(props.trip.is_owner ? [{ id: 'open-trip', label: 'Open trip' }] : []),
+    { id: 'weather', label: 'Weather' },
+    ...(isPublishedOpenTrip.value
+        ? [{ id: 'open-trip', label: 'Open trip' }]
+        : []),
     ...(showTrainTimings.value
         ? [{ id: 'trains', label: 'Train timings' }]
         : []),
     ...(props.hotels !== null ? [{ id: 'hotels', label: 'Hotels' }] : []),
+    ...(props.airports !== null ? [{ id: 'airports', label: 'Airports' }] : []),
+    ...(props.publicTransport !== null
+        ? [{ id: 'public-transport', label: 'Public transport' }]
+        : []),
     ...(props.expenses !== null ? [{ id: 'expenses', label: 'Expenses' }] : []),
     ...(props.aiConfigured ? [{ id: 'assistant', label: 'AI assistant' }] : []),
     ...(hasExtras.value ? [{ id: 'notes', label: 'Notes & budget' }] : []),
-    { id: 'links', label: 'Useful links' },
 ]);
 
 function toggleFavorite(): void {
@@ -767,28 +787,31 @@ const { waitingForCover } = useTripCoverAutoRefresh();
                         :trip="trip"
                         :train-timings="trainTimings"
                     />
+                    <TripHubUsefulLinks :trip="trip" />
                 </div>
 
-                <div class="xl:col-span-3">
-                    <Card
-                        v-if="weather === undefined"
-                        class="card-vibrant h-full"
-                    >
-                        <div
-                            class="h-1.5 bg-gradient-to-r from-sky-400 via-cyan-500 to-indigo-500"
-                        />
-                        <CardHeader>
-                            <Skeleton class="h-5 w-32" />
-                        </CardHeader>
-                        <CardContent class="space-y-3">
-                            <Skeleton class="h-4 w-3/4" />
-                            <Skeleton class="h-24 w-full" />
-                            <Skeleton class="h-4 w-1/2" />
-                        </CardContent>
-                    </Card>
-                    <TripWeatherCard v-else :weather="weather" />
+                <div class="space-y-4 xl:col-span-3">
+                    <h2 class="section-heading">Route</h2>
+                    <TripHubRouteOverview :trip="trip" />
                 </div>
             </div>
+        </div>
+
+        <div v-if="activeTab === 'weather'" class="space-y-8">
+            <Card v-if="weather === undefined" class="card-vibrant">
+                <div
+                    class="h-1.5 bg-gradient-to-r from-sky-400 via-cyan-500 to-indigo-500"
+                />
+                <CardHeader>
+                    <Skeleton class="h-5 w-32" />
+                </CardHeader>
+                <CardContent class="space-y-3">
+                    <Skeleton class="h-4 w-3/4" />
+                    <Skeleton class="h-24 w-full" />
+                    <Skeleton class="h-4 w-1/2" />
+                </CardContent>
+            </Card>
+            <TripWeatherCard v-else :weather="weather" />
         </div>
 
         <div v-if="activeTab === 'itinerary'" class="space-y-8">
@@ -800,7 +823,7 @@ const { waitingForCover } = useTripCoverAutoRefresh();
         </div>
 
         <div
-            v-if="activeTab === 'open-trip' && trip.is_owner"
+            v-if="activeTab === 'open-trip' && isPublishedOpenTrip"
             class="space-y-8"
         >
             <TripHubOpenTripSection :trip="trip" />
@@ -853,6 +876,22 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             />
         </div>
 
+        <div v-if="activeTab === 'airports'" class="space-y-8">
+            <TripHubAirports
+                v-if="airports !== null"
+                :trip-id="trip.id"
+                :airports="airports"
+            />
+        </div>
+
+        <div v-if="activeTab === 'public-transport'" class="space-y-8">
+            <TripHubPublicTransport
+                v-if="publicTransport !== null"
+                :trip-id="trip.id"
+                :public-transport="publicTransport"
+            />
+        </div>
+
         <div v-if="activeTab === 'expenses'" class="space-y-8">
             <TripHubExpenses
                 v-if="expenses !== null"
@@ -866,10 +905,6 @@ const { waitingForCover } = useTripCoverAutoRefresh();
                 <h2 class="section-heading">Notes &amp; budget</h2>
                 <TripHubPracticalSection :trip="trip" />
             </section>
-        </div>
-
-        <div v-if="activeTab === 'links'" class="space-y-8">
-            <TripHubUsefulLinks :trip="trip" />
         </div>
     </div>
 </template>

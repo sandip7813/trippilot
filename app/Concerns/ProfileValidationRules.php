@@ -2,6 +2,7 @@
 
 namespace App\Concerns;
 
+use App\Enums\CountryDialCode;
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
@@ -15,13 +16,14 @@ trait ProfileValidationRules
      *
      * @return array<string, array<int, ValidationRule|array<mixed>|string>>
      */
-    protected function profileRules(?int $userId = null): array
+    protected function profileRules(?int $userId = null, ?string $mobileCountryCode = null): array
     {
         return [
             'first_name' => $this->firstNameRules(),
             'last_name' => $this->lastNameRules(),
             'email' => $this->emailRules($userId),
-            'mobile_number' => $this->mobileNumberRules(),
+            'mobile_country_code' => $this->mobileCountryCodeRules(),
+            'mobile_number' => $this->mobileNumberRules($mobileCountryCode),
             ...$this->locationRules('home_city'),
         ];
     }
@@ -47,13 +49,31 @@ trait ProfileValidationRules
     }
 
     /**
-     * Get the validation rules used to validate user mobile numbers.
+     * Get the validation rules used to validate the dial code of a user's mobile number.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string|object>
+     */
+    protected function mobileCountryCodeRules(): array
+    {
+        return ['nullable', 'required_with:mobile_number', Rule::enum(CountryDialCode::class)];
+    }
+
+    /**
+     * Get the validation rules used to validate user mobile numbers, sized
+     * for the selected country's number length.
      *
      * @return array<int, ValidationRule|array<mixed>|string>
      */
-    protected function mobileNumberRules(): array
+    protected function mobileNumberRules(?string $mobileCountryCode = null): array
     {
-        return ['nullable', 'string', 'max:20'];
+        $length = (CountryDialCode::tryFrom((string) $mobileCountryCode) ?? CountryDialCode::India)->mobileNumberLength();
+
+        return [
+            'nullable',
+            $length['min'] === $length['max']
+                ? "digits:{$length['min']}"
+                : "digits_between:{$length['min']},{$length['max']}",
+        ];
     }
 
     /**

@@ -4,6 +4,7 @@ export type User = {
     last_name: string;
     name: string;
     email: string;
+    mobile_country_code: string | null;
     mobile_number: string | null;
     role: 'user' | 'admin' | 'super_admin';
     avatar?: string;
@@ -15,6 +16,13 @@ export type User = {
 
 export type Auth = {
     user: User;
+};
+
+export type CountryDialCodeOption = {
+    value: string;
+    label: string;
+    minDigits: number;
+    maxDigits: number;
 };
 
 /* @chisel-passkeys */

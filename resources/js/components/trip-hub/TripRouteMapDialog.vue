@@ -76,9 +76,9 @@ const dialogDescription = computed(() => {
 
             <div
                 v-if="mappedStopCount > 0"
-                class="aspect-[16/9] w-full overflow-hidden"
+                class="h-[min(calc(100dvh-13rem),40rem)] w-full overflow-hidden"
             >
-                <TripRouteMap :points="routeMapPoints" />
+                <TripRouteMap :points="routeMapPoints" compact />
             </div>
 
             <p v-else class="px-6 py-8 text-sm text-muted-foreground">

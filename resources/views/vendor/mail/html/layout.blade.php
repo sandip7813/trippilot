@@ -8,7 +8,8 @@
 <meta name="supported-color-schemes" content="light">
 <style>
 @media only screen and (max-width: 600px) {
-.inner-body {
+.inner-body,
+.header-inner {
 width: 100% !important;
 }
 
@@ -32,11 +33,6 @@ width: 100% !important;
 <td align="center">
 <table class="content" width="100%" cellpadding="0" cellspacing="0" role="presentation">
 {!! $header ?? '' !!}
-
-<!-- Accent bar -->
-<tr>
-<td class="accent-bar" width="100%"></td>
-</tr>
 
 <!-- Email Body -->
 <tr>

@@ -28,7 +28,8 @@ class CreateNewUser implements CreatesNewUsers
             'first_name' => $this->firstNameRules(),
             'last_name' => $this->lastNameRules(),
             'email' => $this->emailRules(),
-            'mobile_number' => ['required', 'string', 'max:20'],
+            'mobile_country_code' => $this->mobileCountryCodeRules(),
+            'mobile_number' => $this->mobileNumberRules($input['mobile_country_code'] ?? null),
             'g-recaptcha-response' => [
                 Recaptcha::isActive() ? 'required' : 'nullable',
                 new Recaptcha,
@@ -41,7 +42,8 @@ class CreateNewUser implements CreatesNewUsers
             'first_name' => $input['first_name'],
             'last_name' => $input['last_name'],
             'email' => $input['email'],
-            'mobile_number' => $input['mobile_number'],
+            'mobile_country_code' => filled($input['mobile_number'] ?? null) ? $input['mobile_country_code'] : null,
+            'mobile_number' => $input['mobile_number'] ?? null,
             'password' => $oneTimePassword,
         ]);
 
