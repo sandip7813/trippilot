@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Enums\CountryDialCode;
 use App\Http\Responses\RegisterResponse;
 use App\Rules\Recaptcha;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -71,6 +72,7 @@ class FortifyServiceProvider extends ServiceProvider
         ]));
 
         Fortify::registerView(fn () => Inertia::render('auth/Register', [
+            'countryDialCodes' => CountryDialCode::options(),
             'recaptcha' => [
                 'enabled' => Recaptcha::isActive(),
                 'siteKey' => config('recaptcha.site_key'),

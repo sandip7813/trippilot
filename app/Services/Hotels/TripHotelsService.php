@@ -54,7 +54,7 @@ class TripHotelsService
     }
 
     /**
-     * @return list<array{label: string, lat: float, lng: float}>
+     * @return list<array{label: string, lat: float, lng: float, country_code: string|null}>
      */
     private function locations(Trip $trip): array
     {
@@ -62,47 +62,17 @@ class TripHotelsService
             return [];
         }
 
-        $candidates = [];
-
-        if (! $trip->isRoadTrip()) {
-            foreach ($this->routeResolver->normalizedWaypoints($trip) as $waypoint) {
-                $candidates[] = $waypoint['location'];
-            }
-        }
-
-        $candidates[] = Trip::normalizeLocation($trip->getAttribute('destination'));
-
-        $locations = [];
-
-        foreach ($candidates as $candidate) {
-            if ($candidate === null || $candidate['lat'] === null || $candidate['lng'] === null) {
-                continue;
-            }
-
-            $locations[$this->coordinateKey($candidate['lat'], $candidate['lng'])] ??= [
-                'label' => (string) $candidate['label'],
-                'lat' => $candidate['lat'],
-                'lng' => $candidate['lng'],
-            ];
-        }
-
-        $origin = Trip::normalizeLocation($trip->getAttribute('origin'));
-
-        if ($origin !== null && $origin['lat'] !== null && $origin['lng'] !== null && count($locations) > 1) {
-            unset($locations[$this->coordinateKey($origin['lat'], $origin['lng'])]);
-        }
-
-        return array_values($locations);
+        return $this->routeResolver->stayLocations($trip);
     }
 
     /**
-     * @param  array{label: string, lat: float, lng: float}  $location
+     * @param  array{label: string, lat: float, lng: float, country_code: string|null}  $location
      * @return array{available: bool, hotels: list<array<string, mixed>>, has_more: bool, next_offset: int, message?: string}
      */
     private function page(array $location, int $offset): array
     {
         $pageSize = (int) config('integrations.hotels.page_size');
-        $cacheKey = sprintf('hotels:geoapify:v4:%s:%d', $this->coordinateKey($location['lat'], $location['lng']), $offset);
+        $cacheKey = sprintf('hotels:geoapify:v4:%s:%d', $this->routeResolver->coordinateKey($location['lat'], $location['lng']), $offset);
 
         /** @var array{hotels: list<array<string, mixed>>, has_more: bool}|null $page */
         $page = Cache::get($cacheKey);
@@ -148,10 +118,5 @@ class TripHotelsService
     private function unloadedPage(): array
     {
         return ['available' => true, 'hotels' => null, 'has_more' => false, 'next_offset' => 0];
-    }
-
-    private function coordinateKey(float $latitude, float $longitude): string
-    {
-        return number_format($latitude, 2, '.', '').','.number_format($longitude, 2, '.', '');
     }
 }

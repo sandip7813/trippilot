@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { ArrowRight, Mail, MailCheck, Phone } from '@lucide/vue';
+import { ArrowRight, Mail, MailCheck } from '@lucide/vue';
 import { ref } from 'vue';
 import IconField from '@/components/auth/IconField.vue';
 import InputError from '@/components/InputError.vue';
+import MobileNumberField from '@/components/MobileNumberField.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +13,10 @@ import { Spinner } from '@/components/ui/spinner';
 import { useRecaptchaV3 } from '@/composables/useRecaptchaV3';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
+import type { CountryDialCodeOption } from '@/types';
 
 const props = defineProps<{
+    countryDialCodes: CountryDialCodeOption[];
     recaptcha: {
         enabled: boolean;
         siteKey: string | null;
@@ -30,6 +33,7 @@ defineOptions({
 const form = useForm({
     first_name: '',
     last_name: '',
+    mobile_country_code: '+91',
     mobile_number: '',
     email: '',
     'g-recaptcha-response': '',
@@ -127,23 +131,16 @@ async function submit(): Promise<void> {
                 <InputError :message="form.errors.email" />
             </div>
 
-            <div class="grid gap-2">
-                <Label for="mobile_number">Mobile number</Label>
-                <IconField :icon="Phone">
-                    <Input
-                        id="mobile_number"
-                        v-model="form.mobile_number"
-                        type="tel"
-                        name="mobile_number"
-                        required
-                        :tabindex="4"
-                        autocomplete="tel"
-                        placeholder="+91 98765 43210"
-                        class="h-11 pl-10"
-                    />
-                </IconField>
-                <InputError :message="form.errors.mobile_number" />
-            </div>
+            <MobileNumberField
+                v-model:country-code="form.mobile_country_code"
+                v-model:mobile-number="form.mobile_number"
+                :country-dial-codes="countryDialCodes"
+                :error="
+                    form.errors.mobile_number ?? form.errors.mobile_country_code
+                "
+                :tabindex="4"
+                input-class="h-11"
+            />
 
             <div
                 class="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-muted-foreground"
@@ -161,7 +158,7 @@ async function submit(): Promise<void> {
                 type="submit"
                 size="lg"
                 class="h-11 w-full text-base shadow-md shadow-primary/20"
-                :tabindex="5"
+                :tabindex="6"
                 :disabled="form.processing || captchaSubmitting"
                 data-test="register-user-button"
             >
@@ -178,7 +175,7 @@ async function submit(): Promise<void> {
             class="border-t border-border/70 pt-6 text-center text-sm text-muted-foreground"
         >
             Already have an account?
-            <TextLink :href="login()" :tabindex="6" class="font-medium"
+            <TextLink :href="login()" :tabindex="7" class="font-medium"
                 >Log in</TextLink
             >
         </div>

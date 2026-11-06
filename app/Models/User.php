@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property string $last_name
  * @property string $name
  * @property string $email
+ * @property string|null $mobile_country_code
  * @property string|null $mobile_number
  * @property UserRole $role
  * @property Carbon|null $email_verified_at
@@ -33,7 +34,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['first_name', 'last_name', 'email', 'mobile_number', 'password', 'role', 'travel_preferences'])]
+#[Fillable(['first_name', 'last_name', 'email', 'mobile_country_code', 'mobile_number', 'password', 'role', 'travel_preferences'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {

@@ -161,7 +161,7 @@ test('multi-city trips get a location per stay with only the first loaded', func
     $this->actingAs($user)
         ->get(route('trips.show', $trip))
         ->assertInertia(fn ($page) => $page
-            ->loadDeferredProps(fn ($page) => $page
+            ->loadDeferredProps('trip-extras', fn ($page) => $page
                 ->has('hotels.locations', 3)
                 ->where('hotels.locations.0.label', 'Delhi, India')
                 ->where('hotels.locations.1.label', 'Agra, India')

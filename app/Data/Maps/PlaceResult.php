@@ -4,6 +4,9 @@ namespace App\Data\Maps;
 
 readonly class PlaceResult
 {
+    /**
+     * @param  array<string, mixed>  $tags  Raw OpenStreetMap tags (operator, network, phone, website, ...).
+     */
     public function __construct(
         public string $name,
         public string $category,
@@ -11,7 +14,18 @@ readonly class PlaceResult
         public float $longitude,
         public ?string $address = null,
         public ?string $placeId = null,
+        public array $tags = [],
     ) {}
+
+    /**
+     * A non-empty string tag value, or null.
+     */
+    public function tag(string $key): ?string
+    {
+        $value = $this->tags[$key] ?? null;
+
+        return is_scalar($value) && trim((string) $value) !== '' ? trim((string) $value) : null;
+    }
 
     /**
      * @return array<string, mixed>

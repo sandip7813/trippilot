@@ -16,6 +16,7 @@ use App\Services\Ai\Gemini\GeminiEmbeddingService;
 use App\Services\Ai\Gemini\GeminiTravelAssistant;
 use App\Services\Ai\Gemini\GeminiTripCoverGenerator;
 use App\Services\Ai\Gemini\GeminiTripGenerator;
+use App\Services\Airports\AirportDirectory;
 use App\Services\Hotels\Geoapify\GeoapifyHotelsService;
 use App\Services\Hotels\TripHotelsService;
 use App\Services\Maps\Geoapify\GeoapifyAutocomplete;
@@ -27,6 +28,8 @@ use App\Services\Trains\RailRadarClient;
 use App\Services\Trains\RailwayStationResolver;
 use App\Services\Trains\TripTrainHaltsService;
 use App\Services\Trains\TripTrainService;
+use App\Services\Transport\TripAirportsService;
+use App\Services\Transport\TripPublicTransportService;
 use App\Services\TripCovers\PollinationsTripCoverGenerator;
 use App\Services\TripCovers\UnsplashTripCoverGenerator;
 use App\Services\Trips\TripRouteResolver;
@@ -55,6 +58,9 @@ class IntegrationServiceProvider extends ServiceProvider
         $this->app->singleton(TripRouteResolver::class);
         $this->app->singleton(OpenWeatherMapClient::class);
         $this->app->singleton(TripHotelsService::class);
+        $this->app->singleton(AirportDirectory::class);
+        $this->app->singleton(TripAirportsService::class);
+        $this->app->singleton(TripPublicTransportService::class);
 
         $this->registerMapsServices();
         $this->registerWeatherServices();

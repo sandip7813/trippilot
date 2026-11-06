@@ -13,10 +13,17 @@ type LeafletModule = typeof LeafletTypes;
 
 const props = defineProps<{
     points: TripRouteMapPoint[];
+    /**
+     * Fill a parent that sets its own height (an inline preview, or a dialog
+     * sized to the screen) instead of reserving most of the viewport.
+     */
+    compact?: boolean;
 }>();
 
 const mapRoot = ref<HTMLElement | null>(null);
 const mapReady = ref(false);
+/** Set when map tiles fail to load and none have loaded yet. */
+const tilesFailed = ref(false);
 
 let leaflet: LeafletModule | null = null;
 let map: LeafletMap | null = null;
@@ -74,10 +81,20 @@ function renderMap(): void {
             scrollWheelZoom: true,
         });
 
+        let tileLoaded = false;
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 19,
-        }).addTo(map);
+        })
+            .on('tileload', () => {
+                tileLoaded = true;
+                tilesFailed.value = false;
+            })
+            .on('tileerror', () => {
+                tilesFailed.value = !tileLoaded;
+            })
+            .addTo(map);
     }
 
     if (layerGroup) {
@@ -183,8 +200,27 @@ onUnmounted(() => {
 
 <template>
     <div
-        ref="mapRoot"
-        class="size-full min-h-[50vh] bg-muted sm:min-h-[60vh]"
-        :class="{ 'opacity-0': !mapReady }"
-    />
+        class="relative isolate size-full"
+        :class="[
+            compact ? 'min-h-64' : 'min-h-[50vh] sm:min-h-[60vh]',
+            { 'opacity-0': !mapReady },
+        ]"
+    >
+        <!--
+            Leaflet adds its own classes (leaflet-container, ...) to this
+            element, so it must not have a reactive class binding: Vue would
+            overwrite them on the next update, and without
+            .leaflet-container the tiles shrink to nothing.
+        -->
+        <div ref="mapRoot" class="absolute inset-0 bg-muted" />
+
+        <p
+            v-if="tilesFailed"
+            class="pointer-events-none absolute inset-x-3 bottom-8 z-[1000] rounded-lg bg-background/95 px-3 py-2 text-center text-xs text-muted-foreground shadow-md"
+            role="status"
+        >
+            The map background couldn't load. Check your internet connection and
+            try again.
+        </p>
+    </div>
 </template>

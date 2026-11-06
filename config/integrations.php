@@ -44,6 +44,38 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Airports & Public Transport
+    |--------------------------------------------------------------------------
+    |
+    | Nearest airports come from a trimmed copy of the public-domain OurAirports
+    | dataset (refresh it with `php artisan trippilot:refresh-airports`).
+    | Public transport stops (with operators and routes), taxi and rental
+    | services, and airport transfer estimates come from the configured maps
+    | driver (Geoapify, built on OpenStreetMap). Transfer times by public transport use
+    | Geoapify's approximated transit mode, so they are typical times, not
+    | live timetables.
+    |
+    */
+
+    'airports' => [
+        'data_path' => database_path('data/airports.csv'),
+        'source_url' => 'https://davidmegginson.github.io/ourairports-data/airports.csv',
+        'max_results' => (int) env('AIRPORTS_MAX_RESULTS', 3),
+        'max_distance_km' => (int) env('AIRPORTS_MAX_DISTANCE_KM', 300),
+    ],
+
+    'transport' => [
+        'cache_ttl' => (int) env('TRANSPORT_CACHE_TTL', 604800),
+        'failure_cache_ttl' => (int) env('TRANSPORT_FAILURE_CACHE_TTL', 86400),
+        'stops_radius_meters' => (int) env('TRANSPORT_STOPS_RADIUS_METERS', 3000),
+        'stops_per_mode' => (int) env('TRANSPORT_STOPS_PER_MODE', 10),
+        'services_radius_meters' => (int) env('TRANSPORT_SERVICES_RADIUS_METERS', 10000),
+        'services_limit' => (int) env('TRANSPORT_SERVICES_LIMIT', 8),
+        'transfer_transit_max_km' => (int) env('TRANSPORT_TRANSFER_TRANSIT_MAX_KM', 80),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Weather Integration
     |--------------------------------------------------------------------------
     */

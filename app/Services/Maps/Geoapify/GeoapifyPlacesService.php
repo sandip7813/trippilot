@@ -110,6 +110,7 @@ class GeoapifyPlacesService implements PlacesService
             longitude: (float) $coordinates[0],
             address: isset($properties['formatted']) ? (string) $properties['formatted'] : null,
             placeId: isset($properties['place_id']) ? (string) $properties['place_id'] : null,
+            tags: is_array($properties['datasource']['raw'] ?? null) ? $properties['datasource']['raw'] : [],
         );
     }
 

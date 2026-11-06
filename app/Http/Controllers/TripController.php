@@ -26,6 +26,8 @@ use App\Services\Expenses\ExpenseSheetPresenter;
 use App\Services\Hotels\TripHotelsService;
 use App\Services\Trains\TripTrainHaltsService;
 use App\Services\Trains\TripTrainService;
+use App\Services\Transport\TripAirportsService;
+use App\Services\Transport\TripPublicTransportService;
 use App\Services\Trips\OpenTripPresenter;
 use App\Services\Trips\TripAiContextBuilder;
 use App\Services\Trips\TripCoverImageService;
@@ -230,8 +232,15 @@ class TripController extends Controller
         return to_route('trips.edit', $trip);
     }
 
-    public function show(Trip $trip, TripWeatherService $tripWeather, TripTrainService $tripTrains, TripHotelsService $tripHotels, TripAiContextBuilder $tripAiContext): Response
-    {
+    public function show(
+        Trip $trip,
+        TripWeatherService $tripWeather,
+        TripTrainService $tripTrains,
+        TripHotelsService $tripHotels,
+        TripAirportsService $tripAirports,
+        TripPublicTransportService $tripPublicTransport,
+        TripAiContextBuilder $tripAiContext,
+    ): Response {
         $this->authorize('view', $trip);
 
         return Inertia::render('Trips/Show', [
@@ -241,6 +250,8 @@ class TripController extends Controller
             'weather' => Inertia::defer(fn () => $tripWeather->forTrip($trip), 'trip-extras'),
             'trainTimings' => Inertia::defer(fn () => $tripTrains->forTrip($trip), 'trip-extras'),
             'hotels' => Inertia::defer(fn () => $tripHotels->forTrip($trip), 'trip-extras'),
+            'airports' => Inertia::defer(fn () => $tripAirports->forTrip($trip), 'airports'),
+            'publicTransport' => Inertia::defer(fn () => $tripPublicTransport->forTrip($trip), 'public-transport'),
             'expenses' => Inertia::defer(fn () => app(ExpenseSheetPresenter::class)->forTrip($trip, request()->user()), 'expenses'),
         ]);
     }
@@ -259,6 +270,37 @@ class TripController extends Controller
         abort_if($page === null, 404);
 
         return response()->json($page);
+    }
+
+    public function airportTransfer(Trip $trip, Request $request, TripAirportsService $tripAirports): JsonResponse
+    {
+        $this->authorize('view', $trip);
+
+        $validated = $request->validate([
+            'location' => ['required', 'integer', 'min:0', 'max:50'],
+            'airport' => ['nullable', 'string', 'regex:/^[A-Za-z]{3}$/'],
+        ]);
+
+        $transfer = $tripAirports->transferForLocation($trip, (int) $validated['location'], $validated['airport'] ?? null);
+
+        abort_if($transfer === null, 404);
+
+        return response()->json($transfer);
+    }
+
+    public function publicTransport(Trip $trip, Request $request, TripPublicTransportService $tripPublicTransport): JsonResponse
+    {
+        $this->authorize('view', $trip);
+
+        $validated = $request->validate([
+            'location' => ['required', 'integer', 'min:0', 'max:50'],
+        ]);
+
+        $publicTransport = $tripPublicTransport->forLocation($trip, (int) $validated['location']);
+
+        abort_if($publicTransport === null, 404);
+
+        return response()->json($publicTransport);
     }
 
     public function trainHalts(Trip $trip, string $trainNumber, Request $request, TripTrainHaltsService $tripTrainHalts): JsonResponse

@@ -54,7 +54,7 @@ watch(active, (id) => {
 
 <template>
     <div
-        class="flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/40 p-1"
+        class="flex [scrollbar-width:none] gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/40 p-1 sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden"
         role="tablist"
     >
         <button

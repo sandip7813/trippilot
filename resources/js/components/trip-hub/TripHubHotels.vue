@@ -10,7 +10,8 @@ import {
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
-import TripHubHotelMapDialog from '@/components/trip-hub/TripHubHotelMapDialog.vue';
+import TripHubMapDialog from '@/components/trip-hub/TripHubMapDialog.vue';
+import type { MapPlace } from '@/components/trip-hub/TripHubMapDialog.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +39,16 @@ const states = ref<LocationState[]>([]);
 const activeIndex = ref(0);
 const selectedHotel = ref<TripHotel | null>(null);
 const mapOpen = ref(false);
+const selectedHotelPlace = computed<MapPlace | null>(() =>
+    selectedHotel.value
+        ? {
+              name: selectedHotel.value.name,
+              description: selectedHotel.value.address ?? 'Hotel location',
+              lat: selectedHotel.value.lat,
+              lng: selectedHotel.value.lng,
+          }
+        : null,
+);
 
 watch(
     () => props.hotels,
@@ -354,6 +365,6 @@ function websiteHost(url: string): string {
             </template>
         </CardContent>
 
-        <TripHubHotelMapDialog v-model:open="mapOpen" :hotel="selectedHotel" />
+        <TripHubMapDialog v-model:open="mapOpen" :place="selectedHotelPlace" />
     </Card>
 </template>

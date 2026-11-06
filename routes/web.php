@@ -69,6 +69,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('trips/{trip}/hotels', [TripController::class, 'hotels'])
         ->middleware('throttle:60,1')
         ->name('trips.hotels');
+    Route::get('trips/{trip}/airports/transfer', [TripController::class, 'airportTransfer'])
+        ->middleware('throttle:60,1')
+        ->name('trips.airports.transfer');
+    Route::get('trips/{trip}/public-transport', [TripController::class, 'publicTransport'])
+        ->middleware('throttle:60,1')
+        ->name('trips.public-transport');
     Route::get('trips/{trip}/trains/{trainNumber}/halts', [TripController::class, 'trainHalts'])
         ->middleware('throttle:30,1')
         ->name('trips.trains.halts');

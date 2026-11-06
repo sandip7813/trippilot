@@ -1,21 +1,26 @@
 <x-mail::message>
-# Welcome to TripPilot, {{ $firstName }}!
+# Welcome aboard, {{ $firstName }}!
 
-Your account has been created. Use the one-time password below to log in:
+Your TripPilot account is ready. Use the one-time password below to log in for the first time.
 
-<x-mail::panel>
-**Email:** {{ $email }}<br>
-**One-time password:** {{ $password }}
-</x-mail::panel>
+<x-mail::details :rows="[
+    'Email' => $email,
+]" />
 
-You will be asked to choose a new password the first time you log in.
+<x-mail::code-box label="One-time password" :code="$password" hint="Case-sensitive. Copy it exactly as shown." />
 
 <x-mail::button :url="$loginUrl">
-Log in
+Log in to TripPilot
 </x-mail::button>
 
-If you did not create this account, you can ignore this email.
+Right after you log in, you will be asked to choose your own password. The one-time password stops working once you do.
 
-Thanks,<br>
-{{ config('app.name') }}
+Happy travels,<br>
+The {{ config('app.name') }} team
+
+<x-slot:subcopy>
+If the button does not work, paste this link into your browser: [{{ $loginUrl }}]({{ $loginUrl }})
+
+Did not create a TripPilot account? You can safely ignore this email.
+</x-slot:subcopy>
 </x-mail::message>

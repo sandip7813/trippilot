@@ -62,6 +62,58 @@ test('profile email must have a proper domain', function () {
     expect($user->refresh()->email)->not->toBe('dfsdfds@asd');
 });
 
+test('profile mobile number is saved with its country code', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'email' => $user->email,
+            'mobile_country_code' => '+971',
+            'mobile_number' => '501234567',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($user->refresh())
+        ->mobile_country_code->toBe('+971')
+        ->mobile_number->toBe('501234567');
+});
+
+test('profile mobile number can be removed', function () {
+    $user = User::factory()->create(['mobile_country_code' => '+91', 'mobile_number' => '9876543210']);
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'email' => $user->email,
+            'mobile_country_code' => '+91',
+            'mobile_number' => '',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($user->refresh())
+        ->mobile_country_code->toBeNull()
+        ->mobile_number->toBeNull();
+});
+
+test('profile rejects a mobile number of the wrong length for its country', function () {
+    $user = User::factory()->create(['mobile_country_code' => '+91', 'mobile_number' => '9876543210']);
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), [
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'email' => $user->email,
+            'mobile_country_code' => '+91',
+            'mobile_number' => '98765',
+        ])
+        ->assertSessionHasErrors('mobile_number');
+
+    expect($user->refresh()->mobile_number)->toBe('9876543210');
+});
+
 test('email verification status is unchanged when the email address is unchanged', function () {
     $user = User::factory()->create();
 
