@@ -1,0 +1,101 @@
+name: Deploy to Lightsail
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+# Never run two deploys at the same time
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          extensions: mongodb, mbstring, intl, bcmath, gd, zip, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # A throwaway .env so artisan can boot during the build (Wayfinder needs it).
+      # It is NOT uploaded – the server keeps its own production .env.
+      - name: Prepare build environment
+        run: cp .env.example .env
+
+      - name: Install PHP dependencies (production only)
+        run: composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Generate build key
+        run: php artisan key:generate --ansi
+
+      - name: Build frontend (Vite + Vue)
+        run: |
+          npm ci
+          npm run build
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Upload application
+        run: |
+          rsync -rltz --delete \
+            --exclude='/.git/' \
+            --exclude='/.github/' \
+            --exclude='/node_modules/' \
+            --exclude='/.env' \
+            --exclude='/storage/' \
+            --exclude='/bootstrap/cache/' \
+            --exclude='/public/storage' \
+            --exclude='/public/hot' \
+            --exclude='/tests/' \
+            --exclude='/docs/' \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/www/trippilot/
+
+      - name: Run release tasks on server
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} 'bash -se' << 'EOF'
+            set -e
+            cd /var/www/trippilot
+
+            php artisan package:discover --ansi
+            php artisan migrate --force
+            [ -L public/storage ] || php artisan storage:link
+            php artisan optimize
+            php artisan queue:restart
+
+            sudo -n systemctl reload php8.3-fpm
+            echo "Deployed $(date -u)"
+          EOF
+          # (EOF above must stay aligned with the 'ssh' line)
+
+      - name: Health check
+        run: |
+          sleep 3
+          code=$(curl -s -o /dev/null -w '%{http_code}' https://trippilot.info)
+          echo "https://trippilot.info returned $code"
+          [ "$code" -lt 500 ]
