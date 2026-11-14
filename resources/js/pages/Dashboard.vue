@@ -11,6 +11,7 @@ import {
     Plane,
     Plus,
     Route,
+    Sparkles,
     Star,
     Users,
 } from '@lucide/vue';
@@ -130,24 +131,28 @@ const kpis = computed(() => [
         value: props.stats.trips,
         detail: `${props.phaseCounts.upcoming} upcoming`,
         icon: Map,
+        tile: 'from-teal-500 to-emerald-500 shadow-teal-500/25',
     },
     {
         label: 'Road trips',
         value: props.stats.road_trips,
         detail: 'Routes & stops mapped',
         icon: Route,
+        tile: 'from-sky-500 to-indigo-500 shadow-sky-500/25',
     },
     {
         label: 'Favourites',
         value: props.stats.favorites,
         detail: 'Starred itineraries',
         icon: Star,
+        tile: 'from-amber-400 to-orange-500 shadow-amber-500/25',
     },
     {
         label: 'Shared with you',
         value: props.stats.invited,
         detail: 'Collaborative trips',
         icon: Users,
+        tile: 'from-violet-500 to-fuchsia-500 shadow-violet-500/25',
     },
 ]);
 
@@ -163,19 +168,19 @@ const phaseRows = computed(() => [
         key: 'ongoing',
         label: 'In progress',
         count: props.phaseCounts.ongoing,
-        bar: 'bg-primary',
+        bar: 'bg-linear-to-r from-teal-400 to-emerald-500',
     },
     {
         key: 'upcoming',
         label: 'Upcoming',
         count: props.phaseCounts.upcoming,
-        bar: 'bg-sky-500',
+        bar: 'bg-linear-to-r from-sky-400 to-indigo-500',
     },
     {
         key: 'past',
         label: 'Completed',
         count: props.phaseCounts.past,
-        bar: 'bg-slate-400 dark:bg-slate-500',
+        bar: 'bg-linear-to-r from-violet-400 to-fuchsia-500',
     },
 ]);
 
@@ -186,9 +191,9 @@ function phaseShare(count: number): string {
 }
 
 const statusDot: Record<TripStatus, string> = {
-    draft: 'bg-amber-500',
-    planned: 'bg-emerald-500',
-    archived: 'bg-slate-400',
+    draft: 'bg-amber-500 ring-amber-500/20',
+    planned: 'bg-emerald-500 ring-emerald-500/20',
+    archived: 'bg-slate-400 ring-slate-400/20',
 };
 
 const shortcuts = [
@@ -197,24 +202,28 @@ const shortcuts = [
         description: 'Build a new itinerary',
         href: create(),
         icon: Plane,
+        chip: 'from-sky-500 to-blue-500 shadow-sky-500/30',
     },
     {
         title: 'Map a road trip',
         description: 'Routes, stops & breaks',
         href: roadTripCreate(),
         icon: Route,
+        chip: 'from-amber-400 to-orange-500 shadow-amber-500/30',
     },
     {
         title: 'Travel assistant',
         description: 'Ask anything about travel',
         href: assistantIndex(),
         icon: MessageCircle,
+        chip: 'from-violet-500 to-fuchsia-500 shadow-violet-500/30',
     },
     {
         title: 'Discover group trips',
         description: 'Join an open trip',
         href: openTripsIndex(),
         icon: Compass,
+        chip: 'from-teal-500 to-emerald-500 shadow-teal-500/30',
     },
 ];
 
@@ -234,31 +243,49 @@ function initials(name: string | null | undefined): string {
     <div class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 p-4 md:p-8">
         <!-- Header -->
         <header
-            class="flex flex-col gap-5 border-b border-border pb-6 md:flex-row md:items-end md:justify-between"
+            class="brand-gradient relative isolate flex flex-col gap-5 overflow-hidden rounded-3xl p-6 text-white shadow-xl shadow-cyan-500/20 md:flex-row md:items-end md:justify-between md:p-8"
         >
+            <div
+                aria-hidden="true"
+                class="pointer-events-none absolute -top-20 -right-10 -z-10 size-72 rounded-full bg-fuchsia-400/35 blur-3xl"
+            />
+            <div
+                aria-hidden="true"
+                class="pointer-events-none absolute -bottom-24 left-10 -z-10 size-64 rounded-full bg-amber-300/30 blur-3xl"
+            />
+            <div
+                aria-hidden="true"
+                class="pointer-events-none absolute top-4 left-1/2 -z-10 size-28 rounded-full bg-white/15 blur-2xl"
+            />
             <div>
                 <p
-                    class="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
+                    class="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold tracking-[0.14em] uppercase backdrop-blur-sm"
                 >
+                    <Sparkles class="size-3.5" />
                     {{ todayLabel }}
                 </p>
-                <h1
-                    class="mt-2 text-3xl font-semibold tracking-tight text-foreground"
-                >
+                <h1 class="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
                     {{ greeting }}, {{ firstName }}
                 </h1>
-                <p class="mt-1.5 text-sm text-muted-foreground">
+                <p class="mt-1.5 text-sm text-white/85 md:text-base">
                     Here's an overview of your travel portfolio.
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <Button variant="outline" as-child>
+                <Button
+                    variant="outline"
+                    class="border-white/40 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25 hover:text-white dark:border-white/30 dark:bg-white/10 dark:hover:bg-white/20"
+                    as-child
+                >
                     <Link :href="roadTripsIndex()">
                         <Route class="size-4" />
                         Road trips
                     </Link>
                 </Button>
-                <Button as-child>
+                <Button
+                    class="bg-white bg-none! text-teal-700 shadow-lg hover:bg-white/90 hover:brightness-100"
+                    as-child
+                >
                     <Link :href="create()">
                         <Plus class="size-4" />
                         New trip
@@ -268,34 +295,32 @@ function initials(name: string | null | undefined): string {
         </header>
 
         <!-- KPI strip -->
-        <section
-            class="grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card lg:grid-cols-4"
-        >
+        <section class="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <div
-                v-for="(kpi, index) in kpis"
+                v-for="kpi in kpis"
                 :key="kpi.label"
-                class="flex flex-col gap-3 p-5 md:p-6"
-                :class="[
-                    index % 2 === 1 ? 'border-l border-border' : '',
-                    index >= 2 ? 'border-t border-border lg:border-t-0' : '',
-                    index === 2 ? 'lg:border-l' : '',
-                ]"
+                class="group relative isolate flex flex-col gap-3 overflow-hidden rounded-2xl bg-linear-to-br p-5 text-white shadow-lg transition-transform duration-200 hover:-translate-y-1 md:p-6"
+                :class="kpi.tile"
             >
+                <component
+                    :is="kpi.icon"
+                    aria-hidden="true"
+                    class="pointer-events-none absolute -right-4 -bottom-4 -z-10 size-24 text-white/15 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
+                />
                 <div class="flex items-center justify-between">
-                    <span class="text-sm font-medium text-muted-foreground">
+                    <span class="text-sm font-medium text-white/90">
                         {{ kpi.label }}
                     </span>
-                    <component
-                        :is="kpi.icon"
-                        class="size-4 text-muted-foreground/70"
-                    />
+                    <span
+                        class="flex size-8 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm"
+                    >
+                        <component :is="kpi.icon" class="size-4" />
+                    </span>
                 </div>
-                <span
-                    class="text-3xl font-semibold tracking-tight tabular-nums"
-                >
+                <span class="text-4xl font-bold tracking-tight tabular-nums">
                     {{ kpi.value }}
                 </span>
-                <span class="text-xs text-muted-foreground">
+                <span class="text-xs text-white/80">
                     {{ kpi.detail }}
                 </span>
             </div>
@@ -306,15 +331,13 @@ function initials(name: string | null | undefined): string {
                 <!-- Next departure -->
                 <section>
                     <div class="mb-3 flex items-center justify-between">
-                        <h2 class="text-sm font-semibold tracking-tight">
-                            Next departure
-                        </h2>
+                        <h2 class="section-heading">Next departure</h2>
                     </div>
 
                     <Link
                         v-if="nextTrip"
                         :href="show(nextTrip.id)"
-                        class="group grid overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/20 sm:grid-cols-5"
+                        class="group grid overflow-hidden rounded-2xl border border-sky-200/70 bg-card shadow-lg shadow-sky-500/10 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-sky-500/20 sm:grid-cols-5 dark:border-sky-500/20"
                     >
                         <div
                             class="relative h-44 bg-muted sm:col-span-2 sm:h-auto"
@@ -333,16 +356,16 @@ function initials(name: string | null | undefined): string {
                             />
                             <div
                                 v-else
-                                class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900"
+                                class="absolute inset-0 flex items-center justify-center bg-linear-to-br from-sky-500 via-indigo-500 to-violet-600"
                             >
-                                <MapPin class="size-8 text-white/40" />
+                                <MapPin class="size-10 text-white/60" />
                             </div>
                             <div
                                 class="absolute inset-0 bg-gradient-to-t from-black/50 via-black/0 to-black/0"
                             />
                             <span
                                 v-if="nextTripTiming"
-                                class="absolute top-3 left-3 rounded-md bg-white/95 px-2 py-1 text-[11px] font-semibold tracking-wide text-slate-900 uppercase shadow-sm"
+                                class="absolute top-3 left-3 rounded-full bg-linear-to-r from-amber-400 to-orange-500 px-2.5 py-1 text-[11px] font-bold tracking-wide text-white uppercase shadow-md"
                             >
                                 {{ nextTripTiming.label }}
                             </span>
@@ -353,7 +376,7 @@ function initials(name: string | null | undefined): string {
                         >
                             <div class="min-w-0">
                                 <p
-                                    class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                                    class="text-xs font-semibold tracking-wide text-sky-600 uppercase dark:text-sky-300"
                                 >
                                     {{ nextTrip.type_label }}
                                     <template
@@ -371,7 +394,9 @@ function initials(name: string | null | undefined): string {
                                     class="mt-4 grid grid-cols-1 gap-2.5 text-sm text-muted-foreground"
                                 >
                                     <div class="flex items-center gap-2">
-                                        <MapPin class="size-4 shrink-0" />
+                                        <MapPin
+                                            class="size-4 shrink-0 text-rose-500"
+                                        />
                                         <dd class="truncate">
                                             {{
                                                 nextTrip.route_summary
@@ -384,7 +409,9 @@ function initials(name: string | null | undefined): string {
                                         </dd>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <CalendarDays class="size-4 shrink-0" />
+                                        <CalendarDays
+                                            class="size-4 shrink-0 text-sky-500"
+                                        />
                                         <dd>
                                             {{
                                                 formatDisplayDateRange(
@@ -395,7 +422,9 @@ function initials(name: string | null | undefined): string {
                                         </dd>
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <Users class="size-4 shrink-0" />
+                                        <Users
+                                            class="size-4 shrink-0 text-violet-500"
+                                        />
                                         <dd>
                                             {{ nextTrip.travelers }}
                                             {{
@@ -414,7 +443,7 @@ function initials(name: string | null | undefined): string {
                                 <div v-if="nextTripTiming" class="flex-1">
                                     <p class="flex items-baseline gap-1.5">
                                         <span
-                                            class="text-2xl font-semibold tracking-tight tabular-nums"
+                                            class="brand-gradient-text text-3xl font-bold tracking-tight tabular-nums"
                                         >
                                             {{ nextTripTiming.value }}
                                         </span>
@@ -429,7 +458,7 @@ function initials(name: string | null | undefined): string {
                                         class="mt-2 h-1.5 w-full max-w-48 overflow-hidden rounded-full bg-muted"
                                     >
                                         <div
-                                            class="h-full rounded-full bg-primary"
+                                            class="brand-gradient h-full rounded-full"
                                             :style="{
                                                 width: `${nextTripTiming.progress}%`,
                                             }"
@@ -437,7 +466,7 @@ function initials(name: string | null | undefined): string {
                                     </div>
                                 </div>
                                 <span
-                                    class="inline-flex items-center gap-1 text-sm font-medium text-foreground"
+                                    class="inline-flex items-center gap-1 rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700 transition-colors group-hover:bg-sky-500 group-hover:text-white dark:bg-sky-500/15 dark:text-sky-300"
                                 >
                                     Open
                                     <ArrowRight
@@ -450,15 +479,13 @@ function initials(name: string | null | undefined): string {
 
                     <div
                         v-else
-                        class="flex flex-col items-start gap-4 rounded-xl border border-dashed border-border bg-card p-6 sm:flex-row sm:items-center sm:justify-between"
+                        class="flex flex-col items-start gap-4 rounded-2xl border-2 border-dashed border-sky-300/70 bg-linear-to-br from-sky-50 to-violet-50 p-6 sm:flex-row sm:items-center sm:justify-between dark:border-sky-500/30 dark:from-sky-500/10 dark:to-violet-500/10"
                     >
                         <div class="flex items-center gap-4">
                             <div
-                                class="flex size-10 items-center justify-center rounded-lg bg-muted"
+                                class="flex size-11 items-center justify-center rounded-xl bg-linear-to-br from-sky-500 to-violet-500 text-white shadow-md shadow-sky-500/30"
                             >
-                                <CalendarDays
-                                    class="size-5 text-muted-foreground"
-                                />
+                                <CalendarDays class="size-5" />
                             </div>
                             <div>
                                 <p class="font-medium">
@@ -478,12 +505,10 @@ function initials(name: string | null | undefined): string {
                 <!-- Recent trips -->
                 <section>
                     <div class="mb-3 flex items-center justify-between">
-                        <h2 class="text-sm font-semibold tracking-tight">
-                            Recent activity
-                        </h2>
+                        <h2 class="section-heading">Recent activity</h2>
                         <Link
                             :href="tripsIndex()"
-                            class="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                            class="inline-flex items-center gap-1 rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700 transition-colors hover:bg-teal-500 hover:text-white dark:bg-teal-500/15 dark:text-teal-300"
                         >
                             View all
                             <ArrowUpRight class="size-3.5" />
@@ -491,10 +516,10 @@ function initials(name: string | null | undefined): string {
                     </div>
 
                     <div
-                        class="overflow-hidden rounded-xl border border-border bg-card"
+                        class="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-lg shadow-violet-500/5"
                     >
                         <div
-                            class="hidden grid-cols-12 gap-4 border-b border-border bg-muted/40 px-5 py-2.5 text-xs font-medium tracking-wide text-muted-foreground uppercase md:grid"
+                            class="hidden grid-cols-12 gap-4 bg-linear-to-r from-teal-50 via-sky-50 to-violet-50 px-5 py-2.5 text-xs font-semibold tracking-wide text-slate-600 uppercase md:grid dark:from-teal-500/10 dark:via-sky-500/10 dark:to-violet-500/10 dark:text-slate-300"
                         >
                             <span class="col-span-5">Trip</span>
                             <span class="col-span-3">Dates</span>
@@ -506,13 +531,18 @@ function initials(name: string | null | undefined): string {
                             v-for="trip in recentTrips"
                             :key="trip.id"
                             :href="show(trip.id)"
-                            class="grid grid-cols-1 gap-1 border-b border-border px-5 py-3.5 transition-colors last:border-b-0 hover:bg-muted/40 md:grid-cols-12 md:items-center md:gap-4"
+                            class="grid grid-cols-1 gap-1 border-b border-border/60 px-5 py-3.5 transition-colors last:border-b-0 hover:bg-sky-50/70 md:grid-cols-12 md:items-center md:gap-4 dark:hover:bg-sky-500/5"
                         >
                             <div
                                 class="flex min-w-0 items-center gap-3 md:col-span-5"
                             >
                                 <div
-                                    class="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/50 text-muted-foreground"
+                                    class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br text-white shadow-md"
+                                    :class="
+                                        trip.type === 'road'
+                                            ? 'from-amber-400 to-orange-500 shadow-amber-500/25'
+                                            : 'from-sky-500 to-indigo-500 shadow-sky-500/25'
+                                    "
                                 >
                                     <Route
                                         v-if="trip.type === 'road'"
@@ -545,10 +575,10 @@ function initials(name: string | null | undefined): string {
                                 }}
                             </span>
                             <span
-                                class="hidden items-center gap-2 text-sm md:col-span-2 md:flex"
+                                class="hidden items-center gap-2 text-sm font-medium md:col-span-2 md:flex"
                             >
                                 <span
-                                    class="size-1.5 rounded-full"
+                                    class="size-2 rounded-full ring-4"
                                     :class="statusDot[trip.status]"
                                 />
                                 {{ trip.status_label }}
@@ -576,13 +606,13 @@ function initials(name: string | null | undefined): string {
             <aside class="flex flex-col gap-8">
                 <!-- Portfolio breakdown -->
                 <section>
-                    <h2 class="mb-3 text-sm font-semibold tracking-tight">
-                        Trip portfolio
-                    </h2>
-                    <div class="rounded-xl border border-border bg-card p-5">
+                    <h2 class="section-heading mb-3">Trip portfolio</h2>
+                    <div
+                        class="rounded-2xl border border-border/60 bg-card p-5 shadow-lg shadow-teal-500/5"
+                    >
                         <div class="flex items-baseline justify-between">
                             <span
-                                class="text-2xl font-semibold tracking-tight tabular-nums"
+                                class="brand-gradient-text text-3xl font-bold tracking-tight tabular-nums"
                             >
                                 {{ phaseTotal }}
                             </span>
@@ -591,7 +621,7 @@ function initials(name: string | null | undefined): string {
                             </span>
                         </div>
                         <div
-                            class="mt-4 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-muted"
+                            class="mt-4 flex h-3 w-full gap-1 overflow-hidden rounded-full bg-muted"
                         >
                             <div
                                 v-for="row in phaseRows"
@@ -609,7 +639,7 @@ function initials(name: string | null | undefined): string {
                             >
                                 <span class="flex items-center gap-2.5">
                                     <span
-                                        class="size-2 rounded-sm"
+                                        class="size-3 rounded-full"
                                         :class="row.bar"
                                     />
                                     {{ row.label }}
@@ -634,27 +664,25 @@ function initials(name: string | null | undefined): string {
                 <!-- Shared with you -->
                 <section v-if="invitedTrips.length > 0">
                     <div class="mb-3 flex items-center justify-between">
-                        <h2 class="text-sm font-semibold tracking-tight">
-                            Shared with you
-                        </h2>
+                        <h2 class="section-heading">Shared with you</h2>
                         <Link
                             :href="tripsIndex({ query: { filter: 'shared' } })"
-                            class="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                            class="inline-flex items-center gap-1 rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700 transition-colors hover:bg-teal-500 hover:text-white dark:bg-teal-500/15 dark:text-teal-300"
                         >
                             View all
                             <ArrowUpRight class="size-3.5" />
                         </Link>
                     </div>
                     <ul
-                        class="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card"
+                        class="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-lg shadow-sky-500/5"
                     >
                         <li v-for="trip in invitedTrips" :key="trip.id">
                             <Link
                                 :href="show(trip.id)"
-                                class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                                class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-violet-50/70 dark:hover:bg-violet-500/5"
                             >
                                 <span
-                                    class="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
+                                    class="brand-gradient flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm"
                                 >
                                     {{ initials(trip.owner?.name) }}
                                 </span>
@@ -671,7 +699,7 @@ function initials(name: string | null | undefined): string {
                                     </span>
                                 </span>
                                 <span
-                                    class="rounded-md border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground capitalize"
+                                    class="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700 capitalize dark:bg-violet-500/15 dark:text-violet-300"
                                 >
                                     {{ trip.collaborator_role }}
                                 </span>
@@ -682,19 +710,18 @@ function initials(name: string | null | undefined): string {
 
                 <!-- Shortcuts -->
                 <section>
-                    <h2 class="mb-3 text-sm font-semibold tracking-tight">
-                        Shortcuts
-                    </h2>
+                    <h2 class="section-heading mb-3">Shortcuts</h2>
                     <ul
-                        class="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card"
+                        class="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-lg shadow-sky-500/5"
                     >
                         <li v-for="shortcut in shortcuts" :key="shortcut.title">
                             <Link
                                 :href="shortcut.href"
-                                class="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                                class="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-sky-50/70 dark:hover:bg-sky-500/5"
                             >
                                 <span
-                                    class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                                    class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br text-white shadow-md transition-transform group-hover:scale-110"
+                                    :class="shortcut.chip"
                                 >
                                     <component
                                         :is="shortcut.icon"

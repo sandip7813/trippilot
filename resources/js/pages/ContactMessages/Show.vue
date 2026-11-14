@@ -40,7 +40,9 @@ function formatDateTime(iso: string | null): string {
             </Button>
         </div>
 
-        <div class="space-y-2">
+        <div
+            class="space-y-2 rounded-2xl border border-white/70 bg-linear-to-br from-teal-50 via-sky-50 to-violet-100 p-5 shadow-lg shadow-sky-500/10 sm:p-6 dark:border-white/10 dark:from-teal-500/15 dark:via-sky-500/10 dark:to-violet-500/20 dark:shadow-black/20"
+        >
             <div class="flex flex-wrap items-center gap-2">
                 <ContactStatusBadge
                     :status="contactMessage.status"
@@ -56,13 +58,15 @@ function formatDateTime(iso: string | null): string {
             <h1
                 class="text-2xl font-bold tracking-tight break-words md:text-3xl"
             >
-                {{ contactMessage.subject }}
+                <span class="brand-gradient-text">{{
+                    contactMessage.subject
+                }}</span>
             </h1>
         </div>
 
         <Card>
             <CardContent class="space-y-3 pt-6">
-                <p class="text-xs font-medium text-muted-foreground">
+                <p class="text-xs font-semibold text-sky-600 dark:text-sky-300">
                     You wrote · {{ formatDateTime(contactMessage.created_at) }}
                 </p>
                 <p
@@ -99,9 +103,11 @@ function formatDateTime(iso: string | null): string {
 
         <div
             v-if="contactMessage.replies.length === 0"
-            class="flex items-start gap-3 rounded-2xl border border-dashed p-5 text-sm text-muted-foreground"
+            class="flex items-start gap-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
         >
-            <Clock class="mt-0.5 size-4 shrink-0" />
+            <Clock
+                class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300"
+            />
             <p>
                 We've received your message and will reply by email, usually
                 within 1–2 business days. Replies also appear here.

@@ -707,7 +707,7 @@ onUnmounted(() => {
             </Dialog>
 
             <div
-                class="grid grid-cols-1 items-start gap-x-8 gap-y-3 md:grid-cols-[minmax(0,1fr)_auto]"
+                class="grid grid-cols-1 items-start gap-x-8 gap-y-3 rounded-2xl border border-white/70 bg-linear-to-br from-amber-50 via-orange-50 to-rose-100 p-5 shadow-lg shadow-orange-500/10 sm:p-6 md:grid-cols-[minmax(0,1fr)_auto] dark:border-white/10 dark:from-amber-500/15 dark:via-orange-500/10 dark:to-rose-500/15 dark:shadow-black/20"
             >
                 <div class="min-w-0 space-y-1">
                     <h1 class="text-2xl font-bold tracking-tight md:text-3xl">

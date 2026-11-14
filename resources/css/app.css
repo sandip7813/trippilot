@@ -98,20 +98,26 @@
         background-color: var(--background);
         background-image:
             radial-gradient(
-                ellipse 90% 60% at 0% -20%,
-                hsl(186 85% 45% / 0.14),
+                ellipse 80% 55% at 0% -10%,
+                hsl(176 80% 45% / 0.22),
+                transparent 60%
+            ),
+            radial-gradient(
+                ellipse 65% 50% at 100% 0%,
+                hsl(270 80% 65% / 0.18),
                 transparent 55%
             ),
             radial-gradient(
-                ellipse 70% 50% at 100% 0%,
-                hsl(270 75% 62% / 0.1),
-                transparent 50%
+                ellipse 50% 40% at 85% 65%,
+                hsl(330 85% 65% / 0.1),
+                transparent 60%
             ),
             radial-gradient(
-                ellipse 60% 40% at 50% 110%,
-                hsl(24 95% 55% / 0.08),
-                transparent 55%
+                ellipse 60% 45% at 15% 105%,
+                hsl(30 95% 58% / 0.16),
+                transparent 60%
             );
+        background-attachment: fixed;
     }
 
     .brand-gradient {
@@ -254,6 +260,58 @@
     --sidebar-border: hsl(217 33% 17%);
     --sidebar-ring: hsl(172 70% 45%);
     --sidebar: hsl(222 47% 9%);
+}
+
+/*
+ * Signed-in app chrome: a soft teal → sky → violet wash behind the sidebar,
+ * and a gradient accent strip on every card that doesn't draw its own.
+ */
+@layer components {
+    [data-slot='sidebar-wrapper']:has([data-variant='inset']),
+    [data-sidebar='sidebar'] {
+        background-image: linear-gradient(
+            180deg,
+            hsl(172 70% 94%) 0%,
+            hsl(199 85% 95%) 45%,
+            hsl(262 85% 96%) 80%,
+            hsl(330 85% 96%) 100%
+        );
+        background-attachment: fixed;
+    }
+
+    .dark [data-slot='sidebar-wrapper']:has([data-variant='inset']),
+    .dark [data-sidebar='sidebar'] {
+        background-image: linear-gradient(
+            180deg,
+            hsl(186 55% 10%) 0%,
+            hsl(222 50% 10%) 45%,
+            hsl(262 45% 13%) 100%
+        );
+        background-attachment: fixed;
+    }
+
+    [data-slot='card']:not(
+        :has(> .h-1, > .h-1\.5, > [data-slot='card-strip'])
+    ) {
+        background-image: linear-gradient(
+            90deg,
+            hsl(172 76% 45%),
+            hsl(199 89% 52%) 50%,
+            hsl(262 83% 62%)
+        );
+        background-size: 100% 3px;
+        background-repeat: no-repeat;
+        background-position: top;
+    }
+}
+
+.dark .brand-gradient-text {
+    background-image: linear-gradient(
+        135deg,
+        hsl(172 70% 60%) 0%,
+        hsl(199 89% 68%) 50%,
+        hsl(270 85% 78%) 100%
+    );
 }
 
 .dark .card-vibrant {

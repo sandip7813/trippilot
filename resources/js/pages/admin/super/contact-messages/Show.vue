@@ -69,7 +69,7 @@ const textareaClass =
         </div>
 
         <div
-            class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+            class="flex flex-col gap-4 rounded-2xl border border-white/70 bg-linear-to-br from-teal-50 via-sky-50 to-violet-100 p-5 shadow-lg shadow-sky-500/10 sm:flex-row sm:items-start sm:justify-between sm:p-6 dark:border-white/10 dark:from-teal-500/15 dark:via-sky-500/10 dark:to-violet-500/20 dark:shadow-black/20"
         >
             <div class="min-w-0 space-y-2">
                 <div class="flex flex-wrap items-center gap-2">
@@ -84,7 +84,9 @@ const textareaClass =
                 <h1
                     class="text-2xl font-bold tracking-tight break-words md:text-3xl"
                 >
-                    {{ contactMessage.subject }}
+                    <span class="brand-gradient-text">{{
+                        contactMessage.subject
+                    }}</span>
                 </h1>
             </div>
 
@@ -126,7 +128,7 @@ const textareaClass =
                     <CardContent class="space-y-4 pt-6">
                         <div class="flex items-center gap-3">
                             <span
-                                class="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold"
+                                class="brand-gradient flex size-10 shrink-0 items-center justify-center rounded-full font-semibold text-white shadow-md"
                             >
                                 {{ contactMessage.name[0]?.toUpperCase() }}
                             </span>

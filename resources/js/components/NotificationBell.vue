@@ -32,7 +32,7 @@ const kindIcons = {
         <DropdownMenuTrigger as-child>
             <button
                 type="button"
-                class="relative ml-auto rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                class="relative ml-auto rounded-full bg-violet-100 p-2 text-violet-600 transition-colors hover:bg-violet-200 hover:text-violet-700 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:bg-violet-500/15 dark:text-violet-300 dark:hover:bg-violet-500/25"
                 aria-label="Notifications"
             >
                 <Bell class="size-5" />
@@ -74,9 +74,9 @@ const kindIcons = {
                 class="flex flex-col items-center gap-2 px-6 py-10 text-center"
             >
                 <div
-                    class="flex size-10 items-center justify-center rounded-full bg-muted"
+                    class="flex size-10 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-fuchsia-500 text-white shadow-md shadow-violet-500/30"
                 >
-                    <Bell class="size-5 text-muted-foreground" />
+                    <Bell class="size-5" />
                 </div>
                 <p class="text-sm font-medium">You're all caught up</p>
                 <p class="text-xs text-muted-foreground">
