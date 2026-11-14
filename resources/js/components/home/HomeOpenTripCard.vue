@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import { CalendarDays, Compass, MapPin, Users, Wallet } from '@lucide/vue';
 import { computed } from 'vue';
+import UserAvatar from '@/components/UserAvatar.vue';
 import { tripCardAccent } from '@/lib/card-accents';
 import { daysFromToday, formatShortDate } from '@/lib/dates';
 import { show as openTripShow } from '@/routes/open-trips';
@@ -192,12 +193,11 @@ const costLabel = computed(() => {
                     v-if="trip.organizer"
                     class="flex min-w-0 items-center gap-2"
                 >
-                    <span
-                        class="flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[10px] font-bold text-white uppercase"
-                        :class="tripCardAccent(index + 2)"
-                    >
-                        {{ trip.organizer.name.charAt(0) }}
-                    </span>
+                    <UserAvatar
+                        :src="trip.organizer.avatar"
+                        :name="trip.organizer.name"
+                        class="size-6"
+                    />
                     <span class="truncate">{{ trip.organizer.name }}</span>
                 </span>
                 <span

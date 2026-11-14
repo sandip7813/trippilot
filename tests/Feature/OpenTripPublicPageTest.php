@@ -21,7 +21,20 @@ test('a guest can view a public open trip overview', function () {
         ->where('trip.id', (string) $trip->id)
         ->where('trip.title', $trip->title)
         ->where('trip.organizer.name', $owner->first_name)
+        ->where('trip.organizer.avatar', null)
     );
+});
+
+test('the public overview shows the organizer profile picture', function () {
+    $owner = User::factory()->create();
+    $owner->forceFill(['avatar_path' => "avatars/{$owner->id}/organizer.jpg"])->save();
+    $trip = Trip::factory()->forUser($owner)->openTrip()->create();
+
+    $this->get(route('open-trips.show', $trip))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('trip.organizer.avatar', $owner->avatar)
+        );
 });
 
 test('a private trip is not publicly viewable', function () {

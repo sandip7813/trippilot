@@ -122,6 +122,7 @@ class TripJoinRequestController extends Controller
                 'phone' => $request->status->value === 'accepted' ? $request->phone : null,
                 'message' => $request->message,
                 'requester_name' => $requester?->name ?? 'Deleted user',
+                'requester_avatar' => $requester?->avatar,
                 'created_at' => $request->created_at?->toIso8601String(),
             ];
         })->values()->all();

@@ -16,6 +16,7 @@ import TripPager from '@/components/TripPager.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import UserAvatar from '@/components/UserAvatar.vue';
 import {
     index as openTripsIndex,
     show as openTripShow,
@@ -32,7 +33,7 @@ type OpenTripSummary = {
     cover_image_thumb_url: string | null;
     is_past: boolean;
     is_joinable: boolean;
-    organizer: { name: string } | null;
+    organizer: { name: string; avatar: string | null } | null;
     group: {
         category: string | null;
         seats_left: number | null;
@@ -158,8 +159,18 @@ defineProps<{
                             <div
                                 class="flex items-center justify-between text-xs text-muted-foreground"
                             >
-                                <span v-if="trip.organizer">
-                                    By {{ trip.organizer.name }}
+                                <span
+                                    v-if="trip.organizer"
+                                    class="flex min-w-0 items-center gap-2"
+                                >
+                                    <UserAvatar
+                                        :src="trip.organizer.avatar"
+                                        :name="trip.organizer.name"
+                                        class="size-6"
+                                    />
+                                    <span class="truncate">
+                                        By {{ trip.organizer.name }}
+                                    </span>
                                 </span>
                                 <span
                                     v-if="trip.group.max_group_size"

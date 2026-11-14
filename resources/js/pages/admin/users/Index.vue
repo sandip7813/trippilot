@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
-import { getInitials } from '@/composables/useInitials';
+import UserAvatar from '@/components/UserAvatar.vue';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import { index as usersIndex } from '@/routes/admin/users';
 import type { AdminUser, Paginated } from '@/types/admin';
@@ -18,18 +18,6 @@ defineProps<{
 }>();
 
 const updatingUserIds = ref<number[]>([]);
-
-const avatarGradients = [
-    'from-teal-500 to-emerald-500',
-    'from-sky-500 to-indigo-500',
-    'from-violet-500 to-fuchsia-500',
-    'from-amber-400 to-orange-500',
-    'from-rose-500 to-pink-500',
-];
-
-function avatarGradientFor(userId: number): string {
-    return avatarGradients[userId % avatarGradients.length];
-}
 
 const selectClass =
     'flex h-9 min-w-36 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50';
@@ -117,12 +105,11 @@ defineOptions({
                         class="flex flex-col gap-4 p-4 transition-colors hover:bg-sky-50/60 lg:flex-row lg:items-center lg:justify-between dark:hover:bg-sky-500/5"
                     >
                         <div class="flex min-w-0 items-start gap-3">
-                            <span
-                                class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br text-sm font-semibold text-white shadow-md"
-                                :class="avatarGradientFor(user.id)"
-                            >
-                                {{ getInitials(user.name) }}
-                            </span>
+                            <UserAvatar
+                                :src="user.avatar"
+                                :name="user.name"
+                                class="size-10 rounded-xl shadow-md"
+                            />
                             <div class="min-w-0 space-y-1">
                                 <div class="flex flex-wrap items-center gap-2">
                                     <p class="font-medium">{{ user.name }}</p>

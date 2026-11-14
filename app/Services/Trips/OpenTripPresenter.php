@@ -101,7 +101,7 @@ class OpenTripPresenter
     }
 
     /**
-     * @return array{name: string}|null
+     * @return array{name: string, avatar: string|null}|null
      */
     private function organizer(Trip $trip): ?array
     {
@@ -113,6 +113,7 @@ class OpenTripPresenter
 
         return [
             'name' => $owner->first_name,
+            'avatar' => $owner->avatar,
         ];
     }
 }

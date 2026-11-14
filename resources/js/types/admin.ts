@@ -6,6 +6,7 @@ export type AdminUserRoleOption = {
 export type AdminUser = {
     id: number;
     name: string;
+    avatar: string | null;
     email: string;
     role: AdminUserRoleOption['value'];
     role_label: string;

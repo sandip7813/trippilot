@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     BadgeCheck,
     CalendarHeart,
+    Camera,
     Mail,
     Palette,
     ShieldCheck,
@@ -11,11 +12,12 @@ import {
 } from '@lucide/vue';
 import type { Component } from 'vue';
 import { computed } from 'vue';
+import UserAvatar from '@/components/UserAvatar.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { getInitials } from '@/composables/useInitials';
 import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
+import { edit as editProfilePicture } from '@/routes/profile-picture';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
 
@@ -36,6 +38,16 @@ const sidebarNavItems: SettingsNavItem[] = [
             'bg-linear-to-r from-teal-500 to-emerald-500 shadow-teal-500/30',
         iconClass:
             'bg-teal-100 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300',
+    },
+    {
+        title: 'Profile picture',
+        caption: 'Your photo across TripPilot',
+        href: editProfilePicture(),
+        icon: Camera,
+        activeClass:
+            'bg-linear-to-r from-cyan-500 to-sky-500 shadow-cyan-500/30',
+        iconClass:
+            'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-300',
     },
     {
         title: 'Security',
@@ -99,17 +111,12 @@ const memberSince = computed(() =>
                 class="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6"
             >
                 <div class="relative shrink-0">
-                    <div
-                        class="flex size-20 items-center justify-center overflow-hidden rounded-2xl bg-white/20 text-2xl font-bold ring-4 ring-white/40 backdrop-blur-sm sm:size-24 sm:text-3xl"
-                    >
-                        <img
-                            v-if="user.avatar"
-                            :src="user.avatar"
-                            :alt="user.name"
-                            class="size-full object-cover"
-                        />
-                        <span v-else>{{ getInitials(user.name) }}</span>
-                    </div>
+                    <UserAvatar
+                        :src="user.avatar"
+                        :name="user.name"
+                        class="size-20 rounded-2xl ring-4 ring-white/40 sm:size-24"
+                        fallback-class="ring-0"
+                    />
                     <span
                         v-if="user.email_verified_at"
                         class="absolute -right-1.5 -bottom-1.5 flex size-7 items-center justify-center rounded-full bg-emerald-400 text-white shadow-md ring-2 ring-white"

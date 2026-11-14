@@ -24,7 +24,6 @@ import PublicFooter from '@/components/PublicFooter.vue';
 import PublicHeader from '@/components/PublicHeader.vue';
 import TripHubRouteStopsList from '@/components/trip-hub/TripHubRouteStopsList.vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,6 +38,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import UserAvatar from '@/components/UserAvatar.vue';
 import { shortCityLabel } from '@/composables/useTripRouteStops';
 import { formatDisplayDate, formatDisplayDateRange } from '@/lib/dates';
 import { login } from '@/routes';
@@ -91,7 +91,7 @@ type OpenTripOverview = {
     cover_image_url: string | null;
     is_past: boolean;
     is_joinable: boolean;
-    organizer: { name: string } | null;
+    organizer: { name: string; avatar: string | null } | null;
     route: OpenTripRoute;
     itinerary: OpenTripItinerary | null;
     group: {
@@ -143,19 +143,6 @@ function humanize(value: string | null): string | null {
 
 const categoryLabel = computed(() => humanize(trip.group.category));
 const difficultyLabel = computed(() => humanize(trip.group.difficulty));
-
-const organizerInitials = computed(() => {
-    if (!trip.organizer?.name) {
-        return '?';
-    }
-
-    return trip.organizer.name
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join('');
-});
 
 const seatsFilledPercent = computed(() => {
     if (!trip.group.max_group_size) {
@@ -292,13 +279,11 @@ const canShowRouteMap = computed(() => trip.route.map_points.length > 0);
                             v-if="trip.organizer"
                             class="flex items-center gap-2"
                         >
-                            <Avatar class="size-7 border border-white/40">
-                                <AvatarFallback
-                                    class="bg-white/20 text-xs font-semibold text-white"
-                                >
-                                    {{ organizerInitials }}
-                                </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar
+                                :src="trip.organizer.avatar"
+                                :name="trip.organizer.name"
+                                class="size-9 ring-2 ring-white/60"
+                            />
                             <span class="text-sm text-white/90">
                                 Organized by {{ trip.organizer.name }}
                             </span>
