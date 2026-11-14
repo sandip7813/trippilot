@@ -208,12 +208,25 @@ const features = [
             class="relative isolate"
             :class="isSearchOpen ? 'z-30' : 'z-0'"
         >
-            <img
-                src="/images/hero-banner.jpg"
-                alt=""
-                class="absolute inset-0 -z-10 size-full object-cover"
-                fetchpriority="high"
-            />
+            <picture>
+                <source
+                    type="image/webp"
+                    srcset="
+                        /images/hero-banner-768.webp   768w,
+                        /images/hero-banner.webp      1536w
+                    "
+                    sizes="100vw"
+                />
+                <img
+                    src="/images/hero-banner.jpg"
+                    alt=""
+                    width="1536"
+                    height="1024"
+                    class="absolute inset-0 -z-10 size-full object-cover"
+                    fetchpriority="high"
+                    decoding="async"
+                />
+            </picture>
             <div
                 class="absolute inset-0 -z-10 bg-gradient-to-b from-slate-950/75 via-slate-950/45 to-slate-950/90"
             />
