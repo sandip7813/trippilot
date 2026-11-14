@@ -160,6 +160,16 @@
             0 12px 32px hsl(186 72% 42% / 0.14);
     }
 
+    .trip-hub-panel {
+        animation: trip-hub-panel-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .trip-hub-panel {
+            animation: none;
+        }
+    }
+
     .section-heading {
         display: flex;
         align-items: center;
@@ -396,4 +406,15 @@
 
 html.recaptcha-active .grecaptcha-badge {
     visibility: visible;
+}
+
+@keyframes trip-hub-panel-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

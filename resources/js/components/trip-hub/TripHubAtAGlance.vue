@@ -104,10 +104,10 @@ const transportHint = computed((): string => {
 <template>
     <div class="grid gap-4 sm:grid-cols-2">
         <div
-            class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm sm:col-span-2"
+            class="flex gap-3 rounded-xl border border-border/60 bg-card/80 p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:col-span-2"
         >
             <span
-                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-sky-500/15 text-sky-600 dark:text-sky-400"
+                class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400"
             >
                 <Calendar class="size-4" />
             </span>
@@ -124,10 +124,10 @@ const transportHint = computed((): string => {
         </div>
 
         <div
-            class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm"
+            class="flex gap-3 rounded-xl border border-border/60 bg-card/80 p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
         >
             <span
-                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-violet-500/15 text-violet-600 dark:text-violet-400"
+                class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400"
             >
                 <Users class="size-4" />
             </span>
@@ -142,10 +142,10 @@ const transportHint = computed((): string => {
         </div>
 
         <div
-            class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm"
+            class="flex gap-3 rounded-xl border border-border/60 bg-card/80 p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
         >
             <span
-                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
             >
                 <Wallet class="size-4" />
             </span>
@@ -162,10 +162,10 @@ const transportHint = computed((): string => {
         </div>
 
         <div
-            class="flex gap-3 rounded-lg border border-border/60 bg-card/80 p-3 shadow-sm sm:col-span-2"
+            class="flex gap-3 rounded-xl border border-border/60 bg-card/80 p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:col-span-2"
         >
             <span
-                class="flex size-9 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400"
             >
                 <Train class="size-4" />
             </span>

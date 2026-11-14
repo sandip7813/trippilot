@@ -39,6 +39,7 @@ import InputError from '@/components/InputError.vue';
 import TripChatPanel from '@/components/trip-hub/TripChatPanel.vue';
 import TripHubExpenses from '@/components/trip-hub/TripHubExpenses.vue';
 import TripHubHotels from '@/components/trip-hub/TripHubHotels.vue';
+import TripHubPanelHeader from '@/components/trip-hub/TripHubPanelHeader.vue';
 import TripHubTabs from '@/components/trip-hub/TripHubTabs.vue';
 import type { TripHubTab } from '@/components/trip-hub/TripHubTabs.vue';
 import TripBadge from '@/components/TripBadge.vue';
@@ -910,7 +911,12 @@ onUnmounted(() => {
 
         <TripHubTabs v-model:active="activeTab" :tabs="detailTabs" />
 
-        <div v-if="activeTab === 'route'" class="flex flex-col gap-5">
+        <div
+            v-if="activeTab === 'route'"
+            class="trip-hub-panel flex flex-col gap-5"
+        >
+            <TripHubPanelHeader tab-id="route" title="Route &amp; map" />
+
             <Alert v-if="!mapsConfigured">
                 <MapPin class="size-4" />
                 <AlertTitle>Maps unavailable</AlertTitle>
@@ -1514,11 +1520,21 @@ onUnmounted(() => {
             </div>
         </div>
 
-        <div v-if="activeTab === 'weather'" class="flex flex-col gap-5">
+        <div
+            v-if="activeTab === 'weather'"
+            class="trip-hub-panel flex flex-col gap-5"
+        >
+            <TripHubPanelHeader tab-id="weather" title="Weather" />
+
             <TripWeatherCard :weather="weather" class="h-auto" />
         </div>
 
-        <div v-if="activeTab === 'hotels'" class="flex flex-col gap-5">
+        <div
+            v-if="activeTab === 'hotels'"
+            class="trip-hub-panel flex flex-col gap-5"
+        >
+            <TripHubPanelHeader tab-id="hotels" title="Hotels" />
+
             <TripHubHotels
                 v-if="hotels !== null"
                 :trip-id="trip.id"
@@ -1526,7 +1542,12 @@ onUnmounted(() => {
             />
         </div>
 
-        <div v-if="activeTab === 'expenses'" class="flex flex-col gap-5">
+        <div
+            v-if="activeTab === 'expenses'"
+            class="trip-hub-panel flex flex-col gap-5"
+        >
+            <TripHubPanelHeader tab-id="expenses" title="Expenses" />
+
             <TripHubExpenses
                 v-if="expenses !== null"
                 :trip-id="trip.id"
@@ -1534,7 +1555,12 @@ onUnmounted(() => {
             />
         </div>
 
-        <div v-if="activeTab === 'assistant'" class="flex flex-col gap-5">
+        <div
+            v-if="activeTab === 'assistant'"
+            class="trip-hub-panel flex flex-col gap-5"
+        >
+            <TripHubPanelHeader tab-id="assistant" title="AI assistant" />
+
             <TripChatPanel
                 v-if="aiConfigured"
                 :trip="trip"

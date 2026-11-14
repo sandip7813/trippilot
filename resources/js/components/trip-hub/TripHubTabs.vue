@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue';
+import { tripHubTabMeta } from '@/components/trip-hub/tripHubTabMeta';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -54,33 +55,65 @@ watch(active, (id) => {
 
 <template>
     <div
-        class="flex [scrollbar-width:none] gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/40 p-1 sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden"
-        role="tablist"
+        class="sticky top-2 z-30 rounded-2xl border border-white/70 bg-white/75 p-1.5 shadow-[0_1px_2px_hsl(222_47%_11%/0.04),0_10px_30px_-12px_hsl(262_83%_58%/0.25)] backdrop-blur-xl dark:border-border/60 dark:bg-card/75"
     >
-        <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            type="button"
-            role="tab"
-            :aria-selected="currentTab === tab.id"
-            :class="
-                cn(
-                    'inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-                    currentTab === tab.id
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:bg-background/60 hover:text-foreground',
-                )
-            "
-            @click="active = tab.id"
+        <div
+            class="flex [scrollbar-width:none] gap-1 overflow-x-auto sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden"
+            role="tablist"
         >
-            {{ tab.label }}
-            <Badge
-                v-if="tab.count !== undefined && tab.count > 0"
-                variant="secondary"
-                class="h-5 min-w-5 justify-center px-1.5 text-[10px]"
+            <button
+                v-for="tab in tabs"
+                :key="tab.id"
+                type="button"
+                role="tab"
+                :aria-selected="currentTab === tab.id"
+                :class="
+                    cn(
+                        'group relative inline-flex shrink-0 items-center gap-2 rounded-xl py-1.5 pr-3.5 pl-1.5 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                        currentTab === tab.id
+                            ? [
+                                  'bg-gradient-to-r text-white shadow-lg',
+                                  tripHubTabMeta(tab.id).gradient,
+                                  tripHubTabMeta(tab.id).glow,
+                              ]
+                            : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                    )
+                "
+                @click="active = tab.id"
             >
-                {{ tab.count }}
-            </Badge>
-        </button>
+                <span
+                    :class="
+                        cn(
+                            'flex size-7 items-center justify-center rounded-lg transition-all duration-200',
+                            currentTab === tab.id
+                                ? 'bg-white/20 text-white'
+                                : [
+                                      'bg-muted/70 group-hover:scale-110 group-hover:bg-background',
+                                      tripHubTabMeta(tab.id).tint,
+                                  ],
+                        )
+                    "
+                >
+                    <component
+                        :is="tripHubTabMeta(tab.id).icon"
+                        class="size-4"
+                    />
+                </span>
+                {{ tab.label }}
+                <Badge
+                    v-if="tab.count !== undefined && tab.count > 0"
+                    variant="secondary"
+                    :class="
+                        cn(
+                            'h-5 min-w-5 justify-center px-1.5 text-[10px]',
+                            currentTab === tab.id &&
+                                'border-transparent bg-white/25 text-white',
+                        )
+                    "
+                >
+                    {{ tab.count }}
+                </Badge>
+            </button>
+        </div>
     </div>
 </template>

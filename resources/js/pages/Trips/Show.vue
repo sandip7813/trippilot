@@ -24,6 +24,7 @@ import TripHubExpenses from '@/components/trip-hub/TripHubExpenses.vue';
 import TripHubHotels from '@/components/trip-hub/TripHubHotels.vue';
 import TripHubItinerarySection from '@/components/trip-hub/TripHubItinerarySection.vue';
 import TripHubOpenTripSection from '@/components/trip-hub/TripHubOpenTripSection.vue';
+import TripHubPanelHeader from '@/components/trip-hub/TripHubPanelHeader.vue';
 import TripHubPracticalSection from '@/components/trip-hub/TripHubPracticalSection.vue';
 import TripHubPublicTransport from '@/components/trip-hub/TripHubPublicTransport.vue';
 import TripHubRouteOverview from '@/components/trip-hub/TripHubRouteOverview.vue';
@@ -779,7 +780,9 @@ const { waitingForCover } = useTripCoverAutoRefresh();
 
         <TripHubTabs v-model:active="activeTab" :tabs="detailTabs" />
 
-        <div v-if="activeTab === 'overview'" class="space-y-8">
+        <div v-if="activeTab === 'overview'" class="trip-hub-panel space-y-6">
+            <TripHubPanelHeader tab-id="overview" title="Overview" />
+
             <div class="grid gap-6 xl:grid-cols-5">
                 <div class="space-y-4 xl:col-span-2">
                     <h2 class="section-heading">At a glance</h2>
@@ -797,7 +800,9 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             </div>
         </div>
 
-        <div v-if="activeTab === 'weather'" class="space-y-8">
+        <div v-if="activeTab === 'weather'" class="trip-hub-panel space-y-6">
+            <TripHubPanelHeader tab-id="weather" title="Weather" />
+
             <Card v-if="weather === undefined" class="card-vibrant">
                 <div
                     class="h-1.5 bg-gradient-to-r from-sky-400 via-cyan-500 to-indigo-500"
@@ -814,7 +819,9 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             <TripWeatherCard v-else :weather="weather" />
         </div>
 
-        <div v-if="activeTab === 'itinerary'" class="space-y-8">
+        <div v-if="activeTab === 'itinerary'" class="trip-hub-panel space-y-6">
+            <TripHubPanelHeader tab-id="itinerary" title="Itinerary" />
+
             <TripHubItinerarySection
                 :trip="trip"
                 :ai-configured="aiConfigured"
@@ -824,12 +831,16 @@ const { waitingForCover } = useTripCoverAutoRefresh();
 
         <div
             v-if="activeTab === 'open-trip' && isPublishedOpenTrip"
-            class="space-y-8"
+            class="trip-hub-panel space-y-6"
         >
+            <TripHubPanelHeader tab-id="open-trip" title="Open trip" />
+
             <TripHubOpenTripSection :trip="trip" />
         </div>
 
-        <div v-if="activeTab === 'assistant'" class="space-y-8">
+        <div v-if="activeTab === 'assistant'" class="trip-hub-panel space-y-6">
+            <TripHubPanelHeader tab-id="assistant" title="AI assistant" />
+
             <TripChatPanel
                 v-if="aiConfigured"
                 :trip="trip"
@@ -839,7 +850,9 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             />
         </div>
 
-        <div v-if="activeTab === 'trains'" class="space-y-8">
+        <div v-if="activeTab === 'trains'" class="trip-hub-panel space-y-6">
+            <TripHubPanelHeader tab-id="trains" title="Train timings" />
+
             <section
                 v-if="
                     trip.trip_scope === 'domestic' ||
@@ -847,7 +860,6 @@ const { waitingForCover } = useTripCoverAutoRefresh();
                 "
                 class="space-y-4"
             >
-                <h2 class="section-heading">Train timings</h2>
                 <Card v-if="trainTimings === undefined" class="card-vibrant">
                     <div
                         class="h-1.5 bg-gradient-to-r from-orange-400 via-amber-500 to-rose-500"
@@ -868,7 +880,9 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             </section>
         </div>
 
-        <div v-if="activeTab === 'hotels'" class="space-y-8">
+        <div v-if="activeTab === 'hotels'" class="trip-hub-panel space-y-6">
+            <TripHubPanelHeader tab-id="hotels" title="Hotels" />
+
             <TripHubHotels
                 v-if="hotels !== null"
                 :trip-id="trip.id"
@@ -876,7 +890,9 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             />
         </div>
 
-        <div v-if="activeTab === 'airports'" class="space-y-8">
+        <div v-if="activeTab === 'airports'" class="trip-hub-panel space-y-6">
+            <TripHubPanelHeader tab-id="airports" title="Airports" />
+
             <TripHubAirports
                 v-if="airports !== null"
                 :trip-id="trip.id"
@@ -884,7 +900,15 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             />
         </div>
 
-        <div v-if="activeTab === 'public-transport'" class="space-y-8">
+        <div
+            v-if="activeTab === 'public-transport'"
+            class="trip-hub-panel space-y-6"
+        >
+            <TripHubPanelHeader
+                tab-id="public-transport"
+                title="Public transport"
+            />
+
             <TripHubPublicTransport
                 v-if="publicTransport !== null"
                 :trip-id="trip.id"
@@ -892,7 +916,9 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             />
         </div>
 
-        <div v-if="activeTab === 'expenses'" class="space-y-8">
+        <div v-if="activeTab === 'expenses'" class="trip-hub-panel space-y-6">
+            <TripHubPanelHeader tab-id="expenses" title="Expenses" />
+
             <TripHubExpenses
                 v-if="expenses !== null"
                 :trip-id="trip.id"
@@ -900,9 +926,10 @@ const { waitingForCover } = useTripCoverAutoRefresh();
             />
         </div>
 
-        <div v-if="activeTab === 'notes'" class="space-y-8">
+        <div v-if="activeTab === 'notes'" class="trip-hub-panel space-y-6">
+            <TripHubPanelHeader tab-id="notes" title="Notes &amp; budget" />
+
             <section v-if="hasExtras" class="space-y-4">
-                <h2 class="section-heading">Notes &amp; budget</h2>
                 <TripHubPracticalSection :trip="trip" />
             </section>
         </div>
