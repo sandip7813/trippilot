@@ -18,10 +18,10 @@ const active = defineModel<number>('active', { required: true });
             :aria-selected="active === index"
             :class="
                 cn(
-                    'shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                    'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200',
                     active === index
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',
+                        ? 'border-transparent bg-gradient-to-r from-teal-500 to-violet-500 text-white shadow-md shadow-violet-500/25'
+                        : 'border-border/70 bg-background/70 text-muted-foreground hover:border-primary/40 hover:text-foreground',
                 )
             "
             @click="active = index"

@@ -32,7 +32,7 @@ const canShowMap = computed(() => routeMapPoints.value.length > 0);
 
 <template>
     <div
-        class="overflow-hidden rounded-xl border border-border/60 bg-card/80 shadow-sm"
+        class="overflow-hidden rounded-2xl border border-border/60 bg-card/80 shadow-sm transition-shadow hover:shadow-md"
     >
         <!--
             `isolate` keeps Leaflet's layers (z-index 200–1000) inside this
