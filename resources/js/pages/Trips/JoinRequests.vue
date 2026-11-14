@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import UserAvatar from '@/components/UserAvatar.vue';
 import { show as showTrip } from '@/routes/trips';
 import { accept, decline } from '@/routes/trips/join-requests';
 
@@ -18,6 +19,7 @@ type JoinRequestRow = {
     phone: string | null;
     message: string | null;
     requester_name: string;
+    requester_avatar: string | null;
     created_at: string | null;
 };
 
@@ -81,7 +83,16 @@ const badgeVariant = (status: string) => {
             <div class="brand-gradient h-1" />
             <CardContent class="space-y-3 pt-6">
                 <div class="flex items-center justify-between">
-                    <h2 class="font-semibold">{{ request.requester_name }}</h2>
+                    <div class="flex min-w-0 items-center gap-3">
+                        <UserAvatar
+                            :src="request.requester_avatar"
+                            :name="request.requester_name"
+                            class="size-10"
+                        />
+                        <h2 class="truncate font-semibold">
+                            {{ request.requester_name }}
+                        </h2>
+                    </div>
                     <Badge :variant="badgeVariant(request.status)">{{
                         request.status_label
                     }}</Badge>

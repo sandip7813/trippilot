@@ -16,7 +16,7 @@ export type HomeOpenTrip = {
     cover_image_thumb_url: string | null;
     is_past: boolean;
     is_joinable: boolean;
-    organizer: { name: string } | null;
+    organizer: { name: string; avatar: string | null } | null;
     group: {
         category: string | null;
         difficulty: string | null;

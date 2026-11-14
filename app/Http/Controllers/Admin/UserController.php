@@ -64,6 +64,7 @@ class UserController extends Controller
         return [
             'id' => $user->id,
             'name' => $user->name,
+            'avatar' => $user->avatar,
             'email' => $user->email,
             'role' => $user->role->value,
             'role_label' => $user->role->label(),

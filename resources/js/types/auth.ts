@@ -7,7 +7,7 @@ export type User = {
     mobile_country_code: string | null;
     mobile_number: string | null;
     role: 'user' | 'admin' | 'super_admin';
-    avatar?: string;
+    avatar: string | null;
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;

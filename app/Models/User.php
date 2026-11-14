@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -22,6 +23,8 @@ use Illuminate\Support\Carbon;
  * @property string $email
  * @property string|null $mobile_country_code
  * @property string|null $mobile_number
+ * @property string|null $avatar_path
+ * @property-read string|null $avatar
  * @property UserRole $role
  * @property Carbon|null $email_verified_at
  * @property string $password
@@ -35,7 +38,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable(['first_name', 'last_name', 'email', 'mobile_country_code', 'mobile_number', 'password', 'role', 'travel_preferences'])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+#[Hidden(['avatar_path', 'password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -46,7 +49,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $appends = ['name'];
+    protected $appends = ['name', 'avatar'];
 
     /**
      * The user's full name, derived from their first and last name.
@@ -56,6 +59,30 @@ class User extends Authenticatable
     protected function name(): Attribute
     {
         return Attribute::get(fn (): string => trim("{$this->first_name} {$this->last_name}"));
+    }
+
+    /**
+     * Public URL of the user's profile picture, or null when none was uploaded.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function avatar(): Attribute
+    {
+        return Attribute::get(fn (): ?string => filled($this->avatar_path)
+            ? Storage::disk('public')->url($this->avatar_path)
+            : null);
+    }
+
+    /**
+     * Remove the stored profile picture when the user is deleted.
+     */
+    protected static function booted(): void
+    {
+        static::deleted(function (User $user): void {
+            if (filled($user->avatar_path)) {
+                Storage::disk('public')->delete($user->avatar_path);
+            }
+        });
     }
 
     /**
