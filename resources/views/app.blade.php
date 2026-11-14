@@ -33,6 +33,10 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.svg">
 
+        @if (request()->routeIs('home'))
+            <link rel="preload" as="image" type="image/webp" href="/images/hero-banner.webp" imagesrcset="/images/hero-banner-768.webp 768w, /images/hero-banner.webp 1536w" imagesizes="100vw" fetchpriority="high">
+        @endif
+
         @fonts
 
         @vite(['resources/css/app.css', 'resources/js/app.ts'])

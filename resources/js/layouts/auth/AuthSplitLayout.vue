@@ -20,11 +20,24 @@ defineProps<{
         <div
             class="relative hidden h-full flex-col overflow-hidden p-10 text-white lg:flex"
         >
-            <img
-                src="/images/hero-banner.jpg"
-                alt=""
-                class="absolute inset-0 size-full object-cover"
-            />
+            <picture>
+                <source
+                    type="image/webp"
+                    srcset="
+                        /images/hero-banner-768.webp   768w,
+                        /images/hero-banner.webp      1536w
+                    "
+                    sizes="50vw"
+                />
+                <img
+                    src="/images/hero-banner.jpg"
+                    alt=""
+                    width="1536"
+                    height="1024"
+                    class="absolute inset-0 size-full object-cover"
+                    decoding="async"
+                />
+            </picture>
             <div
                 class="absolute inset-0 bg-gradient-to-br from-teal-700/90 via-violet-700/75 to-orange-600/70"
             />

@@ -14,6 +14,19 @@ declare global {
 
 let scriptPromise: Promise<void> | null = null;
 
+/**
+ * Number of mounted components currently using reCAPTCHA. The badge is only
+ * visible (via the `recaptcha-active` class on <html>) while this is above zero.
+ */
+let activeConsumers = 0;
+
+function updateBadgeVisibility(): void {
+    document.documentElement.classList.toggle(
+        'recaptcha-active',
+        activeConsumers > 0,
+    );
+}
+
 function loadRecaptchaScript(siteKey: string): Promise<void> {
     if (window.grecaptcha) {
         return Promise.resolve();
@@ -38,6 +51,7 @@ function loadRecaptchaScript(siteKey: string): Promise<void> {
 
 export function useRecaptchaV3(siteKey: () => string | null) {
     const isReady = ref(false);
+    let isRegistered = false;
 
     onMounted(async () => {
         const key = siteKey();
@@ -45,6 +59,10 @@ export function useRecaptchaV3(siteKey: () => string | null) {
         if (! key) {
             return;
         }
+
+        isRegistered = true;
+        activeConsumers++;
+        updateBadgeVisibility();
 
         try {
             await loadRecaptchaScript(key);
@@ -55,7 +73,13 @@ export function useRecaptchaV3(siteKey: () => string | null) {
     });
 
     onBeforeUnmount(() => {
-        scriptPromise = null;
+        if (! isRegistered) {
+            return;
+        }
+
+        isRegistered = false;
+        activeConsumers = Math.max(0, activeConsumers - 1);
+        updateBadgeVisibility();
     });
 
     async function execute(action: string): Promise<string> {

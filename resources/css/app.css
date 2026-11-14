@@ -326,3 +326,16 @@
         transparent 11px 13px
     );
 }
+
+/*
+ * The reCAPTCHA v3 badge is appended to <body> by Google's script and is never
+ * removed, so it would linger after navigating away from a protected form.
+ * It is only shown while a component using useRecaptchaV3() is mounted.
+ */
+.grecaptcha-badge {
+    visibility: hidden;
+}
+
+html.recaptcha-active .grecaptcha-badge {
+    visibility: visible;
+}
