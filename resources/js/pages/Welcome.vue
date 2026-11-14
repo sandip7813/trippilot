@@ -3,17 +3,25 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
     ArrowUpRight,
+    Backpack,
+    Bike,
+    Binoculars,
     Bot,
     CalendarClock,
+    Car,
     CloudSun,
     Compass,
     Globe2,
     History,
     Map,
     MapPin,
+    Mountain,
     Plus,
     Route,
+    Send,
     Sparkles,
+    Tent,
+    UserCheck,
     Users,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
@@ -89,6 +97,67 @@ const nextTripCountdown = computed(() => {
           ? 'Tomorrow'
           : `${days} days to go`;
 });
+
+/** Guests sign up first; signed-in users go straight to planning. */
+const startTripHref = computed(() => (user.value ? createTrip() : register()));
+
+/** Ideas for open trips, shown until the community publishes its own. */
+const openTripIdeas = [
+    { icon: Mountain, label: 'Treks', text: 'Summit hikes and trail weekends' },
+    { icon: Bike, label: 'Bike rides', text: 'Day loops to multi-day tours' },
+    { icon: Car, label: 'Road trips', text: 'Split the fuel, share the views' },
+    {
+        icon: Tent,
+        label: 'Weekend getaways',
+        text: 'Quick escapes from the city',
+    },
+    {
+        icon: Backpack,
+        label: 'Backpacking',
+        text: 'Hostels, trains and new friends',
+    },
+    { icon: Binoculars, label: 'Wildlife', text: 'Safaris, parks and birding' },
+];
+
+const openTripSteps = [
+    {
+        icon: Send,
+        title: 'Publish your plan',
+        text: 'Set the dates, group size and cost, then open it to the community.',
+    },
+    {
+        icon: Users,
+        title: 'Travelers ask to join',
+        text: 'People heading the same way find your trip and send a request.',
+    },
+    {
+        icon: UserCheck,
+        title: 'Approve and go',
+        text: 'You choose who joins, then plan the details together.',
+    },
+];
+
+/** Quick ways to start, shown in the hero when there is no trip to feature. */
+const heroQuickStarts = computed(() => [
+    {
+        icon: Sparkles,
+        title: 'Plan a trip with AI',
+        text: 'A day-by-day itinerary in minutes',
+        href: user.value ? createTrip() : register(),
+    },
+    {
+        icon: Route,
+        title: 'Map a road trip',
+        text: 'Stops, breaks and scenic drives',
+        href: user.value ? createRoadTrip() : register(),
+    },
+    {
+        icon: Users,
+        title: 'Open a group trip',
+        text: 'Let travelers request to join',
+        href: user.value ? createTrip() : register(),
+    },
+]);
 
 const featuredOpenTrip = computed(() => props.openTrips[0] ?? null);
 
@@ -212,8 +281,8 @@ const features = [
                 <source
                     type="image/webp"
                     srcset="
-                        /images/hero-banner-768.webp   768w,
-                        /images/hero-banner.webp      1536w
+                        /images/hero-banner-768.webp  768w,
+                        /images/hero-banner.webp     1536w
                     "
                     sizes="100vw"
                 />
@@ -392,6 +461,40 @@ const features = [
                         <div class="rounded-2xl bg-background shadow-2xl">
                             <HomeOpenTripCard :trip="featuredOpenTrip" />
                         </div>
+                    </div>
+                    <div
+                        v-else
+                        class="ml-auto max-w-sm space-y-3 rounded-3xl border border-white/20 bg-white/10 p-4 shadow-2xl backdrop-blur-xl"
+                    >
+                        <p
+                            class="px-1 text-xs font-semibold tracking-widest text-teal-200 uppercase"
+                        >
+                            Start your way
+                        </p>
+                        <Link
+                            v-for="(item, index) in heroQuickStarts"
+                            :key="item.title"
+                            :href="item.href"
+                            class="group flex items-center gap-3 rounded-2xl bg-white/5 p-3 text-white transition hover:bg-white/15"
+                        >
+                            <span
+                                class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-md"
+                                :class="featureIconAccent(index)"
+                            >
+                                <component :is="item.icon" class="size-5" />
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block font-semibold">
+                                    {{ item.title }}
+                                </span>
+                                <span class="block text-sm text-white/65">
+                                    {{ item.text }}
+                                </span>
+                            </span>
+                            <ArrowRight
+                                class="size-4 text-white/50 transition group-hover:translate-x-0.5 group-hover:text-white"
+                            />
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -613,33 +716,84 @@ const features = [
                     />
                 </div>
 
-                <div
-                    v-else
-                    class="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-border bg-card/60 px-6 py-14 text-center"
-                >
-                    <span
-                        class="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"
+                <div v-else class="grid gap-6 lg:grid-cols-5">
+                    <!-- What you could open -->
+                    <div
+                        class="rounded-3xl border border-border/70 bg-card p-6 shadow-sm lg:col-span-3"
                     >
-                        <Users class="size-7" />
-                    </span>
-                    <div class="space-y-1">
-                        <p class="text-lg font-semibold">
-                            Be the first to open a trip
+                        <p class="font-semibold">
+                            What kind of trip are you planning?
                         </p>
-                        <p class="max-w-md text-sm text-muted-foreground">
-                            Planning something fun? Publish it as an open trip
-                            and let other travelers request to join.
+                        <p class="mt-1 text-sm text-muted-foreground">
+                            Any of these can become an open trip that others can
+                            join.
                         </p>
+                        <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            <Link
+                                v-for="(idea, index) in openTripIdeas"
+                                :key="idea.label"
+                                :href="startTripHref"
+                                class="group rounded-2xl border border-border/70 p-4 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                            >
+                                <span
+                                    class="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-md"
+                                    :class="featureIconAccent(index)"
+                                >
+                                    <component :is="idea.icon" class="size-5" />
+                                </span>
+                                <p
+                                    class="mt-3 text-sm font-semibold group-hover:text-primary"
+                                >
+                                    {{ idea.label }}
+                                </p>
+                                <p class="mt-0.5 text-xs text-muted-foreground">
+                                    {{ idea.text }}
+                                </p>
+                            </Link>
+                        </div>
                     </div>
-                    <Button as-child>
-                        <Link :href="user ? createTrip() : register()">
-                            {{
-                                user
-                                    ? 'Plan & publish a trip'
-                                    : 'Create a free account'
-                            }}
-                        </Link>
-                    </Button>
+
+                    <!-- How open trips work -->
+                    <div
+                        class="flex flex-col rounded-3xl border border-dashed border-border bg-card/60 p-6 lg:col-span-2"
+                    >
+                        <p class="font-semibold">How open trips work</p>
+                        <ol class="mt-5 flex-1 space-y-5">
+                            <li
+                                v-for="(step, index) in openTripSteps"
+                                :key="step.title"
+                                class="flex gap-3"
+                            >
+                                <span
+                                    class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+                                >
+                                    <component :is="step.icon" class="size-4" />
+                                </span>
+                                <div>
+                                    <p class="text-sm font-semibold">
+                                        {{ index + 1 }}. {{ step.title }}
+                                    </p>
+                                    <p class="text-sm text-muted-foreground">
+                                        {{ step.text }}
+                                    </p>
+                                </div>
+                            </li>
+                        </ol>
+                        <div class="mt-6 border-t border-border/60 pt-5">
+                            <p class="mb-3 text-sm text-muted-foreground">
+                                No open trips yet. Yours could be the first.
+                            </p>
+                            <Button as-child class="w-full">
+                                <Link :href="startTripHref">
+                                    {{
+                                        user
+                                            ? 'Plan & publish a trip'
+                                            : 'Create a free account'
+                                    }}
+                                </Link>
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
