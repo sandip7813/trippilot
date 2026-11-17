@@ -17,6 +17,16 @@ test('admins and super admins can open the content pages admin', function (strin
             ->has('pages', 3));
 })->with(['admin', 'superAdmin']);
 
+test('the content pages list shows who last edited each page', function () {
+    $admin = User::factory()->admin()->create(['first_name' => 'Asha', 'last_name' => 'Rao']);
+    termsPage()->update(['updated_by' => $admin->id]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.content-pages.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('pages.0.updated_by', 'Asha Rao'));
+});
+
 test('regular users cannot manage content pages', function () {
     $user = User::factory()->create();
     $page = termsPage();
