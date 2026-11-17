@@ -78,6 +78,22 @@ class PlatformSettings
             'config' => 'trippilot.logo',
             'type' => 'string',
         ],
+        'credits.enabled' => [
+            'config' => 'trippilot.credits.enabled',
+            'type' => 'boolean',
+        ],
+        'payments.razorpay.key_id' => [
+            'config' => 'integrations.payments.razorpay.key_id',
+            'type' => 'secret',
+        ],
+        'payments.razorpay.key_secret' => [
+            'config' => 'integrations.payments.razorpay.key_secret',
+            'type' => 'secret',
+        ],
+        'payments.razorpay.webhook_secret' => [
+            'config' => 'integrations.payments.razorpay.webhook_secret',
+            'type' => 'secret',
+        ],
     ];
 
     public static function applyToConfig(): void
@@ -120,6 +136,9 @@ class PlatformSettings
             'gemini_api_key_configured' => filled(config('integrations.ai.drivers.gemini.api_key')),
             'railradar_api_key_configured' => filled(config('integrations.trains.drivers.railradar.api_key')),
             'unsplash_access_key_configured' => filled(config('integrations.trip_covers.drivers.unsplash.access_key')),
+            'razorpay_key_id_configured' => filled(config('integrations.payments.razorpay.key_id')),
+            'razorpay_key_secret_configured' => filled(config('integrations.payments.razorpay.key_secret')),
+            'razorpay_webhook_secret_configured' => filled(config('integrations.payments.razorpay.webhook_secret')),
             'recaptcha_enabled' => (bool) config('recaptcha.enabled', true),
             'recaptcha_configured' => filled(config('recaptcha.site_key')) && filled(config('recaptcha.secret_key')),
             'logo' => (string) config('trippilot.logo', 'compass'),
@@ -167,6 +186,15 @@ class PlatformSettings
                     || config('integrations.trip_covers.driver') !== 'unsplash'
                     || filled(config('integrations.trip_covers.drivers.unsplash.access_key')),
                 'requires_key' => config('integrations.trip_covers.driver') === 'unsplash',
+            ],
+            'payments' => [
+                'label' => 'Razorpay',
+                'description' => filled(config('integrations.payments.razorpay.webhook_secret'))
+                    ? 'Credit pack payments'
+                    : 'Credit pack payments (webhook secret not set)',
+                'configured' => filled(config('integrations.payments.razorpay.key_id'))
+                    && filled(config('integrations.payments.razorpay.key_secret')),
+                'requires_key' => true,
             ],
             'recaptcha' => [
                 'label' => 'Google reCAPTCHA v3',

@@ -4,9 +4,10 @@ import type { HTMLAttributes } from 'vue';
 import { computed } from 'vue';
 import TripPilotBrand from '@/components/TripPilotBrand.vue';
 import { cn } from '@/lib/utils';
-import { contact, dashboard, home, login, register } from '@/routes';
+import { contact, dashboard, home, login, pricing, register } from '@/routes';
 import { index as openTripsIndex } from '@/routes/open-trips';
 import { index as tripsIndex } from '@/routes/trips';
+import type { FooterPageLink } from '@/types/legal';
 
 /**
  * Shared footer for the guest-reachable pages (home, Discover, open trip
@@ -34,8 +35,14 @@ const links = computed(() => [
               { title: 'Log in', href: login() },
               { title: 'Sign up', href: register() },
           ]),
+    { title: 'Pricing', href: pricing() },
     { title: 'Contact', href: contact() },
 ]);
+
+/** Published content pages marked "Show in footer" in Admin → Content pages. */
+const policyLinks = computed<FooterPageLink[]>(
+    () => (page.props.footerPages as FooterPageLink[] | undefined) ?? [],
+);
 </script>
 
 <template>
@@ -67,5 +74,24 @@ const links = computed(() => [
                 &copy; {{ new Date().getFullYear() }} TripPilot
             </p>
         </div>
+        <nav
+            v-if="policyLinks.length"
+            :class="
+                cn(
+                    'mx-auto flex flex-wrap justify-center gap-x-5 gap-y-2 border-t border-border/40 px-4 py-4 text-xs text-muted-foreground sm:px-6 lg:px-8',
+                    containerClass,
+                )
+            "
+            aria-label="Policies"
+        >
+            <Link
+                v-for="link in policyLinks"
+                :key="link.href"
+                :href="link.href"
+                class="transition-colors hover:text-foreground"
+            >
+                {{ link.title }}
+            </Link>
+        </nav>
     </footer>
 </template>

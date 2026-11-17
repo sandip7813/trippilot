@@ -9,6 +9,7 @@ import {
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
+import CreditCostNotice from '@/components/CreditCostNotice.vue';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -30,8 +30,11 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useBuyCreditsPrompt } from '@/composables/useBuyCreditsPrompt';
+import { useCredits } from '@/composables/useCredits';
 import { formatDisplayDate, formatWeekdayShort } from '@/lib/dates';
 import { cn } from '@/lib/utils';
+import type { CreditServiceKey } from '@/types/credits';
 import type { Trip } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
@@ -77,10 +80,30 @@ const generateHint = computed((): string => {
 
 const generateDialogOpen = ref(false);
 
+const { credits, costLabel, canAfford } = useCredits();
+
+const generateService = computed<CreditServiceKey>(() =>
+    hasItinerary.value ? 'itinerary_regeneration' : 'itinerary_generation',
+);
+const generateCostLabel = computed(() => costLabel(generateService.value));
+const canAffordGenerate = computed(() => canAfford(generateService.value));
+
+const { ensureCredits } = useBuyCreditsPrompt();
+
+/**
+ * Open the confirm dialog, or the buy-credits prompt when the user cannot
+ * pay for the generation.
+ */
+function openGenerateDialog(): void {
+    if (ensureCredits(generateService.value)) {
+        generateDialogOpen.value = true;
+    }
+}
+
 const generateWarning = computed((): string =>
     hasItinerary.value
         ? "This will replace your current day-by-day plan, packing list, and budget with a new AI-generated itinerary. Your existing plan can't be recovered afterward."
-        : 'TripPilot will use AI to build a day-by-day plan, packing list, and budget estimate for this trip based on your trip details. This uses one of your daily AI requests.',
+        : 'TripPilot will use AI to build a day-by-day plan, packing list, and budget estimate for this trip based on your trip details.',
 );
 
 function dayTabDateLabel(day: (typeof days.value)[number]): string {
@@ -156,16 +179,18 @@ function nextDay(): void {
                 </p>
             </div>
             <Dialog v-if="canEdit" v-model:open="generateDialogOpen">
-                <DialogTrigger as-child>
-                    <Button
-                        type="button"
-                        class="shrink-0"
-                        :disabled="!canGenerate"
-                    >
-                        <Sparkles class="mr-2 size-4" />
-                        {{ hasItinerary ? 'Regenerate' : 'Generate with AI' }}
-                    </Button>
-                </DialogTrigger>
+                <Button
+                    type="button"
+                    class="shrink-0"
+                    :disabled="!canGenerate"
+                    @click="openGenerateDialog"
+                >
+                    <Sparkles class="mr-2 size-4" />
+                    {{ hasItinerary ? 'Regenerate' : 'Generate with AI' }}
+                    <span v-if="generateCostLabel" class="opacity-80">
+                        · {{ generateCostLabel }}
+                    </span>
+                </Button>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
@@ -179,6 +204,12 @@ function nextDay(): void {
                             {{ generateWarning }}
                         </DialogDescription>
                     </DialogHeader>
+                    <CreditCostNotice
+                        v-if="credits && generateCostLabel"
+                        :cost-label="generateCostLabel"
+                        :balance="credits.balance"
+                        :can-afford="canAffordGenerate"
+                    />
                     <DialogFooter>
                         <DialogClose as-child>
                             <Button variant="outline">Cancel</Button>

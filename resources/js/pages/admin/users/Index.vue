@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowLeft, Users } from '@lucide/vue';
+import { ArrowLeft, Coins, Users } from '@lucide/vue';
 import { ref } from 'vue';
 import UserController from '@/actions/App/Http/Controllers/Admin/UserController';
+import GrantCreditsDialog from '@/components/admin/GrantCreditsDialog.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -142,6 +143,39 @@ defineOptions({
                         <div
                             class="flex shrink-0 items-center gap-3 self-start lg:self-center"
                         >
+                            <span
+                                v-if="user.uses_credits"
+                                :class="[
+                                    'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold tabular-nums',
+                                    user.credit_balance > 0
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+                                ]"
+                                :title="`${user.credit_balance} credits left`"
+                                data-test="user-credit-balance"
+                            >
+                                <Coins class="size-4" />
+                                {{ user.credit_balance }}
+                                {{
+                                    user.credit_balance === 1
+                                        ? 'credit'
+                                        : 'credits'
+                                }}
+                            </span>
+                            <Badge
+                                v-else
+                                variant="outline"
+                                class="text-xs text-muted-foreground"
+                                title="Admins use AI features without credits"
+                            >
+                                No credits needed
+                            </Badge>
+
+                            <GrantCreditsDialog
+                                v-if="user.can_grant_credits"
+                                :user="user"
+                            />
+
                             <Spinner
                                 v-if="updatingUserIds.includes(user.id)"
                                 class="size-4"

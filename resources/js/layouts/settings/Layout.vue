@@ -28,7 +28,7 @@ type SettingsNavItem = NavItem & {
     iconClass: string;
 };
 
-const sidebarNavItems: SettingsNavItem[] = [
+const baseNavItems: SettingsNavItem[] = [
     {
         title: 'Profile',
         caption: 'Name, contact & home city',
@@ -75,6 +75,8 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+
+const sidebarNavItems = baseNavItems;
 
 const roleLabels: Record<string, string> = {
     user: 'Traveller',

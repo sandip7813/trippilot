@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Credits\GrantSignupBonus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ForcePasswordChangeRequest;
 use Illuminate\Http\RedirectResponse;
@@ -30,7 +31,7 @@ class ForcePasswordChangeController extends Controller
      * Replace the one-time password. Logging in with it proves ownership of
      * the email address, so the email is marked as verified here too.
      */
-    public function update(ForcePasswordChangeRequest $request): RedirectResponse
+    public function update(ForcePasswordChangeRequest $request, GrantSignupBonus $grantSignupBonus): RedirectResponse
     {
         $user = $request->user();
 
@@ -39,6 +40,8 @@ class ForcePasswordChangeController extends Controller
             'must_change_password' => false,
             'email_verified_at' => $user->email_verified_at ?? now(),
         ])->save();
+
+        $grantSignupBonus($user);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
 

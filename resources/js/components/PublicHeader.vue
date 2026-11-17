@@ -11,7 +11,7 @@ import {
     UserPlus,
 } from '@lucide/vue';
 import type { HTMLAttributes } from 'vue';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import TripPilotBrand from '@/components/TripPilotBrand.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,7 +28,9 @@ import { index as openTripsIndex } from '@/routes/open-trips';
 
 /**
  * Shared header for the guest-reachable pages (home, Discover, open trip
- * overview). `overlay` sits transparently on top of a hero image.
+ * overview). Both variants stay at the top while scrolling. `overlay` is
+ * fixed and transparent over a hero image (the page adds `pt-20` for it),
+ * and turns dark once the page scrolls so the links stay readable.
  */
 const props = withDefaults(
     defineProps<{
@@ -44,6 +46,23 @@ const { currentUrl, isCurrentUrl } = useCurrentUrl();
 const mobileMenuOpen = ref(false);
 
 const isOverlay = computed(() => props.variant === 'overlay');
+
+const isScrolled = ref(false);
+
+function updateScrolled(): void {
+    isScrolled.value = window.scrollY > 8;
+}
+
+onMounted(() => {
+    if (isOverlay.value) {
+        updateScrolled();
+        window.addEventListener('scroll', updateScrolled, { passive: true });
+    }
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('scroll', updateScrolled);
+});
 
 const navItems = computed(() => [
     { title: 'Home', href: home(), icon: House, active: isCurrentUrl(home()) },
@@ -85,15 +104,20 @@ function handleLogout(): void {
     <header
         :class="
             isOverlay
-                ? 'relative z-20'
+                ? cn(
+                      'fixed inset-x-0 top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300',
+                      isScrolled
+                          ? 'border-white/10 bg-slate-950/85 shadow-lg shadow-black/20 backdrop-blur-md'
+                          : 'border-transparent',
+                  )
                 : 'sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70'
         "
     >
         <div
             :class="
                 cn(
-                    'mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8',
-                    isOverlay ? 'h-20' : 'h-16',
+                    'mx-auto flex items-center justify-between gap-4 px-4 transition-[height] duration-300 sm:px-6 lg:px-8',
+                    isOverlay && !isScrolled ? 'h-20' : 'h-16',
                     containerClass,
                 )
             "

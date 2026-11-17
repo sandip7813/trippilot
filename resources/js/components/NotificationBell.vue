@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Bell, CalendarClock, ChevronRight, UserPlus } from '@lucide/vue';
+import {
+    Bell,
+    CalendarClock,
+    ChevronRight,
+    Coins,
+    UserPlus,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import {
     DropdownMenu,
@@ -24,6 +30,7 @@ const recent = computed(() => page.props.notifications.recent);
 const kindIcons = {
     reminder: CalendarClock,
     shared: UserPlus,
+    credits: Coins,
 };
 </script>
 

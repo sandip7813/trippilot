@@ -174,7 +174,9 @@ const textareaClass =
 
     <div class="min-h-screen bg-background text-foreground">
         <!-- Hero -->
-        <section class="relative isolate">
+        <PublicHeader variant="overlay" />
+
+        <section class="relative isolate pt-20">
             <img
                 src="/images/destination-beach.jpg"
                 alt=""
@@ -187,8 +189,6 @@ const textareaClass =
             <div
                 class="absolute inset-0 -z-10 bg-gradient-to-r from-teal-950/60 via-transparent to-indigo-950/50"
             />
-
-            <PublicHeader variant="overlay" />
 
             <div
                 class="mx-auto max-w-3xl px-4 pt-10 pb-44 text-center sm:px-6 lg:pt-14 lg:pb-52"

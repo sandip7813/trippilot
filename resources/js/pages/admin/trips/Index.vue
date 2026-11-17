@@ -134,8 +134,8 @@ defineOptions({
                             :default-value="filters.status"
                         >
                             <option value="all">All ({{ counts.all }})</option>
-                            <option value="draft">Draft</option>
-                            <option value="planned">Planned</option>
+                            <option value="draft">No itinerary yet</option>
+                            <option value="planned">Itinerary ready</option>
                             <option value="archived">
                                 Archived ({{ counts.archived }})
                             </option>
@@ -248,8 +248,8 @@ defineOptions({
                                     )
                                 "
                             >
-                                <option value="draft">Draft</option>
-                                <option value="planned">Planned</option>
+                                <option value="draft">No itinerary yet</option>
+                                <option value="planned">Itinerary ready</option>
                                 <option value="archived">Archived</option>
                             </select>
 

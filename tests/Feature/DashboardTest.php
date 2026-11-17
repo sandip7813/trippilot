@@ -110,3 +110,33 @@ test('dashboard has no next departure when nothing is scheduled', function () {
             ->where('nextTrip', null)
             ->where('stats.trips', 0));
 });
+
+test('recent trips show whether each trip is upcoming, ongoing or completed', function () {
+    skipUnlessMongoDbAvailable();
+
+    $user = User::factory()->create();
+    Trip::factory()->forUser($user)->create([
+        'title' => 'Finished',
+        'start_date' => now()->subDays(10)->toDateString(),
+        'end_date' => now()->subDays(5)->toDateString(),
+    ]);
+    Trip::factory()->forUser($user)->create([
+        'title' => 'Under way',
+        'start_date' => now()->subDay()->toDateString(),
+        'end_date' => now()->addDay()->toDateString(),
+    ]);
+    Trip::factory()->forUser($user)->create([
+        'title' => 'Undated',
+        'start_date' => null,
+        'end_date' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page
+            ->where('recentTrips', fn ($trips) => collect($trips)->mapWithKeys(fn (array $trip) => [$trip['title'] => $trip['phase_label']])->sortKeys()->all() === [
+                'Finished' => 'Completed',
+                'Undated' => 'Upcoming',
+                'Under way' => 'Ongoing',
+            ]));
+});

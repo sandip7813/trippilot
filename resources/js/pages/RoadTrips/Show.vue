@@ -62,6 +62,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useBuyCreditsPrompt } from '@/composables/useBuyCreditsPrompt';
+import { useCredits } from '@/composables/useCredits';
 import { useTripCoverAutoRefresh } from '@/composables/useTripCoverAutoRefresh';
 import { useTripRouteStops } from '@/composables/useTripRouteStops';
 import { cn } from '@/lib/utils';
@@ -119,6 +121,11 @@ defineOptions({
 type PanelTab = 'tools' | 'amenities' | 'breaks' | 'stops';
 
 const page = usePage();
+const { costLabel } = useCredits();
+const { guardSubmit } = useBuyCreditsPrompt();
+const breakSuggestionCostLabel = computed(() =>
+    costLabel('road_break_suggestions'),
+);
 const activeAmenityLayer = ref<string | null>(null);
 const focusedAmenityPlaceKey = ref<string | null>(null);
 const copiedAmenityPlaceKey = ref<string | null>(null);
@@ -894,10 +901,22 @@ onUnmounted(() => {
                                 :disabled="
                                     processing || !hasRoute || !aiConfigured
                                 "
+                                @click="
+                                    guardSubmit(
+                                        'road_break_suggestions',
+                                        $event,
+                                    )
+                                "
                             >
                                 <Spinner v-if="processing" class="mr-1.5" />
                                 <Sparkles v-else class="mr-1.5 size-4" />
                                 Suggest breaks with AI
+                                <span
+                                    v-if="breakSuggestionCostLabel"
+                                    class="opacity-80"
+                                >
+                                    · {{ breakSuggestionCostLabel }}
+                                </span>
                             </Button>
                         </Form>
                     </div>
@@ -1091,6 +1110,12 @@ onUnmounted(() => {
                                     :disabled="
                                         processing || !hasRoute || !aiConfigured
                                     "
+                                    @click="
+                                        guardSubmit(
+                                            'road_break_suggestions',
+                                            $event,
+                                        )
+                                    "
                                 >
                                     <span
                                         class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 text-violet-600"
@@ -1104,6 +1129,12 @@ onUnmounted(() => {
                                     <span>
                                         <span class="block font-medium">
                                             Suggest breaks with AI
+                                            <span
+                                                v-if="breakSuggestionCostLabel"
+                                                class="font-normal text-muted-foreground"
+                                            >
+                                                · {{ breakSuggestionCostLabel }}
+                                            </span>
                                         </span>
                                         <span
                                             class="mt-0.5 block text-xs text-muted-foreground"

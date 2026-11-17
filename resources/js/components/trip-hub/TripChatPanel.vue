@@ -3,12 +3,14 @@ import { Form, usePage } from '@inertiajs/vue3';
 import { BookOpen, MessageCircle, Send, Sparkles } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import TripController from '@/actions/App/Http/Controllers/TripController';
+import CreditUsageHint from '@/components/CreditUsageHint.vue';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { useBuyCreditsPrompt } from '@/composables/useBuyCreditsPrompt';
 import { cn } from '@/lib/utils';
 import type { RagCoverage, Trip, TripChatMessage } from '@/types/trip';
 
@@ -24,6 +26,7 @@ const props = withDefaults(
 );
 
 const page = usePage();
+const { guardSubmit } = useBuyCreditsPrompt();
 const messageInput = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 
@@ -242,14 +245,21 @@ function messageClasses(message: TripChatMessage): string {
                 />
                 <InputError :message="errors.message" />
                 <div class="flex items-center justify-between gap-3">
-                    <p class="text-xs text-muted-foreground">
-                        {{ messageInput.length }}/2000
-                    </p>
+                    <div class="flex flex-col gap-1">
+                        <p class="text-xs text-muted-foreground">
+                            {{ messageInput.length }}/2000
+                        </p>
+                        <CreditUsageHint
+                            service="trip_chat_message"
+                            suffix="per message"
+                        />
+                    </div>
                     <Button
                         type="submit"
                         :disabled="
                             !canChat || processing || messageInput.trim() === ''
                         "
+                        @click="guardSubmit('trip_chat_message', $event)"
                     >
                         <Spinner v-if="processing" class="mr-2" />
                         <Send v-else class="mr-2 size-4" />

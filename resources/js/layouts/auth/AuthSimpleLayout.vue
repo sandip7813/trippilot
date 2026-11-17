@@ -95,7 +95,9 @@ const assurances = [
 
 <template>
     <div class="flex min-h-svh flex-col bg-background">
-        <section class="relative isolate flex flex-1 flex-col">
+        <PublicHeader variant="overlay" />
+
+        <section class="relative isolate flex flex-1 flex-col pt-20">
             <img
                 src="/images/destination-santorini.jpg"
                 alt=""
@@ -125,8 +127,6 @@ const assurances = [
                     stroke-linecap="round"
                 />
             </svg>
-
-            <PublicHeader variant="overlay" />
 
             <div
                 class="flex flex-1 flex-col items-center justify-center gap-8 px-4 py-10 sm:px-6 lg:py-16"

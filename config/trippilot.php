@@ -68,4 +68,41 @@ return [
         'max_active_per_user' => (int) env('TRIPPILOT_OPEN_TRIPS_MAX_ACTIVE_PER_USER', 3),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | AI Credits
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, regular users spend credits on AI features (admins and
+    | super admins are exempt). Super admins can switch this on from the
+    | admin panel, which overrides the env value. New users receive the
+    | signup bonus once their email address is verified.
+    |
+    */
+
+    'credits' => [
+        'enabled' => (bool) env('TRIPPILOT_CREDITS_ENABLED', false),
+        'signup_bonus' => (int) env('TRIPPILOT_CREDITS_SIGNUP_BONUS', 30),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Legal & Business Details
+    |--------------------------------------------------------------------------
+    |
+    | Shown on the Terms, Privacy, Refund & Cancellation and Pricing pages,
+    | which payment providers such as Razorpay review before activation.
+    | Page text is edited in Admin → Content pages, where {business_name},
+    | {support_email} and similar placeholders show these values.
+    |
+    */
+
+    'legal' => [
+        'business_name' => env('TRIPPILOT_LEGAL_NAME', 'TripPilot'),
+        'support_email' => env('TRIPPILOT_SUPPORT_EMAIL', env('MAIL_FROM_ADDRESS')),
+        'support_phone' => env('TRIPPILOT_SUPPORT_PHONE'),
+        'address' => env('TRIPPILOT_BUSINESS_ADDRESS'),
+        'jurisdiction' => env('TRIPPILOT_LEGAL_JURISDICTION', 'India'),
+    ],
+
 ];

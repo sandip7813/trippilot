@@ -937,6 +937,22 @@ class Trip extends Model
     }
 
     /**
+     * Where the trip is in time, using the same rules as scopeInPhase().
+     */
+    public function phase(): TripPhase
+    {
+        $today = Carbon::today();
+        $start = $this->start_date?->copy()->startOfDay();
+        $end = ($this->end_date ?? $this->start_date)?->copy()->startOfDay();
+
+        return match (true) {
+            $start === null || $start->greaterThan($today) => TripPhase::Upcoming,
+            $end->lessThan($today) => TripPhase::Past,
+            default => TripPhase::Ongoing,
+        };
+    }
+
+    /**
      * Upcoming and ongoing trips are soonest first; past trips latest first.
      *
      * @param  Builder<Trip>  $query
@@ -992,6 +1008,8 @@ class Trip extends Model
             'travelers' => $this->travelers,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
+            'phase' => $this->phase()->value,
+            'phase_label' => $this->phase()->shortLabel(),
             'is_favorite' => $this->is_favorite,
             'notes' => $isMember ? null : $this->notes,
             'cover_image_url' => $this->coverImageUrl(),

@@ -15,6 +15,9 @@ export type AdminUser = {
     can_update_role: boolean;
     assignable_roles: AdminUserRoleOption[];
     is_self: boolean;
+    uses_credits: boolean;
+    credit_balance: number;
+    can_grant_credits: boolean;
 };
 
 export type Paginated<T> = {

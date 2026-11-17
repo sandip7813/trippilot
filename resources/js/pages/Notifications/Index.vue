@@ -5,6 +5,7 @@ import {
     CalendarClock,
     CheckCheck,
     ChevronRight,
+    Coins,
     UserPlus,
 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -23,7 +24,7 @@ import type { Paginated } from '@/types/admin';
 
 type AppNotification = {
     id: string;
-    kind: 'reminder' | 'shared';
+    kind: 'reminder' | 'shared' | 'credits';
     title: string;
     message: string;
     url: string | null;
@@ -76,6 +77,7 @@ const groups = computed(() => {
 const kindMeta = {
     reminder: { icon: CalendarClock, label: 'Reminder' },
     shared: { icon: UserPlus, label: 'Shared trip' },
+    credits: { icon: Coins, label: 'Credits' },
 };
 
 const tabs = computed(() => [

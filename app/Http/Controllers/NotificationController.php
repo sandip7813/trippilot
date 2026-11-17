@@ -38,7 +38,11 @@ class NotificationController extends Controller
     {
         return [
             'id' => $notification->id,
-            'kind' => isset($notification->data['days_until']) ? 'reminder' : 'shared',
+            'kind' => match (true) {
+                isset($notification->data['days_until']) => 'reminder',
+                isset($notification->data['credits_added']), isset($notification->data['credits_event']) => 'credits',
+                default => 'shared',
+            },
             'title' => (string) ($notification->data['title'] ?? 'Notification'),
             'message' => (string) ($notification->data['message'] ?? ''),
             'url' => $notification->data['url'] ?? null,

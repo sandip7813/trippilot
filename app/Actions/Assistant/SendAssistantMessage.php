@@ -3,11 +3,13 @@
 namespace App\Actions\Assistant;
 
 use App\Contracts\Ai\TravelAssistant;
+use App\Enums\CreditService;
 use App\Exceptions\AiGenerationException;
 use App\Models\AssistantConversation;
 use App\Models\User;
 use App\Services\Ai\GeminiUsageLimiter;
 use App\Services\Assistant\AssistantContextBuilder;
+use App\Services\Credits\AiCreditCharger;
 use Illuminate\Support\Str;
 
 class SendAssistantMessage
@@ -16,6 +18,7 @@ class SendAssistantMessage
         private TravelAssistant $travelAssistant,
         private AssistantContextBuilder $contextBuilder,
         private GeminiUsageLimiter $usageLimiter,
+        private AiCreditCharger $creditCharger,
     ) {}
 
     /**
@@ -30,12 +33,19 @@ class SendAssistantMessage
             ));
         }
 
-        $this->usageLimiter->increment($user);
-
         $history = AssistantConversation::normalizeMessages($conversation->messages);
-        $context = $this->contextBuilder->build($user, $message);
 
-        $response = $this->travelAssistant->chat($message, $history, $context);
+        [$context, $response] = $this->creditCharger->charge(
+            $user,
+            CreditService::AssistantMessage,
+            function () use ($user, $message, $history): array {
+                $this->usageLimiter->increment($user);
+
+                $context = $this->contextBuilder->build($user, $message);
+
+                return [$context, $this->travelAssistant->chat($message, $history, $context)];
+            },
+        );
 
         $ragSources = is_array($context['rag_sources'] ?? null)
             ? array_values(array_map(

@@ -23,4 +23,12 @@ class UserPolicy
 
         return $user->isAdmin();
     }
+
+    /**
+     * Only super admins can add credits, and only to users who spend them.
+     */
+    public function grantCredits(User $user, User $target): bool
+    {
+        return $user->isSuperAdmin() && ! $target->isExemptFromCredits();
+    }
 }

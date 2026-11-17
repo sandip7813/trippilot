@@ -26,7 +26,7 @@ import {
     index as roadTripsIndex,
 } from '@/routes/road-trips';
 import { create, index as tripsIndex, show } from '@/routes/trips';
-import type { Trip, TripPhaseCounts, TripStatus } from '@/types/trip';
+import type { Trip, TripPhase, TripPhaseCounts } from '@/types/trip';
 import { locationLabel } from '@/types/trip';
 
 const props = defineProps<{
@@ -190,10 +190,11 @@ function phaseShare(count: number): string {
         : `${Math.round((count / phaseTotal.value) * 100)}%`;
 }
 
-const statusDot: Record<TripStatus, string> = {
-    draft: 'bg-amber-500 ring-amber-500/20',
-    planned: 'bg-emerald-500 ring-emerald-500/20',
-    archived: 'bg-slate-400 ring-slate-400/20',
+/** The status column shows where each trip is in time. */
+const phaseDot: Record<TripPhase, string> = {
+    upcoming: 'bg-sky-500 ring-sky-500/20',
+    ongoing: 'bg-emerald-500 ring-emerald-500/20',
+    past: 'bg-slate-400 ring-slate-400/20',
 };
 
 const shortcuts = [
@@ -575,13 +576,26 @@ function initials(name: string | null | undefined): string {
                                 }}
                             </span>
                             <span
-                                class="hidden items-center gap-2 text-sm font-medium md:col-span-2 md:flex"
+                                class="hidden min-w-0 flex-col md:col-span-2 md:flex"
                             >
                                 <span
-                                    class="size-2 rounded-full ring-4"
-                                    :class="statusDot[trip.status]"
-                                />
-                                {{ trip.status_label }}
+                                    class="flex items-center gap-2 text-sm font-medium"
+                                >
+                                    <span
+                                        class="size-2 shrink-0 rounded-full ring-4"
+                                        :class="phaseDot[trip.phase]"
+                                    />
+                                    {{ trip.phase_label }}
+                                </span>
+                                <span
+                                    v-if="
+                                        trip.status === 'draft' &&
+                                        trip.phase !== 'past'
+                                    "
+                                    class="pl-4 text-xs text-amber-600 dark:text-amber-400"
+                                >
+                                    No itinerary yet
+                                </span>
                             </span>
                             <span
                                 class="hidden text-right text-sm text-muted-foreground md:col-span-2 md:block"
