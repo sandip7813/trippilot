@@ -25,7 +25,7 @@ class ContentPageController extends Controller
     {
         return Inertia::render('admin/content-pages/Index', [
             'pages' => ContentPage::query()
-                ->with('updatedBy:id,name')
+                ->with('updatedBy:id,first_name,last_name')
                 ->ordered()
                 ->get()
                 ->map(fn (ContentPage $page): array => [
