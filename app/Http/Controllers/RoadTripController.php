@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Trips\PublishOpenTrip;
 use App\Actions\Trips\SyncTripCoverImage;
+use App\Enums\CreditService;
 use App\Enums\DrivingPace;
 use App\Enums\FoodPreference;
 use App\Enums\FuelType;
@@ -19,6 +20,7 @@ use App\Http\Requests\StoreRoadTripRequest;
 use App\Http\Requests\UpdateRoadTripRequest;
 use App\Http\Requests\UploadTripCoverImageRequest;
 use App\Models\Trip;
+use App\Services\Credits\AiCreditCharger;
 use App\Services\Expenses\ExpenseSheetPresenter;
 use App\Services\Hotels\TripHotelsService;
 use App\Services\RoadTrips\RoadTripAmenitiesService;
@@ -276,8 +278,12 @@ class RoadTripController extends Controller
         return back();
     }
 
-    public function suggestBreaks(Trip $trip, RoadTripBreakSuggestionService $breakSuggestionService): RedirectResponse
-    {
+    public function suggestBreaks(
+        Request $request,
+        Trip $trip,
+        RoadTripBreakSuggestionService $breakSuggestionService,
+        AiCreditCharger $creditCharger,
+    ): RedirectResponse {
         $this->authorize('update', $trip);
         $this->ensureRoadTrip($trip);
 
@@ -292,7 +298,12 @@ class RoadTripController extends Controller
         }
 
         try {
-            $breaks = $breakSuggestionService->suggest($trip->fresh());
+            $breaks = $creditCharger->charge(
+                $request->user(),
+                CreditService::RoadBreakSuggestions,
+                fn (): array => $breakSuggestionService->suggest($trip->fresh()),
+                (string) $trip->id,
+            );
         } catch (AiGenerationException $exception) {
             return back()->withErrors(['ai' => $exception->getMessage()]);
         }

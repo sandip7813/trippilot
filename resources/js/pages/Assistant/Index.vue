@@ -3,6 +3,7 @@ import { Form, Head, Link, router } from '@inertiajs/vue3';
 import { MessageCircle, Plus, Send, Sparkles, Trash2 } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import AssistantConversationController from '@/actions/App/Http/Controllers/Assistant/AssistantConversationController';
+import CreditUsageHint from '@/components/CreditUsageHint.vue';
 import FormSavingOverlay from '@/components/FormSavingOverlay.vue';
 import InputError from '@/components/InputError.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -10,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import { useBuyCreditsPrompt } from '@/composables/useBuyCreditsPrompt';
 import { cn } from '@/lib/utils';
 import { index as assistantIndex } from '@/routes/assistant';
 import type {
@@ -37,6 +39,7 @@ defineOptions({
 
 const messagesContainer = ref<HTMLElement | null>(null);
 const messageInput = ref('');
+const { guardSubmit } = useBuyCreditsPrompt();
 
 const messages = computed(() => props.activeConversation?.messages ?? []);
 const canChat = computed(
@@ -283,11 +286,19 @@ function deleteConversation(conversationId: string): void {
                                         processing ||
                                         !messageInput.trim()
                                     "
+                                    @click="
+                                        guardSubmit('assistant_message', $event)
+                                    "
                                 >
                                     <Spinner v-if="processing" />
                                     <Send v-else class="size-4" />
                                 </Button>
                             </div>
+                            <CreditUsageHint
+                                service="assistant_message"
+                                suffix="per message"
+                                class="mt-2"
+                            />
                         </Form>
                     </template>
                 </CardContent>

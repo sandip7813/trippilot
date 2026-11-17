@@ -142,6 +142,8 @@ export type Trip = {
     travelers: number;
     status: TripStatus;
     status_label: string;
+    phase: TripPhase;
+    phase_label: string;
     is_favorite: boolean;
     notes: string | null;
     cover_image_url?: string | null;

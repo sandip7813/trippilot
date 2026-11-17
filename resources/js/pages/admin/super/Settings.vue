@@ -35,6 +35,9 @@ defineProps<{
         gemini_api_key_configured: boolean;
         railradar_api_key_configured: boolean;
         unsplash_access_key_configured: boolean;
+        razorpay_key_id_configured: boolean;
+        razorpay_key_secret_configured: boolean;
+        razorpay_webhook_secret_configured: boolean;
         recaptcha_enabled: boolean;
         recaptcha_configured: boolean;
         logo: 'plane' | 'compass' | 'pin' | 'globe' | 'monogram';
@@ -50,6 +53,32 @@ defineProps<{
     >;
     driver_options: Record<string, Array<{ value: string; label: string }>>;
 }>();
+
+const webhookUrl =
+    typeof window === 'undefined'
+        ? '/webhooks/razorpay'
+        : `${window.location.origin}/webhooks/razorpay`;
+
+const razorpayFields = [
+    {
+        name: 'razorpay_key_id',
+        label: 'Key ID',
+        placeholder: 'rzp_live_…',
+        configured: 'razorpay_key_id_configured',
+    },
+    {
+        name: 'razorpay_key_secret',
+        label: 'Key secret',
+        placeholder: '••••••••',
+        configured: 'razorpay_key_secret_configured',
+    },
+    {
+        name: 'razorpay_webhook_secret',
+        label: 'Webhook secret',
+        placeholder: '••••••••',
+        configured: 'razorpay_webhook_secret_configured',
+    },
+] as const;
 
 const selectClass =
     'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
@@ -484,6 +513,64 @@ defineOptions({
                             }}
                         </p>
                         <InputError :message="errors.unsplash_access_key" />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="text-base">Razorpay payments</CardTitle>
+                    <CardDescription>
+                        Used to sell credit packs. In the Razorpay dashboard,
+                        add a webhook for
+                        <code
+                            class="rounded bg-muted px-1 font-mono text-[11px]"
+                            >{{ webhookUrl }}</code
+                        >
+                        with the events
+                        <code
+                            class="rounded bg-muted px-1 font-mono text-[11px]"
+                            >payment.captured</code
+                        >,
+                        <code
+                            class="rounded bg-muted px-1 font-mono text-[11px]"
+                            >order.paid</code
+                        >
+                        and
+                        <code
+                            class="rounded bg-muted px-1 font-mono text-[11px]"
+                            >refund.processed</code
+                        >, then paste its secret here. Leave a field blank to
+                        keep the current value.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent class="grid gap-6 md:grid-cols-2">
+                    <div
+                        v-for="field in razorpayFields"
+                        :key="field.name"
+                        :class="[
+                            'grid gap-2',
+                            field.name === 'razorpay_webhook_secret'
+                                ? 'md:col-span-2'
+                                : '',
+                        ]"
+                    >
+                        <Label :for="field.name">{{ field.label }}</Label>
+                        <Input
+                            :id="field.name"
+                            :name="field.name"
+                            type="password"
+                            autocomplete="off"
+                            :placeholder="field.placeholder"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            {{
+                                integrations[field.configured]
+                                    ? 'Currently configured'
+                                    : 'Not configured'
+                            }}
+                        </p>
+                        <InputError :message="errors[field.name]" />
                     </div>
                 </CardContent>
             </Card>

@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Storage;
  * @property string|null $avatar_path
  * @property-read string|null $avatar
  * @property UserRole $role
+ * @property int $credit_balance
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property bool $must_change_password
@@ -95,9 +96,35 @@ class User extends Authenticatable
         return $this->hasMany(ContactMessage::class);
     }
 
+    /**
+     * Entries in this user's credit ledger.
+     *
+     * @return HasMany<CreditTransaction, $this>
+     */
+    public function creditTransactions(): HasMany
+    {
+        return $this->hasMany(CreditTransaction::class);
+    }
+
+    /**
+     * @return HasMany<CreditOrder, $this>
+     */
+    public function creditOrders(): HasMany
+    {
+        return $this->hasMany(CreditOrder::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role->isAdmin();
+    }
+
+    /**
+     * Admins and super admins use AI features without spending credits.
+     */
+    public function isExemptFromCredits(): bool
+    {
+        return $this->isAdmin();
     }
 
     public function isSuperAdmin(): bool
@@ -125,6 +152,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'must_change_password' => 'boolean',
             'role' => UserRole::class,
+            'credit_balance' => 'integer',
             'travel_preferences' => 'array',
         ];
     }

@@ -31,6 +31,9 @@ class UpdatePlatformIntegrations
         $this->updateSecret('ai.gemini.api_key', $validated['gemini_api_key'] ?? null);
         $this->updateSecret('trains.railradar.api_key', $validated['railradar_api_key'] ?? null);
         $this->updateSecret('trip_covers.unsplash.access_key', $validated['unsplash_access_key'] ?? null);
+        $this->updateSecret('payments.razorpay.key_id', $validated['razorpay_key_id'] ?? null);
+        $this->updateSecret('payments.razorpay.key_secret', $validated['razorpay_key_secret'] ?? null);
+        $this->updateSecret('payments.razorpay.webhook_secret', $validated['razorpay_webhook_secret'] ?? null);
 
         PlatformSettings::applyToConfig();
 

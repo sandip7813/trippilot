@@ -272,9 +272,11 @@ const features = [
     </Head>
 
     <div class="min-h-screen bg-background text-foreground">
+        <PublicHeader variant="overlay" />
+
         <!-- ═══ HERO ═══ -->
         <section
-            class="relative isolate"
+            class="relative isolate pt-20"
             :class="isSearchOpen ? 'z-30' : 'z-0'"
         >
             <picture>
@@ -302,8 +304,6 @@ const features = [
             <div
                 class="absolute inset-0 -z-10 bg-gradient-to-r from-teal-950/60 via-transparent to-indigo-950/40"
             />
-
-            <PublicHeader variant="overlay" />
 
             <div
                 class="mx-auto grid max-w-7xl items-center gap-12 px-4 pt-10 pb-32 sm:px-6 lg:grid-cols-12 lg:px-8 lg:pt-16 lg:pb-40"

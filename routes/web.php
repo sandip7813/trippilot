@@ -4,8 +4,11 @@ use App\Http\Controllers\Assistant\AssistantConversationController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactMessageController;
+use App\Http\Controllers\Credits\CreditController;
+use App\Http\Controllers\Credits\CreditOrderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LegalPageController;
 use App\Http\Controllers\LocationSearchController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OpenTripController;
@@ -23,6 +26,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', HomeController::class)->name('home');
 
 Route::get('contact', [ContactController::class, 'show'])->name('contact');
+
+Route::get('pricing', [LegalPageController::class, 'pricing'])->name('pricing');
+Route::get('terms', [LegalPageController::class, 'terms'])->name('terms');
+Route::get('privacy', [LegalPageController::class, 'privacy'])->name('privacy');
+Route::get('refund-policy', [LegalPageController::class, 'refundPolicy'])->name('refund-policy');
+Route::get('pages/{contentPage:slug}', [LegalPageController::class, 'show'])->name('pages.show');
 Route::post('contact', [ContactController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('contact.store');
@@ -175,6 +184,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('throttle:15,1')
             ->name('conversations.messages.store');
         Route::delete('conversations/{conversation}', [AssistantConversationController::class, 'destroy'])->name('conversations.destroy');
+    });
+
+    Route::prefix('credits')->name('credits.')->group(function () {
+        Route::get('costs', [CreditController::class, 'costs'])->name('costs');
+        Route::get('buy', [CreditController::class, 'buy'])->name('buy');
+        Route::get('history', [CreditController::class, 'history'])->name('history');
+        Route::post('orders', [CreditOrderController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('orders.store');
+        Route::post('orders/{order}/verify', [CreditOrderController::class, 'verify'])
+            ->middleware('throttle:20,1')
+            ->name('orders.verify');
     });
 });
 

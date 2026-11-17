@@ -1,4 +1,6 @@
 import type { Auth } from '@/types/auth';
+import type { SharedCredits } from '@/types/credits';
+import type { FooterPageLink } from '@/types/legal';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -22,7 +24,7 @@ declare module '@inertiajs/core' {
                 unread: number;
                 recent: {
                     id: string;
-                    kind: 'reminder' | 'shared';
+                    kind: 'reminder' | 'shared' | 'credits';
                     title: string;
                     message: string;
                     url: string | null;
@@ -37,6 +39,8 @@ declare module '@inertiajs/core' {
             integrations: {
                 locationSearchEnabled: boolean;
             };
+            credits: SharedCredits;
+            footerPages: FooterPageLink[];
             [key: string]: unknown;
         };
     }

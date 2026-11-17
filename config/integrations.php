@@ -290,4 +290,23 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Payments (Razorpay)
+    |--------------------------------------------------------------------------
+    |
+    | Used to sell credit packs. The webhook secret is the one you set when
+    | adding the webhook URL (/webhooks/razorpay) in the Razorpay dashboard.
+    |
+    */
+
+    'payments' => [
+        'razorpay' => [
+            'key_id' => env('RAZORPAY_KEY_ID'),
+            'key_secret' => env('RAZORPAY_KEY_SECRET'),
+            'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
+            'base_url' => 'https://api.razorpay.com/v1',
+        ],
+    ],
+
 ];

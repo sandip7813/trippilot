@@ -79,6 +79,9 @@ class UserController extends Controller
                 $assignableRoles,
             ),
             'is_self' => $actor->id === $user->id,
+            'uses_credits' => ! $user->isExemptFromCredits(),
+            'credit_balance' => $user->credit_balance,
+            'can_grant_credits' => $actor->can('grantCredits', $user),
         ];
     }
 

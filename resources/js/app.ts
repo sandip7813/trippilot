@@ -38,6 +38,7 @@ createInertiaApp({
             case name === 'Welcome':
             case name === 'Contact':
             case name.startsWith('OpenTrips/'):
+            case name.startsWith('legal/'):
                 // Public pages, reachable by guests: they build their own
                 // header instead of the authenticated AppLayout (sidebar,
                 // NavUser, etc.), which assumes a logged-in user.

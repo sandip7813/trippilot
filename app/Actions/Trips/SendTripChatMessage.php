@@ -3,10 +3,12 @@
 namespace App\Actions\Trips;
 
 use App\Contracts\Ai\ChatAssistant;
+use App\Enums\CreditService;
 use App\Exceptions\AiGenerationException;
 use App\Models\Trip;
 use App\Models\User;
 use App\Services\Ai\GeminiUsageLimiter;
+use App\Services\Credits\AiCreditCharger;
 use App\Services\Trips\TripAiContextBuilder;
 use App\Support\Trips\TripItineraryPatcher;
 use Illuminate\Support\Str;
@@ -18,6 +20,7 @@ class SendTripChatMessage
         private TripAiContextBuilder $contextBuilder,
         private TripItineraryPatcher $itineraryPatcher,
         private GeminiUsageLimiter $usageLimiter,
+        private AiCreditCharger $creditCharger,
     ) {}
 
     /**
@@ -32,12 +35,20 @@ class SendTripChatMessage
             ));
         }
 
-        $this->usageLimiter->increment($user);
-
         $history = Trip::normalizeChatMessages($trip->getAttribute('chat_messages'));
-        $tripContext = $this->contextBuilder->build($trip, $message);
 
-        $response = $this->chatAssistant->chat($message, $history, $tripContext);
+        [$tripContext, $response] = $this->creditCharger->charge(
+            $user,
+            CreditService::TripChatMessage,
+            function () use ($trip, $message, $history, $user): array {
+                $this->usageLimiter->increment($user);
+
+                $tripContext = $this->contextBuilder->build($trip, $message);
+
+                return [$tripContext, $this->chatAssistant->chat($message, $history, $tripContext)];
+            },
+            (string) $trip->id,
+        );
 
         $ragSources = is_array($tripContext['rag_sources'] ?? null)
             ? array_values(array_map(

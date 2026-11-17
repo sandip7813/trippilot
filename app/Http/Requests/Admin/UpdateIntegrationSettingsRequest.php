@@ -34,6 +34,9 @@ class UpdateIntegrationSettingsRequest extends FormRequest
             'gemini_api_key' => ['nullable', 'string', 'max:255'],
             'railradar_api_key' => ['nullable', 'string', 'max:255'],
             'unsplash_access_key' => ['nullable', 'string', 'max:255'],
+            'razorpay_key_id' => ['nullable', 'string', 'starts_with:rzp_', 'max:64'],
+            'razorpay_key_secret' => ['nullable', 'string', 'max:255'],
+            'razorpay_webhook_secret' => ['nullable', 'string', 'max:255'],
         ];
     }
 
